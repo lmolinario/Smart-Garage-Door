@@ -19,7 +19,7 @@ L’obiettivo è realizzare un sistema intelligente per il controllo remoto e au
 
 Documentazione completa del progetto: analisi, architettura, firmware, validazione.
 
-➡️  **[https://app.crixet.com/?u=b5bcfa26-246c-4614-964f-bb1eaa324145&pg=1&m=main.tex&d=7](https://app.crixet.com/?u=b5bcfa26-246c-4614-964f-bb1eaa324145&pg=1&m=main.tex&d=7)**
+**[https://app.crixet.com/?u=b5bcfa26-246c-4614-964f-bb1eaa324145&pg=1&m=main.tex&d=7](https://app.crixet.com/?u=b5bcfa26-246c-4614-964f-bb1eaa324145&pg=1&m=main.tex&d=7)**
 
 ---
 
@@ -27,7 +27,7 @@ Documentazione completa del progetto: analisi, architettura, firmware, validazio
 
 Modello funzionante del cablaggio Arduino + NodeMCU + sensori.
 
-➡️ **[https://www.tinkercad.com/things/f9Zs6mc1zuk-smart-garage-door-iot-molinario-tuzi?sharecode=inUBEnqjk6C_21CV93_0aW_xciNNOMU7G4732abxZ9Q](https://www.tinkercad.com/things/f9Zs6mc1zuk-smart-garage-door-iot-molinario-tuzi?sharecode=inUBEnqjk6C_21CV93_0aW_xciNNOMU7G4732abxZ9Q)**
+**[https://www.tinkercad.com/things/f9Zs6mc1zuk-smart-garage-door-iot-molinario-tuzi?sharecode=inUBEnqjk6C_21CV93_0aW_xciNNOMU7G4732abxZ9Q](https://www.tinkercad.com/things/f9Zs6mc1zuk-smart-garage-door-iot-molinario-tuzi?sharecode=inUBEnqjk6C_21CV93_0aW_xciNNOMU7G4732abxZ9Q)**
 
 ---
 
@@ -35,7 +35,7 @@ Modello funzionante del cablaggio Arduino + NodeMCU + sensori.
 
 Versione web del bot Telegram usato per il controllo del sistema.
 
-➡️ **[https://web.telegram.org/a/#8594959211](https://web.telegram.org/a/#8594959211)**
+**[https://web.telegram.org/a/#8594959211](https://web.telegram.org/a/#8594959211)**
 
 ---
 
