@@ -1,0 +1,50 @@
+1. Arduino Kit
+2. NodeMCU (ESP8266 – WiFi)
+3. RFID Reader + TAGs
+4. PIR - Presence Detector
+5. BMP280 - Pressure, Temperature, Altitude
+6. MPU9250 - 3-Axis Accelerometer, Gyroscope and Magnetometer
+7. HC-SR04 – Ultrasonic Sensor
+8. LCD Display
+9. DHT11 (Temperature)
+10. Sensor Kit
+11. Motore aspira acqua + Tubo
+12. Sensore umidità del terreno (moisture sensor)
+
+
+arduino uno R3 elegoo
+led vari colori
+pulsanti
+buzzer
+resistenze
+74hc595ic
+tilt ball switch
+breadboard
+MPU9250/6500 9-Axis 9 DOF 16 Bit Gyroscope Acceleration Magnetic Sensor 9-Axis Attitude +Gyro+Accelerator+Magnetometer Sensor Module IIC/SPI for Arduino GY-9250
+Sensore di pressione GY-BMP280-3.3
+monitor 16x2
+esp8266 mod 12 frfid rc5222
+7 in 1 KIT Sensori per Arduino®
+Il kit “37 In 1 Sensor Kit For Arduino®” contiene al suo interno una selezione dei sensori e moduli più comunemente usati e più utili in elettronica. Indispensabili per i vostri progetti IoT e pronti da essere utilizzati nei vostri progetti con le schede della serie Arduino®, Raspberry e Beaglebone.
+
+			
+KY-023 Modulo Joystick 2 assi	KY-026 Sensore di fiamma	KY-016 Modulo LED RGB	KY-039 Modulo misurazione battito cardiaco
+			
+ KY-027 Modulo Magic Light Cup (2 pezzi)	 KY-003 Sensore Magnetico Effetto Hall	 KY-019 Modulo Relè 5V 10A/250V	 KY-024 Sensore Magnetico Lineare Effetto Hall
+			
+ KY-009 LED RGB SMD 5050	 KY-034 LED da 5 mm a 7 colori	 KY-017 Sensore ribaltamento al mercurio	 KY-001 Sensore di Temperatura Digitale DS18B20
+			
+ KY-038 Modulo microfonico alta sensibilità	 KY-036 Metal Touhtch Sensor	 KY-011 Module LED bicolore rosso/verde	 KY-008 Modulo Sensore Laser
+			
+ KY-020 Modulo Tilt Sensor	KY-013 Sensore temperatura analogico NTC	 KY-037 Sensore microfonico	 KY-028 Sensore di Temperatura NTC
+			
+ KY-029 LED Bicolore 3mm	 KY-004 Modulo Pulsante	 KY-018 Modulo Fotoresistenza	 KY-005 Modulo Emettitore IR
+			
+ KY-033 Modulo Hunt Sensor Line Follower	 KY-012 Modulo Buzzer Attivo	 KY-025 Modulo con contatto reed	 KY-002 Modulo Sensore di inclinazione
+			
+ KY-015 Sensore di Temperatura e Umidità	 KY-022 Modulo ricevitore IR	 KY-032 Sensore Evitamento Ostacoli	 KY-006 Modulo Buzzer Passivo
+			
+ KY-021 Modulo Mini Reed	 KY-040 Modulo Encoder Rotativo	 KY-003 Sensore Magnetico effetto Hall	
+KY-010 Sensore Ottico a Forcella
+
+ KY-035 Knock Sensor
