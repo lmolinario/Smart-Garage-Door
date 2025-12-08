@@ -1,0 +1,46 @@
+# Smart Garage Door - Pinout Table
+# Author: Lello Molinario, Matteo Tuzi
+# Version: 1 - December 2025
+# Format: Component,Signal/Pin,Board Pin,Direction,Description
+
+Component,Signal/Pin,Board Pin,Direction,Description
+
+Arduino UNO,PIR Signal,D4,Input,Rilevamento movimento (FR5a)
+Arduino UNO,Servo Control,D5,Output,Attivazione motore porta garage (FR1/FR4)
+Arduino UNO,HC-SR04 Trigger,D6,Output,Invia impulso ultrasonico (FR8)
+Arduino UNO,HC-SR04 Echo,D7,Input,Riceve segnale eco (FR8)
+Arduino UNO,Manual Button,D8,Input,Comando manuale locale (FR7)
+Arduino UNO,Door LED (Green),D9,Output,Segnalazione porta aperta
+Arduino UNO,Serial In (from NodeMCU),D10,Input,Riceve comandi dal NodeMCU
+Arduino UNO,Serial Out (to NodeMCU),D11,Output,Invia stato porta al NodeMCU
+Arduino UNO,5V,5V,Power,Alimentazione sensori
+Arduino UNO,GND,GND,Ground,Massa comune
+
+NodeMCU ESP8266,TX,D1,Output,Invia comandi ad Arduino
+NodeMCU ESP8266,RX,D2,Input,Riceve stato da Arduino
+NodeMCU ESP8266,Wi-Fi Antenna,--,Bidirectional,Connessione rete locale (NFR1)
+NodeMCU ESP8266,MQTT Client,--,Bidirectional,Comunicazione con broker MQTT
+NodeMCU ESP8266,3V3,3V3,Power,Alimentazione ESP8266
+NodeMCU ESP8266,GND,GND,Ground,Massa comune
+
+GPS,TX,D3 (NodeMCU),Output,Trasmissione dati GPS → ESP8266 (FR5b)
+GPS,RX,D4 (NodeMCU),Input,Ricezione dati GPS (opzionale)
+GPS,VCC,3V3,Power,Alimentazione modulo GPS
+GPS,GND,GND,Ground,Massa comune
+
+Servo Module,IN,D5 (Arduino),Input,Controllo servo motore
+Servo Module,VCC,5V,Power,Alimentazione servo
+Servo Module,GND,GND,Ground,Massa comune
+
+PIR Sensor,OUT,D4 (Arduino),Output,Segnale movimento rilevato
+PIR Sensor,VCC,5V,Power,Alimentazione PIR
+PIR Sensor,GND,GND,Ground,Massa comune
+
+HC-SR04,TRIG,D6 (Arduino),Output,Invio impulso ultrasuoni
+HC-SR04,ECHO,D7 (Arduino),Input,Ricezione eco ultrasuoni
+HC-SR04,VCC,5V,Power,Alimentazione sensore distanza
+HC-SR04,GND,GND,Ground,Massa comune
+
+Manual Button,SIG,D8 (Arduino),Input,Pulsante override
+Manual Button,VCC,5V,Power,Alimentazione pulsante
+Manual Button,GND,GND,Ground,Massa comune
