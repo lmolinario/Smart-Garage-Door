@@ -10,7 +10,7 @@ La seguente tabella indica quando usare ciascun firmware, quali funzioni copre e
 
 ---
 
-## 🧩 Panoramica dei Firmware
+##  Panoramica dei Firmware
 
 | Firmware | Dispositivo | Ruolo nel Sistema | Quando utilizzarlo                           | Vantaggi | Limitazioni |
 |---------|-------------|-------------------|----------------------------------------------|----------|-------------|
@@ -23,7 +23,7 @@ La seguente tabella indica quando usare ciascun firmware, quali funzioni copre e
 
 ##  Come scegliere il firmware giusto
 
-### ✔ Installazione reale completa  
+###  Installazione reale completa  
 Utilizzare sempre:
 - `controller_arduino.ino` → gestione sensori/attuatori
 - `controller_nodemcu.ino` → connettività, MQTT, logica geofence
