@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.env
+
+# VSCode / IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+
+# Logs
+*.log
+
+# Arduino / build
+*.hex
+*.elf
+*.bin
+
+# Secrets
+#software/config.local.json
