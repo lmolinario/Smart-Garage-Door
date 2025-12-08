@@ -20,4 +20,4 @@ __pycache__/
 *.bin
 
 # Secrets
-#software/config.local.json
+software/config.json
