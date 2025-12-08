@@ -490,13 +490,24 @@ async def gps_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def gps_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """L’utente invia la posizione con il pulsante Telegram."""
-    if not await require_user_login(update): return
 
-    if not update.message.location:
+    # Utente non loggato → esci
+    if not await require_user_login(update):
         return
 
-    lat = update.message.location.latitude
-    lon = update.message.location.longitude
+    # --- FIX ROBUSTO ----
+    msg = update.message
+    if msg is None:
+        logger.warning("gps_location: update.message è None")
+        return
+
+    if msg.location is None:
+        logger.warning("gps_location: location mancante")
+        return
+    # ---------------------
+
+    lat = msg.location.latitude
+    lon = msg.location.longitude
 
     inside, dist = _is_inside_geofence(lat, lon)
     val = 1 if inside else 0
@@ -505,14 +516,41 @@ async def gps_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
     res = _post("/gps", payload)
 
     if "error" in res:
-        await update.message.reply_text(f"Errore invio GPS: {res['error']}")
+        await msg.reply_text(f"Errore invio GPS: {res['error']}")
         return
 
     stato = "DENTRO il geofence" if inside else "FUORI dal geofence"
-    await update.message.reply_text(
+    await msg.reply_text(
         f"Posizione ricevuta:\n"
         f"Lat={lat:.6f}\nLon={lon:.6f}\n"
         f"Distanza da casa ≈ {dist:.1f} m\n"
+        f"Stato: {stato}"
+    )
+
+
+async def gps_live_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    edited = update.edited_message
+
+    if edited is None or edited.location is None:
+        logger.warning("gps_live_location: nessuna location nella live update")
+        return
+
+    lat = edited.location.latitude
+    lon = edited.location.longitude
+
+    inside, dist = _is_inside_geofence(lat, lon)
+    val = 1 if inside else 0
+
+    payload = {"value": val, "lat": lat, "lon": lon}
+    res = _post("/gps", payload)
+
+    stato = "DENTRO IL GEOFENCE" if inside else "FUORI DAL GEOFENCE"
+
+    await edited.reply_text(
+        f"[LIVE] Posizione aggiornata:\n"
+        f"Lat: {lat:.6f}\n"
+        f"Lon: {lon:.6f}\n"
+        f"Distanza ≈ {dist:.1f} m\n"
         f"Stato: {stato}"
     )
 
@@ -639,36 +677,39 @@ def main():
     app.add_handler(CommandHandler("login", login_cmd))
     app.add_handler(CommandHandler("logout", logout_cmd))
 
-
     app.add_handler(CommandHandler("on", on_cmd))
     app.add_handler(CommandHandler("off", off_cmd))
     app.add_handler(CommandHandler("status", status_cmd))
 
+    # Gestione utenti
     app.add_handler(CommandHandler("adduser", add_user_cmd))
     app.add_handler(CommandHandler("deluser", del_user_cmd))
     app.add_handler(CommandHandler("listusers", list_users_cmd))
+    app.add_handler(CommandHandler("changepass", changepass_cmd))
+
+    # GPS manuale
     app.add_handler(CommandHandler("gps", gps_cmd))
 
+    # LIVE LOCATION (edited_message)
+    app.add_handler(MessageHandler(filters.UpdateType.EDITED_MESSAGE, gps_live_location))
 
-    # NUOVI COMANDI
+    # Sensori
     app.add_handler(CommandHandler("pir", pir_cmd))
     app.add_handler(CommandHandler("obstacle", obstacle_cmd))
     app.add_handler(CommandHandler("adminstatus", adminstatus_cmd))
 
-    app.add_handler(CommandHandler("changepass", changepass_cmd))
+    # Testo normale
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_handler))
 
-    app.add_handler(MessageHandler(filters.COMMAND, unknown))
+    # LOCATION singola
     app.add_handler(MessageHandler(filters.LOCATION, gps_location))
 
-
-
-    # Notifica automatica ogni 60s (opzionale)
-    #job_queue = app.job_queue
-    #job_queue.run_repeating(periodic_status, interval=60, first=10)
+    # Comandi sconosciuti
+    app.add_handler(MessageHandler(filters.COMMAND, unknown))
 
     logger.info("Telegram bot avviato.")
     app.run_polling()
+
 
 if __name__ == "__main__":
     main()
