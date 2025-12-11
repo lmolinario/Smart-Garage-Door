@@ -73,7 +73,7 @@ Questo approccio applica un criterio di sicurezza di tipo \textit{two-factor con
 \begin{lstlisting}[language=C++, caption={Logica di automazione combinata}]
 // Condizione di automazione combinata (FR5a + FR5b)
 if (pirState == HIGH && userNearHome == true && !doorOpen) {
-    digitalWrite(RELAY_PIN, HIGH);  // Attiva relè di apertura
+    digitalWrite(RELAY_PIN, HIGH);  // Attiva apertura
     commSerial.write((byte) 0x01);  // Notifica apertura al NodeMCU
     doorOpen = true;
     tic = millis();                 // Reset timer per FR4 (chiusura automatica)

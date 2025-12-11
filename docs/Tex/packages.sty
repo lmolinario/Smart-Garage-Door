@@ -89,7 +89,10 @@
 
 % --- Language ---
 \usepackage{siunitx}    % Enable SI units
-\usepackage[british]{babel}     % Defining UK English as language. This will among other things ensure that dates are displayed as 24/03/1997 rather than 03/24/1997 in the bibliography.
+\usepackage[italian,british,shorthands=off]{babel}
+\selectlanguage{italian}
+
+   % Defining UK English as language. This will among other things ensure that dates are displayed as 24/03/1997 rather than 03/24/1997 in the bibliography.
 \addto\extrasbritish{   % Change naming of different functions, e.g. figure references.
     \renewcommand*\contentsname{Table of Contents}  % Rename table of contents
     \renewcommand{\listfigurename}{List of Figures} % Rename list of figures
