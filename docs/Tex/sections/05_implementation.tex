@@ -388,6 +388,10 @@ Dal punto di vista architetturale, il bot agisce come \textit{frontend} remoto d
     \label{fig:telegram_screen}
 \end{figure}
 
+
+
+
+
 \subsection*{Funzionalità principali e flusso operativo}
 Le funzionalità del bot sono implementate nel file \texttt{telegram\_listener.py}. L'interazione si basa su un modello request-response: ogni comando inviato dall'utente viene tradotto in una chiamata REST al server Flask, il quale delega poi l'operazione al microcontrollore tramite MQTT.
 Esempio del comando di apertura:
@@ -455,6 +459,62 @@ Durante la fase di test, il bot ha evidenziato un tempo medio di risposta inferi
     \item stabilità anche durante sessioni continuative di molti minuti.
 \end{itemize}
 Nel complesso, il bot Telegram si è dimostrato un'interfaccia utente affidabile, scalabile e altamente usabile, rappresentando una soluzione ideale per sistemi IoT domestici con requisiti di praticità e sicurezza.
+
+
+
+
+\section{Mock-up dell’interfaccia Telegram}
+
+Per completare la descrizione dell’interfaccia utente e rendere più chiaro il
+comportamento del sistema dal punto di vista dell’utilizzatore finale,
+è stato realizzato un mock-up dell’interazione con il bot Telegram.
+L’obiettivo è rappresentare in modo visuale il flusso dei comandi, le
+risposte fornite dal sistema e l’esperienza d’uso generale.
+
+Il mock-up ha una duplice funzione:
+\begin{itemize}
+    \item fornire una rappresentazione fedele del flusso conversazionale,
+          utile nelle fasi di progettazione e validazione (SDLC);
+    \item documentare l’interfaccia utente in modo indipendente
+          dall’implementazione, secondo le linee guida IoT per la
+          separazione tra logica applicativa e front-end.
+\end{itemize}
+
+Nelle Figure \ref{fig:mockup_start}–\ref{fig:mockup_status} sono riportati
+i messaggi principali del bot, che illustrano i tre scenari cardine:
+\begin{enumerate}
+    \item inizializzazione della sessione e presentazione dei comandi;
+    \item interazione operativa (apertura, chiusura, consultazione dello stato);
+    \item ricezione di notifiche automatiche generate dal server Flask.
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.62\textwidth]{images/mockup_start.png}
+    \caption{Mock-up del comando \texttt{/start} e menu iniziale dell’interfaccia Telegram.}
+    \label{fig:mockup_start}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.82\textwidth]{images/mockup_open.png}
+    \caption{Mock-up dell'interazione di apertura della porta tramite comando \texttt{/on}.}
+    \label{fig:mockup_open}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.82\textwidth]{images/mockup_status.png}
+    \caption{Mock-up della consultazione dello stato tramite comando \texttt{/status}.}
+    \label{fig:mockup_status}
+\end{figure}
+
+Questa rappresentazione grafica consente di valutare con immediatezza
+l’usabilità dell’interfaccia, confermando la coerenza tra il design previsto,
+il comportamento implementato nel file \texttt{telegram\_listener.py} e i flussi
+informativi descritti nel modello di architettura applicativa.
+
+
 
 \section{Modulo di monitoraggio (timer.py)}
 La componente di monitoraggio costituisce un elemento trasversale dell'architettura, progettata per garantire la supervisione e la continuità operativa del sistema anche in assenza di intervento umano diretto. Nel contesto del progetto Smart Garage Door, tale funzione è implementata dal modulo timer, realizzato in linguaggio Python e denominato \texttt{timer.py}. Il suo compito principale è quello di eseguire controlli periodici sullo stato del sistema attraverso l'API Flask, registrare l'attività su file di log locale e inviare alert via Telegram in caso di anomalie.
