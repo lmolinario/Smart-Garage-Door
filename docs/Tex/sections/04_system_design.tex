@@ -2130,6 +2130,80 @@ Disponibilità locale garantita, con fallback manuale (FR7). \\
 
 La Tabella~\ref{tab:theoretical_vs_real} evidenzia come la soluzione reale mantenga la stessa logica architetturale del modello teorico, pur adottando componenti più semplici ed economici per soddisfare i vincoli di costo e complessità. La progettazione segue un principio di \textbf{scalabilità progressiva}, che consente al prototipo di evolvere verso configurazioni più avanzate senza modificare la struttura concettuale del sistema.
 
+\section{Pinout e collegamenti elettrici}
+
+La definizione del pinout e dei collegamenti elettrici rappresenta un elemento essenziale nel processo di system design, poiché assicura la corrispondenza tra modello architetturale e implementazione fisica del prototipo.
+Nel progetto \textit{Smart Garage Door}, il wiring è stato progettato seguendo principi di modularità, separazione delle responsabilità e coerenza con l’architettura a tre livelli (Perception–Network–Application).
+La Tabella~\ref{tab:pinouttable} riassume i collegamenti definitivi tra microcontrollori, sensori, attuatori e moduli di comunicazione.
+
+\begin{table}[H]
+\centering
+\caption{Pinout definitivo dei componenti hardware del sistema}
+\label{tab:pinouttable}
+
+
+\begin{tabular}{|p{3.2cm}|p{2cm}|p{2cm}|p{2cm}|p{4cm}|}
+\hline
+\textbf{Componente} & \textbf{Segnale / Pin} & \textbf{Board Pin} & \textbf{Direzione} & \textbf{Descrizione} \\
+\hline
+
+\multicolumn{5}{|c|}{\textbf{Arduino UNO – Perception Layer}} \\ \hline
+PIR Sensor & OUT & D4 & Input & Rilevazione movimento (FR5a). \\ \hline
+Servo Motor & Control & D5 & Output & Movimento apertura/chiusura porta (FR1, FR4). \\ \hline
+HC-SR04 & Trigger & D6 & Output & Invio impulso ultrasuoni (FR8). \\ \hline
+HC-SR04 & Echo & D7 & Input & Ricezione eco ultrasuoni (FR8). \\ \hline
+Pulsante manuale & SIG & D8 & Input & Comando locale override (FR7). \\ \hline
+LED stato porta & Green LED & D9 & Output & Indicatore porta aperta. \\ \hline
+Seriale da ESP8266 & RX\textsubscript{Arduino} & D10 & Input & Ricezione comandi dal NodeMCU. \\ \hline
+Seriale verso ESP8266 & TX\textsubscript{Arduino} & D11 & Output & Invio stato e eventi verso NodeMCU. \\ \hline
+Arduino UNO & 5V & 5V & Power & Alimentazione sensori. \\ \hline
+Arduino UNO & GND & GND & Ground & Massa comune. \\ \hline
+
+\multicolumn{5}{|c|}{\textbf{NodeMCU ESP8266 – Network Layer}} \\ \hline
+ESP8266 UART TX & TX & D1 & Output & Invio comandi ad Arduino. \\ \hline
+ESP8266 UART RX & RX & D2 & Input & Ricezione stato da Arduino. \\ \hline
+ESP8266 Wi-Fi & Antenna & -- & Bidirectional & Connessione a rete locale (NFR1). \\ \hline
+ESP8266 MQTT Client & -- & -- & Bidirectional & Pub/Sub verso broker MQTT. \\ \hline
+NodeMCU & 3V3 & 3V3 & Power & Alimentazione ESP8266. \\ \hline
+NodeMCU & GND & GND & Ground & Massa comune. \\ \hline
+
+\multicolumn{5}{|c|}{\textbf{Modulo GPS – Geofencing (FR5b)}} \\ \hline
+GPS UART TX & TX & D3 (NodeMCU) & Output & Trasmissione coordinate NMEA verso ESP8266. \\ \hline
+GPS UART RX & RX & D4 (NodeMCU) & Input & Ricezione (opzionale). \\ \hline
+GPS & VCC & 3V3 & Power & Alimentazione modulo GPS. \\ \hline
+GPS & GND & GND & Ground & Massa comune. \\ \hline
+
+\multicolumn{5}{|c|}{\textbf{Attuatori e sensori – Perception Layer}} \\ \hline
+Servo Module & IN & D5 (Arduino) & Input & Controllo servo motore. \\ \hline
+Servo Module & VCC & 5V & Power & Alimentazione servo. \\ \hline
+Servo Module & GND & GND & Ground & Massa comune. \\ \hline
+
+PIR Sensor & OUT & D4 (Arduino) & Output & Segnale di rilevazione movimento. \\ \hline
+PIR Sensor & VCC & 5V & Power & Alimentazione PIR. \\ \hline
+PIR Sensor & GND & GND & Ground & Massa comune. \\ \hline
+
+HC-SR04 & TRIG & D6 (Arduino) & Output & Invio impulso ultrasuoni. \\ \hline
+HC-SR04 & ECHO & D7 (Arduino) & Input & Ricezione eco ultrasuoni. \\ \hline
+HC-SR04 & VCC & 5V & Power & Alimentazione sensore. \\ \hline
+HC-SR04 & GND & GND & Ground & Massa comune. \\ \hline
+
+Pulsante manuale & SIG & D8 (Arduino) & Input & Override locale apertura/chiusura. \\ \hline
+Pulsante manuale & VCC & 5V & Power & Alimentazione. \\ \hline
+Pulsante manuale & GND & GND & Ground & Massa comune. \\ \hline
+
+\end{tabular}
+\end{table}
+
+La struttura del pinout garantisce un elevato livello di separazione tra i livelli architetturali:
+\begin{itemize}
+    \item \textbf{Perception Layer}: sensori PIR e distanza, attuatore servo, pulsante locale;
+    \item \textbf{Network Layer}: modulo NodeMCU ESP8266, GPS NEO-6M, UART di collegamento con Arduino;
+    \item \textbf{Application Layer}: backend Flask, MQTT broker e bot Telegram.
+\end{itemize}
+
+Questa organizzazione riflette una progettazione coerente con gli standard IoT moderni e facilita la manutenibilità e la scalabilità del sistema.
+
+
 
 
 \section{Considerazioni di progetto}

@@ -120,7 +120,7 @@ La Figura \ref{fig:schematic} (rif. cap 8) mostra il wiring completo del sistema
 
 \begin{table}[h!]
     \centering
-    \caption{Pinout aggiornato dei componenti del sistema Smart Garage Door.}
+    \caption{Pinout parziale dei componenti del sistema Smart Garage Door.}
     \label{tab:pinout}
     \begin{tabular}{|p{4cm}|p{3cm}|p{6cm}|}
     \hline
@@ -129,7 +129,7 @@ La Figura \ref{fig:schematic} (rif. cap 8) mostra il wiring completo del sistema
     HC-SR04 - Trigger & D8 (Arduino) & Emissione impulso ultrasonico (output) \\ \hline
     HC-SR04 - Echo & D9 (Arduino) & Ricezione eco per misura distanza (input, FR8) \\ \hline
     Relè & D5 (Arduino) & Attivazione motore della porta (output, FR1-FR4) \\ \hline
-    NodeMCU ESP8266 & D0/D1 (Arduino) & Comunicazione seriale UART (sincronizzazione) \\ \hline
+    NodeMCU ESP8266 & D10/D11 (Arduino) & Comunicazione seriale UART (sincronizzazione) \\ \hline
     Modulo GPS  & RX/TX (ESP8266) & Geolocalizzazione e eventi GPS (FR5b) \\ \hline
     Alimentazione & 5V/GND & Alimentazione sensori e logica \\ \hline
     \end{tabular}

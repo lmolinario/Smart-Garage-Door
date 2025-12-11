@@ -193,6 +193,83 @@ Per verificare la resilienza del meccanismo publish/subscribe, il broker MQTT è
 I risultati complessivi mostrano che l'architettura a componenti indipendenti e a responsabilità distribuite consente di minimizzare i punti singoli di guasto (\textit{single points of failure}). Ogni nodo è progettato per funzionare autonomamente entro il proprio dominio di competenza e per recuperare automaticamente in caso di errori temporanei, migliorando la availability e la reliability del sistema in accordo con le proprietà di dependability identificate nella letteratura \cite{Avizienis2004}.
 Nel complesso, il sistema Smart Garage Door ha dimostrato una notevole robustezza operativa, confermando la validità delle scelte progettuali adottate e la capacità del prototipo di gestire fault parziali senza compromissione delle funzionalità critiche e della sicurezza operativa.
 
+
+\subsection{Test NFR5 – Funzionamento Offline}
+
+Il requisito non funzionale NFR5 stabilisce che il sistema debba garantire la piena continuità operativa anche in assenza di connettività Internet o della rete Wi-Fi domestica. Tale vincolo risponde a due esigenze fondamentali: (i) preservare la sicurezza fisica dell’utente assicurando la possibilità di chiudere la porta del garage anche in condizioni di fault del Network Layer, e (ii) prevenire situazioni di lock-out dovute alla dipendenza da servizi remoti. Nei sistemi IoT moderni, la capacità di operare in modalità \textit{offline degraded mode} rappresenta un criterio essenziale di robustezza e affidabilità \cite{Avizienis2004, Marwedel2021}.
+
+\subsubsection*{Obiettivo del test}
+Verificare che:
+\begin{enumerate}
+    \item la logica locale eseguita da Arduino continui a funzionare correttamente senza alcun supporto da parte del NodeMCU ESP8266;
+    \item sia possibile aprire/chiudere la porta tramite il pulsante fisico (FR7) anche con rete disattivata;
+    \item la chiusura automatica temporizzata (FR4) venga eseguita regolarmente;
+    \item i sensori PIR e ultrasuoni continuino a funzionare regolarmente;
+    \item il sistema non generi comportamenti incoerenti o pericolosi durante l’assenza di rete;
+    \item il NodeMCU, una volta ripristinata la rete, ristabilisca automaticamente la connessione MQTT.
+\end{enumerate}
+
+\subsubsection*{Setup sperimentale}
+Il test è stato eseguito in condizioni reali seguendo la procedura:
+\begin{enumerate}
+    \item disattivazione totale del Wi-Fi domestico;
+    \item verifica dello stato del broker MQTT (irraggiungibile);
+    \item avvio della porta in stato chiuso;
+    \item attivazione manuale tramite pulsante fisico collegato al pin Arduino dedicato (FR7);
+    \item simulazione di movimento tramite sensore PIR per osservare eventuali attivazioni involontarie;
+    \item verifica della chiusura automatica allo scadere del timer locale (FR4);
+    \item osservazione del comportamento del sistema durante la riattivazione del Wi-Fi.
+\end{enumerate}
+
+\subsubsection*{Risultati}
+I risultati ottenuti sono riportati nella Tabella~\ref{tab:nfr5_offline}.
+
+\begin{table}[h!]
+\centering
+\caption{Esito del test NFR5 – funzionamento in modalità offline}
+\label{tab:nfr5_offline}
+\begin{tabular}{|p{6cm}|p{6.5cm}|c|}
+\hline
+\textbf{Funzionalità testata} & \textbf{Descrizione comportamento osservato} & \textbf{Esito} \\ \hline
+
+Pulsante locale (FR7) &
+Il comando fisico attiva correttamente il relè anche in completa assenza di rete o broker MQTT. &
+Superato \\ \hline
+
+Chiusura automatica (FR4) &
+Il timer locale su Arduino chiude la porta dopo 45 secondi, indipendentemente dal livello di connettività. &
+Superato \\ \hline
+
+Sensore PIR (FR5a) &
+La rilevazione del movimento rimane operativa. Nessuna apertura involontaria registrata. &
+Superato \\ \hline
+
+Sensore distanza HC-SR04 (FR8) &
+La rilevazione ostacoli funziona regolarmente; la porta non completa la chiusura se la distanza è $<15$ cm. &
+Superato \\ \hline
+
+Stato del sistema lato Flask &
+Nessun aggiornamento dello stato porta viene ricevuto (atteso). Il sistema evita inconsistenze e non genera errori. &
+Superato \\ \hline
+
+Riconnessione NodeMCU &
+All'attivazione del Wi-Fi, l’ESP8266 ristabilisce automaticamente la connessione MQTT con meccanismo di exponential backoff. &
+Superato \\ \hline
+
+Coerenza del sistema &
+Nessun comportamento incoerente o pericoloso osservato; la logica locale garantisce la continuità operativa. &
+Superato \\ \hline
+
+\end{tabular}
+\end{table}
+
+\subsubsection*{Discussione}
+Il test conferma pienamente il soddisfacimento del requisito NFR5. La logica locale, interamente eseguita da Arduino nei livelli \textit{Perception} e \textit{Actuation}, garantisce un funzionamento sicuro anche in assenza totale del \textit{Network Layer}. Questo comportamento è coerente con le linee guida per sistemi embedded real-time e IoT resilienti, che raccomandano l’adozione di controllori locali indipendenti dalla connettività esterna per garantire la \textit{safe fallback mode} \cite{Marwedel2021, Avizienis2004}.
+
+L'ESP8266, pur risultando isolato dal broker MQTT durante la disconnessione, non influisce sul funzionamento operativo e ristabilisce autonomamente la connessione una volta disponibile la rete. Il sistema nel suo complesso si dimostra quindi \textbf{robusto}, \textbf{sicuro} e \textbf{coerente} con il modello architetturale progettato.
+
+
+
 \section{Analisi dei risultati}
 L'analisi complessiva dei risultati ottenuti nelle fasi di unit, integration e system testing conferma che il prototipo Smart Garage Door soddisfa pienamente l'insieme dei requisiti funzionali e non funzionali definiti nel Capitolo 3. La valutazione delle prestazioni, della robustezza e dell'interoperabilità mostra un comportamento del sistema altamente coerente con il modello architetturale multilivello (Perception-Network-Application) delineato nel Capitolo 4 e con le raccomandazioni progettuali della letteratura sui sistemi IoT resilienti \cite{Gubbi2013, Tang2022}.
 

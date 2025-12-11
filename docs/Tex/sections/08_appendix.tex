@@ -114,10 +114,10 @@ Ogni componente è indipendente ma interconnesso tramite interfacce chiare e doc
   }
   % ====================== DOCS ======================
   child { node[box, fill=yellow!10!white, minimum width=65mm, yshift=-80mm]
-            {docs/ \hfill \# Documentazione e immagini}
-    child { node[box,yshift=0mm]   {IOT\_Project\_rev\_2.pdf} }
-    child { node[box,yshift=-5mm]  {04\_\_Project\_design\_3.pdf} }
-    child { node[box,yshift=-10mm] {00\_\_Recap\_2\_merged.pdf} }
+            {docs/ \hfill \# Documentazione }
+    child { node[box,yshift=0mm]   {Requisiti/} }
+    child { node[box,yshift=-5mm]  {Tex/} }
+    child { node[box,yshift=-10mm] {Materiale in consegna/} }
   };
 
 \end{tikzpicture}
@@ -145,12 +145,12 @@ Durante i test sperimentali, i messaggi di stato generati dai vari moduli hanno 
 Un estratto di log tipico è mostrato di seguito:
 
 \begin{verbatim}
-[NodeMCU] Connected to broker mqtt://192.168.1.4
-[Arduino] PIR detected motion -> Door opening
-[Flask] User lello issued command /on
-[Telegram] Notification sent: Door opened successfully
-[GPS] Distance < 15m -> Triggering auto-open
-[Arduino] No motion detected for 45s -> Door closing
+[NodeMCU] Connesso al broker mqtt://192.168.1.4
+[Arduino] Il sensore PIR ha rilevato movimento → Apertura della porta
+[Flask] L’utente lello ha inviato il comando /on
+[Telegram] Notifica inviata: Porta aperta con successo
+[GPS] Distanza < 15 m → Attivazione apertura automatica
+[Arduino] Nessun movimento rilevato per 45 s → Chiusura della porta
 \end{verbatim}
 
 Questa sequenza evidenzia la corretta sincronizzazione tra i moduli e la gestione autonoma degli eventi.
