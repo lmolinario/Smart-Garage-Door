@@ -301,6 +301,400 @@ In particolare, la logica locale su Arduino assicura il funzionamento autonomo a
 
 
 
+
+\section{Data
+Exchange Format}
+
+
+
+La definizione dei formati di scambio
+dati rappresenta un elemento centrale nei sistemi IoT distribuiti,
+poiché consente di garantire interoperabilità, coerenza semantica e
+affidabilità lungo l’intera catena applicativa. In Smart Garage
+Door, la progettazione del formato dati non è stata considerata come
+un aspetto meramente implementativo, ma come una componente
+architetturale fondamentale, direttamente collegata ai requisiti
+funzionali (FR1–FR9) e non funzionali (NFR1–NFR10).
+
+
+
+Il
+sistema coinvolge infatti tre domini distinti — Perception, Network
+e Application Layer — che operano mediante protocolli eterogenei e
+con livelli di astrazione differenti. Ciò rende necessario adottare
+un modello di rappresentazione dei dati che sia, al tempo stesso,
+minimale per i microcontrollori a risorse limitate (Arduino UNO),
+espressivo per il nodo di rete (ESP8266) e strutturato per il livello
+applicativo (Flask + Telegram Bot).
+
+
+
+\subsection*{Comunicazione
+Arduino–ESP8266: rappresentazione a byte singolo}
+
+La
+comunicazione locale tra Arduino e NodeMCU avviene tramite
+interfaccia UART e utilizza un formato estremamente compatto, basato
+su codici numerici a singolo byte. Questa scelta è motivata da
+considerazioni di efficienza: il microcontrollore ATmega328P dispone
+di risorse limitate e una codifica minimale evita parsing complessi e
+ritardi non deterministici.
+
+
+
+Ogni messaggio UART
+rappresenta un evento o un comando atomico, come l'apertura della
+porta, la chiusura, l’ingresso nel geofence o la richiesta dello
+stato. L’utilizzo di valori simbolici (0x00, 0x01, 0x02, ...)
+permette di definire un vocabolario operativo semplice,
+immediatamente interpretabile dal firmware e adatto a contesti
+real-time.
+
+
+
+In termini architetturali, tale formato
+realizza un “linguaggio minimo” tra Perception e Network Layer,
+sufficiente a trasportare le informazioni necessarie per soddisfare
+FR1–FR5 e FR8 mantenendo la completa autonomia operativa di Arduino
+(NFR5).
+
+
+
+\subsection*{Messaggistica
+MQTT: rappresentazione semistrutturata in JSON}
+
+A differenza
+della comunicazione UART, la messaggistica MQTT richiede un formato
+più espressivo, poiché gli eventi devono essere condivisi con più
+attori (ESP8266, Flask, timer di monitoraggio e, indirettamente,
+Telegram Bot). Per questa ragione, i payload MQTT sono trasmessi in
+formato JSON minimizzato, che consente di incapsulare gruppi di
+attributi (es. stato porta, distanza, timestamp) conservando
+leggibilità, interoperabilità e compatibilità futura.
+
+
+
+Il
+JSON è particolarmente adatto per il livello Network,
+poiché:
+
+\begin{itemize}
+
+
+   \item
+mantiene
+una sintassi semplice ma estendibile;
+
+    \item
+può
+essere serializzato e deserializzato rapidamente sia su
+microcontrollori che su sistemi Python;
+
+    \item
+consente
+di aggiungere nuove proprietà senza modificare i moduli
+esistenti.
+
+\end{itemize}
+
+
+
+La
+scelta di modellare il flusso MQTT come event-driven riduce
+notevolmente il traffico di rete: il sistema pubblica un messaggio
+solo quando avviene un cambiamento significativo (ad esempio,
+variazione dello stato porta o transizione dentro/fuori geofence),
+soddisfacendo così i requisiti NFR2 (efficienza) e NFR9
+(contenimento dei consumi).
+
+
+
+\subsection*{Formati
+REST: rappresentazione strutturata per interfacce
+applicative}
+
+All’interno dell’Application Layer, il server
+Flask espone un set di endpoint REST basati su JSON. In questo
+contesto, il formato dati deve supportare non solo la
+rappresentazione dello stato, ma anche la tracciabilità, il logging,
+la diagnostica e l’interazione con utenti e sistemi
+esterni.
+
+All’interno dell’Application Layer, il server Flask
+espone un set di endpoint REST basati su JSON. In questo contesto, il
+formato dati deve supportare non solo la rappresentazione dello
+stato, ma anche la tracciabilità, il logging, la diagnostica e
+l’interazione con utenti e sistemi esterni.
+
+
+
+Il formato
+JSON utilizzato dal server Flask è più ricco rispetto a quello
+MQTT, includendo attributi come:
+
+\begin{itemize}
+
+
+   \item
+\texttt{door}
+(booleano);
+
+    \item
+\texttt{mqtt\_connected};
+
+
+   \item
+\texttt{gps\_inside};
+
+
+   \item
+\texttt{distance},
+\texttt{pir};
+
+
+   \item
+liste
+strutturate di eventi.
+
+\end{itemize}
+
+
+
+Questo
+modello supporta pienamente le esigenze dei moduli applicativi,
+come:
+
+\begin{itemize}
+
+
+   \item
+il
+bot Telegram, che necessita di messaggi chiari e completi per
+informare l’utente (FR3, FR9);
+
+    \item
+il
+modulo \texttt{timer.py},
+che richiede informazioni diagnostiche per verificare la salute del
+sistema (NFR8);
+
+    \item
+le
+future estensioni, come dashboard o servizi
+cloud.
+
+\end{itemize}
+
+
+
+\subsection*{Coerenza
+tra livelli e verificabilità}
+
+La coerenza del formato dati
+rispetto al progetto può essere verificata attraverso tre
+indicatori:
+
+\begin{enumerate}
+
+
+   \item
+\textbf{Allineamento
+ai flussi reali}.
+
+          Ogni formato corrisponde ad una
+comunicazione realmente implementata nel sistema (UART, MQTT, REST).
+
+
+         \textit{Verifica
+pratica:} osservare i log UART, MQTT e Flask, confrontandoli con i
+formati dichiarati.
+
+    \item
+\textbf{Tracciabilità
+verso i requisiti}.
+
+          Ogni campo presente nei messaggi è
+funzionale ad almeno un requisito FR/NFR.
+
+
+\textit{Verifica
+pratica:} mappare ogni attributo ai requisiti FR1–FR9.
+
+
+\item
+\textbf{Aderenza
+alla progettazione architetturale}.
+
+          Il formato cresce
+in complessità passando da Perception → Network → Application
+Layer, come previsto dal modello IoT adottato.
+
+
+\textit{Verifica
+pratica:} confrontare la progressione del formato con la Figura
+dell’architettura multilayer nel Capitolo
+4.
+
+\end{enumerate}
+
+
+
+Complessivamente,
+il Data Exchange Format del progetto Smart Garage Door è coerente
+con i principi dei sistemi IoT moderni: minimale nel livello fisico,
+espressivo nel livello applicativo, e interoperabile grazie
+all’impiego di JSON nei livelli superiori. Inoltre, esso garantisce
+estendibilità futura e consente una validazione diretta tramite log
+operativi e strumenti di test come MQTT Explorer e \textit{serial
+monitor}.
+
+
+
+
+
+
+\section{Progettazione del database e struttura dei dati}
+
+La progettazione del sistema informativo del livello applicativo richiede la definizione
+di un modello dei dati coerente con l'architettura IoT descritta nelle sezioni precedenti.
+Nel progetto \textit{Smart Garage Door}, il server Flask svolge il ruolo di
+\textit{Application Layer}, mantenendo lo stato globale del sistema, registrando gli eventi
+provenienti dai livelli inferiori e fornendo informazioni strutturate alle
+interfacce esterne (Telegram Bot, ThingSpeak, API REST).
+
+A differenza di piattaforme cloud industriali, il prototipo non adotta un
+database relazionale o NoSQL persistente. Tale scelta è motivata da:
+(1) semplicità architetturale,
+(2) riduzione delle dipendenze software,
+(3) vincoli di deploy in ambiente embedded locale.
+Il sistema utilizza invece una \textbf{struttura dati in memoria} (RAM) con
+persistenza leggera su file di log, pienamente sufficiente per soddisfare
+i requisiti FR1–FR9 e gli NFR legati a robustezza, tracciabilità e tracciamento
+degli eventi.
+
+\subsection*{Modello dei dati in memoria (In-memory state model)}
+
+Il server Flask mantiene lo stato del sistema attraverso un dizionario Python
+che funge da \textit{data store} centrale. Tale struttura è progettata per essere:
+
+\begin{itemize}
+    \item \textbf{atomica}: ogni aggiornamento è isolato e immediatamente disponibile;
+    \item \textbf{consistente}: gli stati provengono da fonti verificate (ESP8266, Arduino);
+    \item \textbf{persistibile}: parte delle informazioni è replicata nei log per analisi forense e diagnostica.
+\end{itemize}
+
+La struttura dati principale include:
+
+\begin{lstlisting}[language=Python]
+state = {
+    "door": False,              # Stato porta (aperta/chiusa)
+    "mqtt_connected": False,    # Stato connessione broker
+    "gps_inside": False,        # Prossimità utente (FR5b)
+    "distance": None,           # Ultima distanza rilevata (FR8)
+    "pir": None,                # Ultimo valore sensore PIR (FR5a)
+    "events": []                # Storico eventi applicativi
+}
+\end{lstlisting}
+
+Questa rappresentazione minimalista consente tempi di accesso costanti $O(1)$
+per tutte le operazioni critiche, garantendo reattività anche in presenza di più
+richieste parallele da parte del bot Telegram (NFR2).
+
+\subsection*{Registro eventi (Event Log)}
+
+Per garantire tracciabilità e supporto diagnostico (NFR8), il sistema mantiene
+uno \textbf{storico degli eventi} generati da sensori, comandi MQTT e interazioni
+utente. Ogni evento è rappresentato come un oggetto strutturato:
+
+\begin{lstlisting}[language=Python]
+event = {
+    "timestamp": "2025-12-11T14:32:05",
+    "type": "DOOR_OPEN",
+    "source": "Arduino",
+    "details": {"pir": 1, "gps_inside": 1}
+}
+\end{lstlisting}
+
+Gli eventi recenti sono conservati direttamente in memoria, mentre l'intero flusso
+viene replicato anche in file di log locale (\texttt{server.log}) per permettere:
+
+\begin{itemize}
+    \item audit post-operativo;
+    \item analisi forense;
+    \item ricostruzione dei flussi MQTT in caso di errori;
+    \item validazione delle performance temporali durante i test.
+\end{itemize}
+
+\subsection*{Struttura dei dati per le API REST}
+
+L'esposizione delle informazioni tramite API richiede una struttura dati stabile
+e formalizzata. I principali endpoint REST del server (\texttt{/status}, \texttt{/on},
+\texttt{/off}, \texttt{/events}) seguono un formato JSON coerente con il
+\textit{Data Exchange Format} definito nella sezione precedente.
+
+Esempio di risposta dell'endpoint \texttt{/status}:
+
+\begin{lstlisting}[language=JSON]
+{
+    "door": true,
+    "gps_inside": false,
+    "mqtt_connected": true,
+    "pir": 0,
+    "distance": 233,
+    "timestamp": "2025-12-11T16:40:12"
+}
+\end{lstlisting}
+
+Tale formato è progettato per essere:
+
+\begin{itemize}
+    \item \textbf{leggibile} dal bot Telegram;
+    \item \textbf{facilmente estendibile} (nuovi campi aggiungibili senza modificare la struttura);
+    \item \textbf{compatibile} con ThingSpeak e potenziali dashboard future.
+\end{itemize}
+
+\subsection*{Persistenza minima e motivazioni progettuali}
+
+La scelta di non adottare un database tradizionale è giustificata da tre fattori progettuali:
+
+\begin{enumerate}
+    \item \textbf{Statelessness del bot Telegram}
+    L'interfaccia non richiede persistenza storica complessa.
+
+    \item \textbf{Limitato volume di dati}
+    La frequenza degli aggiornamenti sensoriali e il numero degli eventi sono contenuti.
+
+    \item \textbf{Vincolo di semplicità (NFR10)}
+    L'obiettivo accademico prevede un sistema replicabile, leggero e privo di dipendenze invasive.
+\end{enumerate}
+
+Nonostante l'assenza di un database strutturato, l’architettura permette l'integrazione
+futura con sistemi come SQLite, InfluxDB o MongoDB senza modifiche sostanziali al
+modello dei dati, grazie all’adozione di un design modulare e separato per il layer applicativo.
+
+\subsection*{Coerenza con il modello architetturale}
+
+La struttura dati progettata rispecchia fedelmente il modello IoT a tre livelli:
+
+\begin{itemize}
+    \item \textbf{Perception Layer}: genera eventi atomici (PIR, GPS, distanza).
+    \item \textbf{Network Layer}: li trasporta tramite MQTT in formato JSON.
+    \item \textbf{Application Layer}: li normalizza, li registra e li espone come stato globale.
+\end{itemize}
+
+La separazione chiara tra eventi, stato e rappresentazione esterna garantisce
+manutenibilità, estensibilità e verificabilità dell’intero sistema.
+
+
+
+
+
+
+
+
+
+
+
 \section{Flowchart dei requisiti funzionali}
 
 In questa sezione vengono presentati i diagrammi di flusso che descrivono la logica
