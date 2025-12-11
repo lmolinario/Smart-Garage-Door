@@ -846,11 +846,76 @@ La separazione chiara tra eventi, stato e rappresentazione esterna garantisce
 manutenibilità, estensibilità e verificabilità dell’intero sistema.
 
 
+\section{Architettura software multilayer}
+
+La progettazione del sistema \textit{Smart Garage Door} adotta un’architettura software multilayer,
+che consente di separare in maniera rigorosa le responsabilità funzionali dei diversi componenti,
+ridurre l’accoppiamento e migliorare la manutenibilità complessiva del sistema.
+
+Secondo il paradigma delle architetture IoT distribuite, il sistema è organizzato in tre livelli:
+
+\begin{itemize}
+    \item \textbf{Perception Layer} – responsabile dell’acquisizione dei dati fisici tramite sensori e
+    attuatori, nonché del controllo real-time della porta garage.
+    \item \textbf{Network Layer} – gestisce la comunicazione tra i nodi, l’elaborazione dei messaggi,
+    la traduzione dei protocolli (UART–MQTT–HTTP) e la propagazione dello stato.
+    \item \textbf{Application Layer} – rappresenta lo strato di orchestrazione logica, in cui risiedono
+    la gestione dello stato (DR), la generazione dei CVO, le API REST e l’interfaccia Telegram.
+\end{itemize}
+
+La Figura~\ref{fig:software_layers} mostra la struttura multilayer del sistema, evidenziando il
+flusso informativo verticale (bottom–up) e i comandi top–down verso gli attuatori.
 
 
 
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    every node/.style={font=\footnotesize},
+    layerbox/.style={
+        rectangle, draw, rounded corners,
+        minimum width=10cm,
+        minimum height=18mm,
+        align=center,
+        fill=gray!10
+    },
+    comp/.style={
+        rectangle, draw, rounded corners,
+        minimum width=32mm,
+        minimum height=10mm,
+        fill=gray!5,
+        align=center
+    }
+]
+
+\node[layerbox] (app) {\textbf{Application Layer}\\Flask Server, Digital Twin (DR/CVO), API REST, Telegram Interface};
+
+\node[layerbox, below=5mm of app] (net) {\textbf{Network Layer}\\ESP8266 Gateway, MQTT Client, UART Bridge, HTTP Client};
+
+\node[layerbox, below=5mm of net] (perc) {\textbf{Perception Layer}\\Arduino UNO, PIR Sensor, HC-SR04, Servo/Relè};
+
+\node[comp, above=0mm of app.south west, anchor=south west, xshift=6mm] (api) {API REST};
+\node[comp, right=5mm of api] (dt) {Digital Twin\\(DR/CVO)};
+\node[comp, right=5mm of dt] (tg) {Telegram Bot};
+
+\node[comp, above=0mm of net.south west, anchor=south west, xshift=6mm] (uart) {UART Bridge};
+\node[comp, right=5mm of uart] (mqtt) {MQTT Client};
+\node[comp, right=5mm of mqtt] (httpc) {HTTP Client};
+
+\node[comp, above=0mm of perc.south west, anchor=south west, xshift=6mm] (pir) {PIR Sensor};
+\node[comp, right=5mm of pir] (ultra) {HC-SR04};
+\node[comp, right=5mm of ultra] (servo) {Servo/Relè};
+
+\draw[->, thick] (perc.north) -- node[right]{Dati sensori} (net.south);
+\draw[->, thick] (net.north) -- node[right]{Messaggi MQTT / HTTP} (app.south);
 
 
+\label{fig:software_layers}
+\end{tikzpicture}
+
+\caption{Architettura software multilayer del sistema \textit{Smart Garage Door}.}
+
+\end{figure}
 
 
 
@@ -1287,7 +1352,140 @@ e costituiscono il riferimento progettuale per l’implementazione descritta nel
 \caption{Flowchart relativo al requisito funzionale FR9 – Notifiche eventi.}
 \end{figure}
 
+\subsection{Flowchart globale del sistema}
 
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=12mm,
+    every node/.style={font=\footnotesize},
+    start/.style={
+        ellipse, draw,
+        minimum width=18mm,
+        minimum height=8mm,
+        fill=gray!10,
+        align=center
+    },
+    block/.style={
+        rectangle, draw, rounded corners,
+        minimum width=32mm,
+        minimum height=10mm,
+        text centered,
+        text width=32mm,
+        align=center,
+        fill=gray!5
+    },
+    decision/.style={
+        diamond, draw,
+        aspect=2,
+        text centered,
+        text width=24mm,
+        inner sep=1pt,
+        align=center,
+        fill=gray!5
+    },
+    line/.style={-{Latex[length=2mm]}, thick}
+]
+
+% --- NODES ---
+
+% Start
+\node[start] (start) {Start};
+
+% Arduino loop
+\node[block, below=of start] (read) {Lettura sensori \\ PIR, Distanza};
+\node[decision, below=of read] (pir) {PIR = HIGH?};
+
+\node[decision, below=of pir, xshift=-22mm] (gps_ok) {GPS attivo? \\ (FR5b)};
+\node[decision, below=of pir, xshift=22mm] (dist_ok) {Distanza < 15 cm? \\ (FR5a)};
+
+\node[decision, below=of gps_ok] (open_cond) {Condizioni \\ soddisfatte?};
+\node[block, below=of open_cond] (open) {Apri porta};
+\node[block, below=of dist_ok] (none) {Mantieni stato attuale};
+
+% Chiusura automatica
+\node[decision, below=of open, yshift=-4mm] (close_timer) {Timer scaduto? \\ (FR4)};
+\node[block, below=of close_timer] (close) {Chiudi porta};
+
+% NodeMCU
+\node[block, right=33mm of pir] (mq) {Ricezione comandi \\ HTTP/MQTT};
+\node[decision, below=of mq] (cmd) {Comando valido?};
+\node[block, below=of cmd] (send_serial) {Invia comando \\ ad Arduino};
+
+% Flask
+\node[block, right=-43mm of mq, yshift=-72mm] (api) {API REST \\ /open, /close, /status};
+\node[decision, below=of api] (update) {Aggiorna \\ stato globale?};
+\node[block, below=of update] (notify) {Pubblica evento \\ MQTT + Telegram};
+
+% --- CONNECTIONS ---
+
+\draw[line] (start) -- (read);
+\draw[line] (read) -- (pir);
+
+\draw[line] (pir) -- node[left]{No} (gps_ok);
+\draw[line] (pir) -- node[right]{Sì} (dist_ok);
+
+\draw[line] (gps_ok) -- node[left]{Sì} (open_cond);
+\draw[line] (dist_ok) -- node[right]{No} (none);
+
+\draw[line] (open_cond) -- node[left]{Sì} (open);
+\draw[line] (open_cond.east) -- ++(2mm,0) |- node[pos=0.1,right]{No} (none);
+
+\draw[line] (open) -- (close_timer);
+\draw[line] (close_timer) -- node[right]{Sì} (close);
+
+% NodeMCU
+\draw[line] (pir.east) -- ++(6mm,0) |- (mq);
+\draw[line] (mq) -- (cmd);
+\draw[line] (cmd) -- node[right]{Sì} (send_serial);
+\draw[line] (cmd.west) -- ++(-16mm,0) |- node[left]{No} (read);
+
+% Flask
+\draw[line] (mq.east) -- ++(6mm,0) |- (api);
+\draw[line] (api) -- (update);
+\draw[line] (update) -- node[right]{Sì} (notify);
+
+\end{tikzpicture}
+
+\caption{Flowchart completo del sistema \textit{Smart Garage Door}. Il diagramma rappresenta l'interazione tra logica sensoriale locale (Arduino), gateway di comunicazione (NodeMCU) e livello applicativo (Flask + Telegram), con riferimento ai requisiti funzionali FR4, FR5a e FR5b.}
+\label{fig:flowchart_sgd}
+\end{figure}
+
+
+\subsection{Descrizione del flusso operativo}
+Il flusso in Figura~\ref{fig:flowchart_sgd} evidenzia le principali fasi del funzionamento integrato del sistema:
+
+\begin{enumerate}
+\item \textbf{Acquisizione sensoriale (Arduino)}
+Il microcontrollore esegue letture periodiche dei sensori PIR e HC-SR04, valutando la presenza dell’utente e la distanza da ostacoli o oggetti in prossimità della porta.
+arduino
+Copia codice
+\item \textbf{Automazione FR5a–FR5b}
+La porta si apre automaticamente solo quando:
+\begin{itemize}
+    \item il PIR rileva movimento (\textit{salita FR5a});
+    \item la distanza è inferiore alla soglia;
+    \item il NodeMCU segnala \texttt{userNearHome = true} tramite messaggio GPS (FR5b).
+\end{itemize}
+Tutte le condizioni devono essere soddisfatte simultaneamente per evitare aperture indesiderate.
+
+\item \textbf{Comandi remoti da NodeMCU}
+L’ESP8266 riceve richieste HTTP/MQTT provenienti dal server Flask e le inoltra ad Arduino tramite seriale, garantendo il funzionamento remoto e l’integrazione con il Digital Twin.
+
+\item \textbf{Gestione API (Flask)}
+Il server espone endpoint REST che permettono all’utente e ai servizi applicativi di:
+\begin{itemize}
+    \item aprire/chiudere la porta,
+    \item interrogare lo stato corrente,
+    \item ricevere notifiche e aggiornamenti in tempo reale.
+\end{itemize}
+
+\item \textbf{Chiusura automatica (FR4)}
+Un timer interno ad Arduino garantisce la chiusura della porta dopo un intervallo configurabile, prevenendo aperture prolungate.
+
+\item \textbf{Notifiche (MQTT + Telegram)}
+Eventi significativi, come l’apertura della porta o il cambio dello stato GPS, vengono inoltrati tramite MQTT e Telegram, offrendo tracciabilità e trasparenza all’utente finale.
+\end{enumerate}
 
 
 \section{Componenti hardware e software}
