@@ -1,0 +1,90 @@
+\chapter{Conclusioni e Sviluppi futuri}
+
+\section{Sintesi dei risultati}
+Il progetto \textit{Smart Garage Door} ha consentito di progettare, implementare e validare un sistema IoT completo, basato su architettura distribuita e orientato all'automazione domestica intelligente. Tale risultato è stato raggiunto attraverso un approccio metodologico fondato sul \textbf{System Development Life Cycle (SDLC)} \cite{Pressman2019}, che ha permesso di procedere in modo strutturato dalla definizione dei requisiti alla realizzazione pratica, garantendo coerenza interna e tracciabilità tra gli artefatti progettuali.
+
+L'adozione di un'architettura IoT multilivello articolata nei livelli \textit{Perception}, \textit{Network} e \textit{Application} è risultata determinante per assicurare separazione delle responsabilità, modularità e interoperabilità, in linea con i modelli di riferimento per i sistemi cyber-fisici distribuiti \cite{Gubbi2013, Lee2015}. In particolare, il \textit{Perception Layer}, basato su Arduino UNO, ha dimostrato di poter garantire autonomia operativa anche in assenza di connettività, mentre il \textit{Network Layer} (NodeMCU ESP8266) ha gestito la comunicazione tramite Wi-Fi e MQTT, e l'\textit{Application Layer} (server Flask e bot Telegram) ha svolto le funzioni di coordinamento e interazione con l'utente.
+
+Dal punto di vista tecnico ed economico, il sistema ha raggiunto piena fattibilità con un costo complessivo inferiore ai 100 €, rispettando ampiamente il vincolo NFR10 relativo alla sostenibilità del prototipo. Questo dato conferma quanto riportato nella letteratura sui sistemi IoT low-cost, secondo cui l'impiego di componenti open source e moduli embedded a basso consumo permette di ottenere soluzioni efficaci e affidabili anche con budget limitati \cite{Zanella2014}.
+
+I test sperimentali, approfonditi nel Capitolo 6, hanno dimostrato che tutti i requisiti funzionali (FR1-FR9) sono stati soddisfatti, con l'unica eccezione parziale del requisito FR8 — relativo al rilevamento ostacoli con riapertura automatica — il quale è stato implementato solo in forma prototipale e rappresenta un naturale punto di sviluppo futuro. I risultati quantitativi emersi dalle prove di laboratorio e dalle verifiche in ambiente reale possono essere sintetizzati come segue:
+
+\begin{itemize}
+    \item \textbf{Latenza e reattività}: il sistema ha mantenuto un tempo medio di risposta inferiore a 1 s, anche in presenza di congestione della rete Wi-Fi, rispettando il requisito NFR2 e dimostrando l'efficienza della pipeline MQTT-HTTP, come suggerito nelle architetture IoT a bassa latenza \cite{Amaral2018}.
+    \item \textbf{Affidabilità delle automazioni}: i comandi remoti e le automazioni di prossimità (FR1-FR5) hanno raggiunto un tasso di successo pari al 100\%, senza episodi di inconsistenza tra stato reale e stato riportato all'utente, in linea con i requisiti di \textit{dependability} dei sistemi cyber-fisici \cite{Avizienis2004}.
+    \item \textbf{Accuratezza della geolocalizzazione}: il modulo GPS NEO-6M ha fornito una precisione media del 98.9\%, con errore tipico inferiore a 5 m nel calcolo della distanza di geofence; prestazioni conformi agli standard dei sistemi GNSS per applicazioni embedded \cite{Zanella2014}.
+    \item \textbf{Efficienza energetica}: il consumo medio dei microcontrollori (ESP8266 + GPS + Arduino) si è mantenuto entro 0.5 W in stato di inattività, soddisfacendo il requisito NFR9 relativo all'ottimizzazione energetica dei sistemi alimentati a batteria.
+\end{itemize}
+
+Nel complesso, i risultati della fase di validazione indicano che il sistema soddisfa pienamente l'insieme dei requisiti non funzionali (NFR1-NFR10), risultando stabile, efficiente, interoperabile e replicabile. La coerenza tra progettazione e implementazione conferma la validità dell'approccio modulare adottato e la robustezza dell'infrastruttura IoT sviluppata, ponendo basi solide per futuri sviluppi e applicazioni più estese in ambito domotico e smart home.
+
+\section{Valore progettuale e contributi}
+Dal punto di vista progettuale, il lavoro svolto rappresenta un contributo significativo nell'ambito dei sistemi IoT a basso costo, dimostrando come tecnologie eterogenee — Arduino UNO, NodeMCU ESP8266, modulo GPS NEO-6M, protocollo MQTT, server Flask e interfaccia Telegram — possano essere integrate in un'unica architettura coerente, scalabile e robusta. La capacità di far interagire componenti di natura diversa (sensori fisici, microcontrollori, servizi applicativi e piattaforme cloud) costituisce uno degli aspetti centrali dei moderni sistemi cyber-fisici \cite{Lee2015} e il progetto \textit{Smart Garage Door} rappresenta un caso di studio esemplare di tale integrazione.
+
+L'adozione di un'architettura modulare, ispirata ai modelli IoT a tre livelli proposti da Gubbi et al. \cite{Gubbi2013}, ha permesso di scomporre il sistema in componenti autonomi, ciascuno dotato di responsabilità ben definite. Questa scelta progettuale ha portato a una serie di benefici chiave:
+
+\begin{itemize}
+    \item \textbf{Continuità operativa e fallback locale}. Grazie alla logica autonoma implementata nel \textit{Perception Layer} (Arduino), il sistema è in grado di mantenere le funzionalità critiche — come la chiusura temporizzata e il comando manuale — anche in caso di guasto del \textit{Network Layer}, soddisfacendo i principi di \textit{local autonomy} discussi nella letteratura sui sistemi resilienti \cite{Tang2022, Avizienis2004}.
+    
+    \item \textbf{Riduzione della dipendenza da servizi cloud proprietari}. L'impiego di protocolli aperti (MQTT) e di tecnologie interamente open source (ESP8266, Flask, librerie Python, Arduino IDE) consente al sistema di rimanere indipendente da piattaforme chiuse o vincoli commerciali, favorendo la portabilità e l'adozione in contesti accademici o didattici.
+    
+    \item \textbf{Facilità di manutenzione ed estensibilità}. L'approccio \textit{loosely coupled} adottato nel design permette di modificare o sostituire singoli moduli (ad esempio aggiunta di un sensore RFID o migrazione del backend a un server edge) senza impatti rilevanti sull'architettura complessiva, in linea con le pratiche di progettazione modulare e riusabilità del software \cite{Pressman2019}.
+    
+    \item \textbf{Riproducibilità accademica}. L'utilizzo di componenti facilmente reperibili, documentazione open source e protocolli standard rende il sistema replicabile e adatto a scopi dimostrativi, formativi o sperimentali. Questo aspetto è particolarmente rilevante in ambito universitario, dove la possibilità di ricreare esperimenti hardware-software con costi ridotti rappresenta un valore aggiunto significativo.
+\end{itemize}
+
+Nel suo complesso, il progetto ha mostrato come i principi teorici dell'ingegneria del software — dalla definizione dei requisiti alla progettazione architetturale, dal testing sistematico alla validazione del comportamento reale — possano essere applicati con efficacia a un caso d'uso concreto e realistico. La traduzione del modello SDLC in una pipeline progettuale completa, documentata e verificata dimostra la solidità dell'approccio metodologico e conferma la possibilità di ottenere soluzioni IoT affidabili anche in presenza di vincoli stringenti di costo, complessità e consumo energetico.
+
+Infine, l'integrazione armonica di tecnologie embedded, protocolli di comunicazione e interfacce utente asincrone (come il bot Telegram) rappresenta un contributo originale e pratico, capace di coniugare ricerca accademica, prototipazione rapida e reale applicabilità nel contesto dell'automazione domestica intelligente.
+
+\section{Limiti del prototipo}
+Nonostante i risultati positivi ottenuti nella fase di validazione, il prototipo \textit{Smart Garage Door} presenta alcune limitazioni strutturali e progettuali che derivano sia dalle scelte hardware effettuate, sia dai vincoli imposti dal contesto applicativo e dal budget. Tali limitazioni non compromettono la funzionalità complessiva del sistema, ma rappresentano aree di intervento per potenziali miglioramenti futuri, coerentemente con quanto discusso nella letteratura sui sistemi IoT evolutivi e adattivi \cite{Perera2015}.
+
+\begin{itemize}
+    \item \textbf{Assenza di un sensore dedicato per l'arresto ostacolo (FR8)}. Il prototipo utilizza un sensore ultrasonico HC-SR04 come meccanismo di rilevamento ostacoli, ma la soluzione adottata non implementa un vero sistema di \textit{anti-crush protection} conforme agli standard per porte motorizzate. L'assenza di un sensore dedicato (come barriere IR o microinterruttori di fine corsa) limita la precisione e l'affidabilità del rilevamento, con implicazioni sulla sicurezza operativa. La letteratura sui sistemi cyber-fisici sottolinea l'importanza di sensori ridondanti per evitare fault pericolosi in sistemi che controllano attuatori fisici \cite{Lee2015, Avizienis2004}.
+    
+    \item \textbf{Dipendenza dalla qualità del segnale GPS}. Le performance del geofence (FR5b) dipendono dalla disponibilità e stabilità del segnale satellitare, che può degradarsi in ambienti urbani densi, aree con ostacoli fisici o condizioni meteorologiche avverse. Questo limite è intrinseco alla tecnologia GNSS e rispecchia i fenomeni di \textit{urban canyon} ampiamente documentati in letteratura \cite{Zanella2014}. Sebbene i filtri software riducano l'impatto del rumore, il comportamento può comunque risultare meno stabile rispetto a soluzioni ibride GPS+BLE o GPS+Wi-Fi.
+    
+    \item \textbf{Assenza di cifratura end-to-end per il protocollo MQTT}. Nel prototipo, il flusso MQTT utilizza una connessione non cifrata su rete locale, sebbene protetta da credenziali Wi-Fi e dalla separazione logica del canale. Le specifiche OASIS raccomandano l'adozione di TLS per garantire autenticità, integrità e riservatezza del messaggio \cite{MQTT5}. L'assenza di TLS non rappresenta una vulnerabilità critica in un ambiente domestico controllato, ma costituisce un limite per l'adozione del sistema in scenari più sensibili o in reti non fidate.
+    
+    \item \textbf{Persistenza dei log limitata}. Il sistema conserva gli eventi per un periodo di 24h tramite backend Flask. Tale scelta permette di rispettare i requisiti di minimizzazione dei dati (NFR7), ma limita la possibilità di analisi a lungo termine o utilizzi forensi. La letteratura sul \textit{data lifecycle management} nei sistemi IoT suggerisce l'adozione di strategie più flessibili, come retention configurabile o archiviazione differenziata.
+\end{itemize}
+
+In sintesi, tali limitazioni rappresentano caratteristiche fisiologiche del prototipo e costituiscono punti di partenza naturali per un miglioramento incrementale dell'architettura. Molte di esse sono coerenti con i vincoli imposti dal budget, dall'hardware accessibile e dall'obiettivo didattico del progetto; altre riflettono le sfide tipiche dell'integrazione di tecnologie eterogenee nel dominio IoT.
+
+\section{Sviluppi futuri}
+L'architettura sviluppata per il progetto \textit{Smart Garage Door} è stata concepita sin dall'inizio con un orientamento alla modularità, alla scalabilità e alla possibilità di integrazione con servizi e dispositivi futuri. In linea con i principi delle architetture IoT moderne — caratterizzate da evoluzione incrementale, aggiornabilità continua e capacità di integrazione multi-piattaforma \cite{Gubbi2013} — sono state individuate diverse direzioni di sviluppo che potrebbero ampliare sia le funzionalità sia la robustezza del sistema.
+
+\begin{enumerate}
+    \item \textbf{Integrazione di sensori avanzati per la sicurezza operativa}. Il primo sviluppo naturale riguarda l'introduzione di sensori dedicati al rilevamento ostacoli, come barriere IR, sensori LiDAR o microinterruttori di fine corsa certificati. Tali dispositivi permetterebbero di implementare meccanismi di protezione conformi alle linee guida dei sistemi cyber-fisici orientati alla sicurezza \cite{Lee2015}, riducendo la dipendenza da sensori ultrasonici generici e aumentando l'affidabilità della funzione FR8.
+    
+    \item \textbf{Adozione di protocolli sicuri (MQTT su TLS, HTTPS)}. Sebbene il prototipo utilizzi rete locale protetta, l'integrazione di TLS per MQTT e HTTPS per le API REST risulterebbe coerente con le raccomandazioni del consorzio OASIS \cite{MQTT5}. Combinata con autenticazione a due fattori (2FA), tale evoluzione aumenterebbe la resistenza agli attacchi MITM, replay e impersonificazione.
+    
+    \item \textbf{Integrazione con piattaforme cloud come ThingSpeak}. Attualmente il monitoraggio del sistema è affidato a log locali e query dirette. L'adozione di una piattaforma IoT cloud-based come \textbf{ThingSpeak} [32] permetterebbe di storicizzare i dati nel lungo periodo, visualizzare grafici in tempo reale e analizzare i trend di utilizzo da remoto, offrendo capacità di \textit{data analytics} avanzata senza appesantire l'infrastruttura locale.
+    
+    \item \textbf{Ottimizzazione energetica tramite modalità deep sleep}. L'ESP8266 supporta modalità di risparmio energetico che riducono drasticamente il consumo, con un impatto significativo sugli scenari in cui il nodo potrebbe essere alimentato a batteria. L'introduzione di cicli di \textit{sleep-wake} adattivi, basati sul traffico MQTT e sugli eventi GPS, si inserisce nelle linee guida dei sistemi low-power \cite{Gubbi2013}.
+    
+    \item \textbf{Espansione multi-dispositivo e interoperabilità domestica}. Il sistema può essere esteso per controllare più porte, cancelli o accessi, mantenendo un unico backend e sfruttando la natura publish/subscribe di MQTT per scalare orizzontalmente. Questa evoluzione è coerente con le architetture edge-cloud e con i modelli di interoperabilità tra dispositivi domestici intelligenti.
+    
+    \item \textbf{Integrazione di modelli di intelligenza artificiale}. L'aggiunta di modelli di riconoscimento veicolare — ad esempio reti neurali leggere ottimizzate per dispositivi edge — permetterebbe automazioni più avanzate, come l'apertura selettiva basata su riconoscimento del veicolo o del conducente. Questa direzione rispecchia la crescente tendenza all'integrazione AI-IoT (AIoT) descritta nella letteratura recente \cite{Tang2022}.
+\end{enumerate}
+
+Tali sviluppi futuri testimoniano la versatilità dell'architettura realizzata e la sua predisposizione a operare come piattaforma evolutiva, adattabile alle esigenze di automazione domestica e agli scenari emergenti dell'IoT distribuito.
+
+\section{Conclusioni finali}
+Il progetto \textit{Smart Garage Door} rappresenta un caso di studio significativo nell'ambito delle architetture IoT distribuite, mostrando come un insieme eterogeneo di tecnologie — microcontrollori, protocolli di comunicazione, servizi cloud e interfacce conversazionali — possa essere integrato in modo coerente, sicuro e affidabile per soddisfare requisiti reali di automazione domestica.
+
+L'adozione rigorosa del \textbf{System Development Life Cycle (SDLC)} \cite{Pressman2019} ha permesso di tradurre i requisiti funzionali e non funzionali in una pipeline completa di progettazione, implementazione, testing e validazione, assicurando tracciabilità, coerenza e verificabilità lungo tutte le fasi del lavoro.
+
+Il sistema progettato si distingue per:
+\begin{itemize}
+    \item \textbf{Robustezza}, grazie ai meccanismi di fallback locale, alle logiche di debounce e ai filtri software, in linea con i principi di dependability \cite{Avizienis2004};
+    \item \textbf{Reattività}, garantita dall'impiego di protocolli leggeri come MQTT e HTTP REST \cite{Amaral2018}, con tempi medi di risposta inferiori al secondo;
+    \item \textbf{Modularità e scalabilità}, ottenute tramite separazione funzionale nei tre livelli IoT (Perception-Network-Application) \cite{Gubbi2013};
+    \item \textbf{Sicurezza e privacy}, supportate da autenticazione tramite API key e dal modello crittografico MTProto di Telegram \cite{Kuznetsov2018};
+    \item \textbf{Economicità e replicabilità}, grazie all'utilizzo di componenti open source e hardware a basso costo, mantenendo il budget complessivo sotto i 100 €.
+\end{itemize}
+
+Il prototipo costituisce dunque una piattaforma affidabile e sostenibile per l'automazione domestica intelligente, pienamente aderente ai requisiti progettuali del corso e alla letteratura sulle architetture IoT resilienti \cite{Tang2022}. La natura modulare del sistema non ne limita il potenziale applicativo: al contrario, essa consente di immaginare future estensioni verso ecosistemi domestici più ricchi, integrazioni AIoT, containerizzazione edge-cloud o interoperabilità con standard emergenti.
+
+In conclusione, \textit{Smart Garage Door} dimostra come soluzioni IoT a basso costo possano raggiungere livelli elevati di efficienza, sicurezza e affidabilità, confermando l'importanza di un approccio metodico e ingegneristico alla progettazione di sistemi intelligenti. Il lavoro costituisce una base solida sia per sviluppi accademici futuri sia per applicazioni reali in ambito domestico e industriale.

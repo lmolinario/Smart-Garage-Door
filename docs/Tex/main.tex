@@ -1,0 +1,39 @@
+\documentclass{report}
+\usepackage[italian,shorthands=off]{babel}
+\usepackage{packages}
+\usepackage{fancyhdr}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usepackage{subcaption}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{xcolor}
+\usepackage{smartdiagram}
+\usesmartdiagramlibrary{additions}
+\usetikzlibrary{arrows.meta, positioning, fit, shapes.misc}
+
+\title{Smart Garage Door}
+\author{Lello Molinario, Matteo Tuzi}
+\date{8 Ottobre 2025}
+
+\begin{document}
+
+\import{./}{intestazione}
+
+\cleardoublepage
+\tableofcontents
+\newpage
+\input{sections/00_abstract}
+\input{sections/01_introduction}
+\input{sections/02_state_of_art}
+\input{sections/03_requirements_analysis}
+\input{sections/04_system_design}
+\input{sections/05_implementation}
+\input{sections/06_results_and_tests}
+\input{sections/07_conclusions}
+\input{sections/08_appendix}
+
+
+\printbibliography[heading=bibintoc, title={Bibliografia}]
+
+\end{document}

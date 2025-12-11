@@ -1,0 +1,266 @@
+\chapter{State of the Art}
+
+\section{Panoramica dei sistemi di automazione domestica}
+
+Negli ultimi anni, il settore dell’automazione domestica ha conosciuto una rapida e costante evoluzione grazie alla crescente diffusione delle tecnologie di comunicazione wireless e dei microcontrollori connessi in rete.  
+L’avvento dell’\textbf{Internet of Things (IoT)} ha reso possibile l’interconnessione di dispositivi eterogenei, favorendo la nascita di ecosistemi digitali in grado di acquisire, elaborare e condividere dati in tempo reale \cite{Atzori2010, Gubbi2013}.  
+
+I moderni sistemi di \textbf{smart home} si sono progressivamente trasformati da semplici soluzioni di controllo remoto a piattaforme distribuite capaci di apprendere le abitudini dell’utente e adattarsi automaticamente al contesto operativo.  
+Questi sistemi sfruttano una combinazione di sensori, attuatori e interfacce digitali per ottimizzare comfort, sicurezza ed efficienza energetica.  
+Come osservato da Holler et al. \cite{Holler2014}, la convergenza tra comunicazione macchina–macchina (M2M) e Internet ha posto le basi per l’intelligenza ambientale, aprendo la strada a soluzioni integrate che riducono l’intervento umano nelle operazioni quotidiane.
+
+In tale contesto, le soluzioni dedicate all’automazione di porte, cancelli e garage rappresentano un campo applicativo consolidato ma ancora in espansione.  
+L’integrazione di moduli Wi-Fi, servizi cloud e applicazioni mobili ha reso possibile il controllo remoto e la gestione automatizzata degli accessi, ponendo però nuove sfide in termini di interoperabilità, sicurezza e affidabilità.  
+Le architetture proposte in letteratura e sul mercato convergono verso modelli distribuiti, in cui la capacità di comunicazione tra nodi e la latenza di risposta costituiscono parametri fondamentali per la qualità complessiva del sistema \cite{Palattella2016, Piyare2013}.
+
+\section{Soluzioni commerciali esistenti}
+
+Le principali soluzioni disponibili sul mercato possono essere ricondotte a due macro-categorie:
+\begin{itemize}
+    \item \textbf{Sistemi proprietari}, sviluppati da aziende specializzate e basati su infrastrutture chiuse, con comunicazioni centralizzate su server cloud (es. Chamberlain, Tailwind, Nexx);
+    \item \textbf{Sistemi aperti o compatibili}, che si integrano con piattaforme standard come Google Home, Alexa o Home Assistant, e adottano protocolli interoperabili quali \textbf{MQTT} o \textbf{Zigbee}.
+\end{itemize}
+
+\subsection{Chamberlain \textit{MyQ}}
+Il sistema \textit{MyQ} di Chamberlain è una delle soluzioni più diffuse per il controllo remoto delle porte da garage.  
+Il dispositivo utilizza un modulo Wi-Fi integrato per connettersi a un’infrastruttura cloud proprietaria, accessibile tramite applicazione mobile.  
+L’utente può verificare lo stato della porta, ricevere notifiche e pianificare aperture automatiche.  
+Nonostante la buona stabilità operativa, l’architettura chiusa limita l’integrazione con altri sistemi e impedisce il funzionamento in assenza di connessione Internet, generando dipendenza dal cloud e vincoli di privacy.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.65\textwidth]{images/Chamberlain.png}
+    \caption[Chamberlain MyQ – sistema di automazione per porte da garage]
+    {Esempio del sistema \textbf{MyQ} di Chamberlain.  
+    Fonte: \textit{Chamberlain Group Inc., MyQ Official Product Documentation} (consultato 2025).}
+    \label{fig:myq}
+\end{figure}
+
+\subsection{Tailwind iQ3}
+Tailwind iQ3 adotta un approccio ibrido, combinando la comunicazione cloud con la connessione Bluetooth Low Energy (BLE) del dispositivo mobile.  
+Il sistema è in grado di aprire automaticamente il garage quando rileva la presenza dell’auto associata, sfruttando la prossimità BLE.  
+Pur garantendo una buona esperienza utente, tale soluzione presenta vincoli di compatibilità con smartphone specifici e un’affidabilità ridotta in ambienti esterni con ostacoli o interferenze elettromagnetiche.
+
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.65\textwidth]{images/Tailwind_iQ3.png}
+    \caption[Tailwind iQ3 – sistema di automazione con BLE]
+    {Esempio del sistema \textbf{Tailwind iQ3}.  
+    Fonte: \textit{Tailwind Technologies Inc., Tailwind iQ3 Product Documentation} (consultato 2025).}
+    \label{fig:tailwind}
+\end{figure}
+
+\subsection{Nexx Garage}
+Nexx Garage propone un dispositivo Wi-Fi economico che può essere integrato su meccanismi di apertura preesistenti.  
+Il sistema consente il controllo remoto, l’automazione di prossimità basata su GPS e il supporto ai comandi vocali.  
+Tuttavia, la sua dipendenza da servizi cloud esterni per il monitoraggio e le notifiche genera problemi legati alla sicurezza dei dati, alla continuità di servizio e ai costi di mantenimento a lungo termine.  
+In particolare, la gestione remota attraverso infrastrutture centralizzate comporta rischi di latenza e vulnerabilità nel trasferimento di dati sensibili \cite{Palattella2016}.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.65\textwidth]{images/Nexx_Smart.png}
+    \caption[Nexx Garage – controller Wi-Fi per porte da garage]
+    {Esempio del sistema \textbf{Nexx Garage}.  
+    Fonte: \textit{Nexx Smart Home Inc., Nexx Garage Product Documentation} (consultato 2025).}
+    \label{fig:nexx}
+\end{figure}
+
+\section{Analisi dei competitors}
+Per valutare in modo rigoroso le alternative presenti sul mercato e posizionare correttamente il sistema \textit{Smart Garage Door} rispetto alle soluzioni commerciali esistenti, è stata adottata la metodologia di analisi \textbf{SWOT} (\textit{Strengths, Weaknesses, Opportunities, Threats}).  
+Tale metodologia, ampiamente utilizzata nel design dei sistemi IoT e nei processi di technology assessment, consente di analizzare ciascun competitor considerando non solo gli aspetti tecnici (funzionalità, prestazioni, architettura), ma anche quelli strategici quali rischi, opportunità di integrazione, vincoli di adozione e prospettive di miglioramento.
+
+L’obiettivo non è un confronto commerciale, bensì una valutazione tecnica strutturata che permetta di:
+\begin{itemize}
+    \item identificare i limiti progettuali delle alternative esistenti;
+    \item evidenziare aree in cui il progetto proposto apporta un miglioramento concreto;
+    \item individuare opportunità e minacce legate a scelte architetturali simili;
+    \item giustificare in modo formale le decisioni progettuali adottate nella fase di design.
+\end{itemize}
+
+Le tabelle SWOT che seguono sintetizzano l’analisi per i principali competitor identificati nel mercato attuale.
+
+
+\subsection{Chamberlain \textit{MyQ}}
+Il sistema \textit{MyQ} costituisce una delle soluzioni commerciali più diffuse per il controllo remoto delle porte da garage. Opera mediante un'infrastruttura cloud proprietaria e un'applicazione mobile dedicata.
+\subsection{Chamberlain \textit{MyQ}}
+
+\begin{table}[h!]
+\centering
+\caption{Analisi SWOT del sistema Chamberlain MyQ}
+\label{tab:swot_myq}
+\renewcommand{\arraystretch}{1.4}
+
+\begin{tabular}{|p{0.45\textwidth}|p{0.45\textwidth}|}
+\hline
+\multicolumn{1}{|c|}{\textbf{Strengths}} & 
+\multicolumn{1}{c|}{\textbf{Weaknesses}} \\
+\hline
+Interfaccia utente curata; notifiche affidabili; prodotto maturo e diffuso. &
+Dipendenza completa dal cloud; assenza di funzionamento offline; scarsa interoperabilità; costo elevato. \\
+\hline
+
+\multicolumn{1}{|c|}{\textbf{Opportunities}} &
+\multicolumn{1}{c|}{\textbf{Threats}} \\
+\hline
+Integrazione futura con ecosistemi standard; estensione a più modelli di motori. &
+Rischi privacy; latenza e failure del cloud; concorrenza di soluzioni open-source più economiche. \\
+\hline
+\end{tabular}
+
+\end{table}
+
+
+\subsection{Tailwind iQ3}
+Tailwind iQ3 adotta un modello ibrido basato su cloud e Bluetooth Low Energy (BLE), fornendo automazioni di prossimità.
+
+\begin{table}[h!]
+\centering
+\caption{Analisi SWOT del sistema Tailwind iQ3}
+\label{tab:swot_tailwind}
+\renewcommand{\arraystretch}{1.4}
+
+\begin{tabular}{|p{0.45\textwidth}|p{0.45\textwidth}|}
+\hline
+\multicolumn{1}{|c|}{\textbf{Strengths}} & 
+\multicolumn{1}{c|}{\textbf{Weaknesses}} \\
+\hline
+Automazione BLE; installazione semplice; compatibile con Google Home. &
+Compatibilità BLE limitata; interferenze frequenti; dipendenza dal cloud. \\
+\hline
+
+\multicolumn{1}{|c|}{\textbf{Opportunities}} &
+\multicolumn{1}{c|}{\textbf{Threats}} \\
+\hline
+Possibile apertura a protocolli standard; ampliamento dispositivo. &
+Rischi di sicurezza BLE; instabilità outdoor; vulnerabilità del cloud. \\
+\hline
+\end{tabular}
+
+\end{table}
+
+
+\subsection{Nexx Garage}
+Nexx Garage propone una soluzione Wi-Fi economica compatibile con sistemi di apertura esistenti.
+
+\begin{table}[h!]
+\centering
+\caption{Analisi SWOT del sistema Nexx Garage}
+\label{tab:swot_nexx}
+\renewcommand{\arraystretch}{1.4}
+
+\begin{tabular}{|p{0.45\textwidth}|p{0.45\textwidth}|}
+\hline
+\multicolumn{1}{|c|}{\textbf{Strengths}} & 
+\multicolumn{1}{c|}{\textbf{Weaknesses}} \\
+\hline
+Compatibile con sistemi preesistenti; supporto Alexa/Google; automazioni GPS. &
+Dipendenza da cloud; problemi di latenza; vulnerabilità API; scarsa privacy GPS. \\
+\hline
+
+\multicolumn{1}{|c|}{\textbf{Opportunities}} &
+\multicolumn{1}{c|}{\textbf{Threats}} \\
+\hline
+Possibile apertura API; margini per migliorare sicurezza. &
+Interruzione servizio in caso di failure cloud; concorrenza di soluzioni Wi-Fi open-source. \\
+\hline
+\end{tabular}
+
+\end{table}
+
+
+\subsection{Confronto sintetico tra competitors}
+Per completezza, si riporta una tabella comparativa che mette in relazione le principali caratteristiche.
+
+\begin{table}[H]
+\centering
+\caption{Confronto sintetico tra le principali soluzioni commerciali}
+\label{tab:competitors}
+\begin{tabularx}{\textwidth}{@{}lXXXX@{}}
+\toprule
+\textbf{Caratteristica} & \textbf{MyQ} & \textbf{Tailwind iQ3} & \textbf{Nexx Garage} & \textbf{Smart Garage Door (progetto)} \\
+\midrule
+Architettura & Cloud proprietario & Cloud + BLE & Cloud Wi-Fi & Locale + opzionale cloud \\
+Interoperabilità & Bassa & Media & Media & Alta (MQTT/HTTP) \\
+Funzionamento offline & No & Limitato & No & Sì (ESP8266 + Arduino) \\
+Automazioni ingresso & GPS app & BLE & GPS & GPS + sensori locali \\
+Automazioni uscita & No & No & No & PIR + logica locale \\
+Privacy & Moderata & Medio-bassa & Bassa & Alta (locale-first) \\
+Costo medio & 200–250\,€ & 150–200\,€ & 120–150\,€ & < 150\,€ \\
+Open-source & No & No & No & Sì \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section*{Sintesi dell'analisi competitors}
+Il confronto sistematico delle soluzioni esistenti evidenzia come i sistemi commerciali condividano alcune limitazioni strutturali: dipendenza dal cloud, mancanza di interoperabilità, costi elevati e scarsa autonomia locale.
+
+Il progetto \textit{Smart Garage Door}, al contrario, si distingue per:
+\begin{itemize}
+    \item funzionamento locale anche senza Internet;
+    \item logica distribuita su Arduino e ESP8266, senza single point of failure;
+    \item interoperabilità garantita tramite protocolli standard aperti (HTTP/MQTT);
+    \item architettura open-source, replicabile e didatticamente sostenibile;
+    \item automazioni basate sia su sensori fisici sia su dati GPS, riducendo falsi positivi;
+    \item nessuna dipendenza da cloud proprietari, migliorando privacy e sicurezza.
+\end{itemize}
+
+Questa analisi costituisce la base per la definizione delle scelte tecnologiche illustrate nel Capitolo successivo.
+
+
+
+\section{Analisi comparativa e limiti delle soluzioni attuali}
+
+Il confronto tra le soluzioni commerciali evidenzia alcune caratteristiche comuni:
+\begin{itemize}
+    \item prevalenza di architetture \textbf{centralizzate} basate su servizi cloud, con limitata autonomia locale;
+    \item utilizzo di protocolli di comunicazione eterogenei (HTTP, BLE, Zigbee), spesso non interoperabili tra ecosistemi differenti;
+    \item dipendenza dalla connessione Internet per l’esecuzione delle operazioni principali;
+    \item costi complessivi elevati (200–250\,€ in media), in contrasto con gli obiettivi di accessibilità e sostenibilità tipici dei progetti accademici IoT.
+\end{itemize}
+
+L’assenza di interoperabilità standard e la dipendenza dal cloud proprietario costituiscono i principali ostacoli alla diffusione di soluzioni aperte e replicabili.  
+Come sottolineato da Piyare e Lee \cite{Piyare2013}, la leggerezza dei protocolli di comunicazione e la decentralizzazione dell’intelligenza locale sono elementi essenziali per garantire efficienza e resilienza in ambienti a risorse limitate.  
+In questo senso, l’utilizzo del protocollo \textbf{MQTT} \cite{MQTTspec}, rispetto a soluzioni HTTP o REST basate su cloud, consente una comunicazione asincrona e affidabile con consumo energetico minimo, particolarmente adatta per scenari residenziali.  
+L’impiego della scheda \textbf{ESP8266} \cite{ESP8266} rafforza ulteriormente questa prospettiva, offrendo un equilibrio ottimale tra costo, potenza di elaborazione e connettività Wi-Fi integrata.
+
+\section{Contributo del progetto \textit{Smart Garage Door}}
+
+Alla luce delle analisi precedenti, il progetto \textbf{Smart Garage Door} si propone come una soluzione innovativa e accademicamente replicabile che affronta in modo diretto le criticità delle piattaforme esistenti.  
+Le principali caratteristiche distintive sono:
+\begin{itemize}
+    \item \textbf{Architettura ibrida locale–remota}, in grado di operare anche in assenza di connessione Internet, garantendo affidabilità continua e coerenza con il requisito NFR5;
+    \item \textbf{Adozione di componenti open source e protocolli standard} (\textit{MQTT, Flask, Telegram API}), che riducono costi e complessità di integrazione;
+    \item \textbf{Automazione di prossimità basata su GPS}, preferita al BLE per una maggiore accuratezza e stabilità in contesti outdoor;
+    \item \textbf{Interfaccia utente tramite Telegram Bot API} \cite{TelegramAPI} e \textbf{server Flask} \cite{Flask2024}, per una gestione multiutente intuitiva e sicura;
+      \item \textbf{Budget complessivo inferiore a 150\,€}, conforme ai requisiti di accessibilità e sostenibilità economica.
+\end{itemize}
+
+Il progetto, dunque, non si limita a replicare soluzioni commerciali, ma propone un modello \textbf{open-source, scalabile e autonomo}, in grado di integrare i principi di modularità, efficienza e interoperabilità alla base dell’ingegneria dei sistemi IoT moderni.  
+Tale approccio si inserisce pienamente nella logica dello \textbf{System Development Life Cycle (SDLC)} \cite{Pressman2019}, applicando in modo rigoroso le fasi di analisi, progettazione, implementazione e validazione in un contesto applicativo concreto.
+
+
+\section{Conclusioni della revisione dello stato dell’arte}
+
+L’analisi dello stato dell’arte evidenzia che, nonostante l’ampia disponibilità di soluzioni commerciali per l’automazione delle porte da garage, la maggior parte di esse rimane vincolata a infrastrutture proprietarie e a modelli di comunicazione chiusi. Ciò limita la personalizzazione, aumenta i costi di mantenimento e riduce la possibilità di integrazione con altri sistemi IoT.
+
+Il progetto \textit{Smart Garage Door} propone dunque un paradigma alternativo rispetto alle soluzioni commerciali analizzate, fondato su un’architettura leggera, decentralizzata e pienamente controllabile dall’utente. La Tabella~\ref{tab:swot} riassume i principali elementi caratterizzanti attraverso un’analisi SWOT, evidenziando in modo sintetico punti di forza, limiti attuali, opportunità evolutive e potenziali minacce.
+
+In questo modo, il progetto adotta un modello di automazione domestica locale e decentralizzata, basato su componenti trasparenti, interoperabili e a basso costo. L’assenza di dipendenze da servizi cloud e il controllo diretto da parte dell’utente contribuiscono a migliorare sicurezza e affidabilità operativa. Tale impostazione, pienamente coerente con la letteratura sui sistemi IoT distribuiti \cite{Palattella2016, Piyare2013, Holler2014}, costituisce una base solida per future estensioni verso ambienti domestici più integrati, scalabili e interoperabili.
+
+
+\begin{table}[H]
+\centering
+\caption{Analisi SWOT del sistema Smart Garage Door}
+\label{tab:swot}
+\renewcommand{\arraystretch}{1.4}
+\begin{tabularx}{\textwidth}{|X|X|}
+\hline
+\textbf{Strengths} & \textbf{Weaknesses} \\ \hline
+Funzionamento locale e indipendente dal cloud; uso di componenti open e standard (ESP8266, MQTT/HTTP, Flask, Telegram); costi hardware ridotti; elevata replicabilità didattica. &
+Assenza di gestione utenti avanzata; scalabilità limitata a una singola autorimessa; dipendenza dalla copertura Wi-Fi domestica; sicurezza basata su meccanismi minimi. \\ \hline
+\textbf{Opportunities} & \textbf{Threats} \\ \hline
+Estensione a multi-porta e multi-utente; integrazione con ecosistemi domotici (Home Assistant, Node-RED); adozione di sensori avanzati; applicabilità a contesti condominiali o industriali. &
+Rischi legati alla rete Wi-Fi; possibili interferenze sui sensori PIR/ultrasuoni; dipendenza da servizi esterni (Telegram Bot API); vulnerabilità fisiche dei nodi in ambienti esterni. \\ \hline
+\end{tabularx}
+\end{table}

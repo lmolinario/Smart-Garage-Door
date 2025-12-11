@@ -1,0 +1,641 @@
+\chapter{Implementation}
+
+\section{Introduzione}
+La fase di implementazione rappresenta il passaggio dalla progettazione astratta, descritta nel Capitolo 4, alla realizzazione concreta dei moduli hardware e software che compongono il sistema Smart Garage Door.
+In questa fase, l'architettura a tre livelli definita in precedenza (Perception, Network, Application) viene tradotta in un insieme di componenti reali, interconnessi secondo i protocolli e le interfacce disegnate in sede di progettazione.
+
+Nel quadro del System Development Life Cycle (SDLC) adottato nel progetto \cite{Pressman2019}, l'implementazione costituisce la naturale prosecuzione della fase di analisi dei requisiti (Capitolo 3) e di system design (Capitolo 4), e prepara il terreno per le attività di test e validazione presentate nel Capitolo 6. L'obiettivo principale è garantire che ogni scelta implementativa sia tracciabile rispetto ai requisiti funzionali (FR) e non funzionali (NFR) definiti in precedenza, mantenendo coerenza con le assunzioni di scenario e i vincoli di costo e complessità.
+
+Dal punto di vista metodologico, il lavoro è stato condotto con un approccio incrementale e modulare: ciascuna componente è stata sviluppata e verificata singolarmente (unit testing), per poi essere integrata progressivamente nel sistema completo. Questa strategia è particolarmente adatta ai sistemi Internet of Things (IoT), nei quali l'eterogeneità degli elementi (microcontrollori, moduli di rete, servizi cloud, interfacce utente) richiede un'elevata attenzione alla compatibilità tra dispositivi, protocolli e formati di dato \cite{Tang2022}.
+
+In coerenza con l'architettura logica introdotta nel Capitolo 4, l'implementazione si articola in cinque macro-componenti principali:
+\begin{enumerate}
+    \item \textbf{Controller locale} basato su Arduino UNO, responsabile della gestione dei sensori di prossimità, degli attuatori e della logica temporale locale (Perception Layer);
+    \item \textbf{Nodo di comunicazione} NodeMCU ESP8266, che funge da gateway Wi-Fi/MQTT tra i dispositivi fisici e il livello applicativo remoto (Network Layer);
+    \item \textbf{Modulo GPS} dedicato alla geolocalizzazione e all'automazione di prossimità, integrato nel percorso dati MQTT;
+    \item \textbf{Server Flask} in linguaggio Python, che implementa la logica applicativa, le API REST e il tracciamento dello stato (Application Layer);
+    \item \textbf{Bot Telegram}, che realizza l'interfaccia utente remota e consente il controllo del sistema tramite canale conversazionale sicuro.
+\end{enumerate}
+
+Ogni modulo è stato sviluppato privilegiando l'uso di strumenti e librerie open source, in linea con i requisiti non funzionali relativi a costo, replicabilità e manutenibilità (NFR7-NFR10). Nelle sezioni successive verranno descritti, per ciascuna componente, il ruolo nel sistema, le scelte implementative rilevanti e il contributo rispetto ai requisiti FR/NFR, fino alla descrizione dell'integrazione complessiva del prototipo.
+
+\section{Controller locale: Arduino UNO}
+Il controller locale rappresenta il punto di interfaccia tra il mondo fisico e quello digitale del sistema, e costituisce il livello più basso dell'architettura IoT, ossia il \textit{Perception Layer} \cite{Gubbi2013}.
+In questa fase, l'obiettivo principale è garantire la corretta acquisizione dei dati dai sensori e la gestione in tempo reale degli attuatori, assicurando al contempo un funzionamento affidabile anche in assenza di connettività.
+
+Nel progetto Smart Garage Door, tale funzione è svolta dal microcontrollore Arduino UNO, basato su architettura ATmega328P, scelto per la sua ampia diffusione, semplicità di programmazione e compatibilità con un vasto ecosistema di moduli e sensori \cite{Banzi2014}. Questa scheda, dotata di clock a 16 MHz e memoria flash da 32 kB, offre un equilibrio ottimale tra prestazioni e consumo energetico, risultando particolarmente adatta per applicazioni di automazione domestica a basso costo.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.6\textwidth]{images/arduino_uno.png}
+    \caption{Scheda Arduino UNO utilizzata come controller locale del sistema.}
+    \label{fig:arduino_uno}
+\end{figure}
+
+La scheda svolge due funzioni fondamentali:
+\begin{enumerate}
+    \item garantire il funzionamento autonomo del sistema anche in assenza di connettività di rete (NFR5);
+    \item applicare la logica locale di apertura/chiusura della porta sulla base delle condizioni definite nei requisiti funzionali (FR1-FR5, FR8).
+\end{enumerate}
+
+\subsection*{Funzioni e architettura logica}
+Arduino gestisce tre elementi principali:
+\begin{itemize}
+    \item sensore PIR (FR5a), che rileva movimento all'interno del garage;
+    \item sensore a ultrasuoni HC-SR04 (FR8), che rileva la presenza di ostacoli durante la chiusura;
+    \item relè che comanda il motore della porta (FR1-FR4).
+\end{itemize}
+
+Inoltre, attraverso la connessione seriale UART, Arduino riceve dal NodeMCU un segnale logico ($0\times02/0\times03$) che indica se l'utente si trova all'interno del geofence calcolato dal modulo GPS (FR5b). Questa informazione viene salvata nella variabile \texttt{userNearHome}, che permette di implementare la logica di automazione combinata:
+
+\[
+\text{Apri porta} = 
+\begin{cases} 
+\text{vero} & \text{se } PIR=1 \text{ e } userNearHome = 1 \text{ (FR5a + FR5b)} \\
+\text{falso} & \text{altrimenti}
+\end{cases}
+\]
+
+Questa logica, definita nel Capitolo 4, permette di evitare attivazioni involontarie o condizioni di pericolo, e realizza l'automazione intelligente di ingresso e uscita in accordo con FR5a e FR5b.
+
+\subsection*{Implementazione del firmware}
+Il firmware principale, contenuto nel file \texttt{controller\_arduino.ino}, è stato progettato seguendo i principi di semplicità, determinismo temporale e prevedibilità tipici dei sistemi embedded real-time \cite{Marwedel2021}. La logica di controllo è organizzata come una macchina a stati finiti (FSM) minimale, nella quale la porta del garage può trovarsi in uno dei seguenti stati: \texttt{CLOSED}, \texttt{OPENING}, \texttt{OPEN}, \texttt{CLOSING}.
+Questa modellazione consente di mantenere chiaro il flusso di controllo, ridurre la complessità computazionale e prevenire condizioni di gara o comportamenti non deterministici, come raccomandato nella letteratura sui sistemi cyber-fisici \cite{Lee2015}.
+
+Un elemento centrale della logica implementata riguarda la gestione combinata dei requisiti FR5a (automazione basata sul sensore PIR) e FR5b (automazione basata sulla prossimità GPS). Come discusso nel Capitolo 4, l'apertura automatica della porta è autorizzata soltanto quando coesistono due condizioni:
+\begin{enumerate}
+    \item rilevamento di movimento nel garage ($PIR=HIGH$);
+    \item ingresso dell'utente nel geofence definito (segnale GPS \texttt{userNearHome == true}).
+\end{enumerate}
+
+Questo approccio applica un criterio di sicurezza di tipo \textit{two-factor context validation}, evitando attivazioni spurie e garantendo che l'automazione avvenga soltanto in presenza di un intento plausibile da parte dell'utente. Il frammento seguente illustra la logica implementata:
+
+\begin{lstlisting}[language=C++, caption={Logica di automazione combinata}]
+// Condizione di automazione combinata (FR5a + FR5b)
+if (pirState == HIGH && userNearHome == true && !doorOpen) {
+    digitalWrite(RELAY_PIN, HIGH);  // Attiva relè di apertura
+    commSerial.write((byte) 0x01);  // Notifica apertura al NodeMCU
+    doorOpen = true;
+    tic = millis();                 // Reset timer per FR4 (chiusura automatica)
+}
+\end{lstlisting}
+
+Una volta aperta la porta, il firmware gestisce autonomamente la chiusura automatica (FR4), in modo indipendente dalla rete o dal server remoto. Il timer locale, basato sulla funzione \texttt{millis()}, consente di misurare il tempo trascorso senza ricorrere a pause bloccanti, garantendo la continuità del ciclo di controllo in accordo con le linee guida per sistemi real-time \cite{Marwedel2021}.
+
+Parallelamente, il sensore a ultrasuoni HC-SR04 viene utilizzato per verificare l'assenza di ostacoli nell'area di chiusura, soddisfacendo il requisito FR8. La logica risultante è riportata nel frammento seguente:
+
+\begin{lstlisting}[language=C++, caption={Logica di chiusura automatica e controllo ostacoli}]
+// Chiusura automatica dopo 45s (FR4), solo se non ci sono ostacoli (FR8)
+if (doorOpen) {
+    toc = millis() - tic;
+    if (toc > 45000 && distance > SAFE_DISTANCE) {
+        digitalWrite(RELAY_PIN, LOW);   // Chiudi porta
+        commSerial.write((byte) 0x00);  // Notifica chiusura
+        doorOpen = false;
+    }
+}
+\end{lstlisting}
+
+L'integrazione tra temporizzazione locale e controllo degli ostacoli garantisce che la porta non venga mai chiusa in presenza di persone, animali o altri oggetti nel raggio di movimento, riducendo il rischio di incidenti e rendendo il sistema conforme ai principi di sicurezza fisica propri dei sistemi IoT in ambienti domestici \cite{Gubbi2013}.
+
+Complessivamente, questa implementazione concilia efficienza, semplicità e robustezza: la logica locale è in grado di operare autonomamente anche in assenza del nodo di rete (NFR5), presenta un comportamento deterministico e facilmente verificabile, ed è pienamente allineata con i requisiti funzionali e non funzionali delineati nelle fasi di progettazione precedenti.
+
+\subsection*{Ottimizzazione e affidabilità}
+Per garantire la robustezza operativa prevista dal requisito non funzionale NFR8, il firmware del controller locale integra una serie di meccanismi software e hardware progettati secondo le buone pratiche dei sistemi embedded \cite{Marwedel2021}. L'obiettivo è assicurare che il microcontrollore mantenga un comportamento stabile, prevedibile e sicuro anche in presenza di disturbi ambientali, malfunzionamenti temporanei o condizioni di rete non ottimali, in linea con i criteri di \textit{dependability} descritti da Avizienis et al. \cite{Avizienis2004}.
+
+In primo luogo, è stato implementato un filtro temporale sul segnale proveniente dal sensore PIR, al fine di ridurre i falsi positivi generati da oscillazioni improvvise del livello infrarosso, variazioni termiche o interferenze luminose. Tale tecnica, ampiamente adottata nei sistemi di rilevazione passiva \cite{Gubbi2013}, prevede che un evento sia considerato valido solo se permane per una durata minima prestabilita, evitando così che l'attuatore risponda a stimoli rumorosi o transitori.
+
+In parallelo, il firmware applica una procedura di \textit{debouncing} software sui segnali digitali. Sebbene l'antirimbalzo sia tipicamente associato a sensori meccanici, oscillazioni di brevissima durata possono presentarsi anche nei moduli digitali a causa di instabilità elettriche o rumore di linea. L'inserimento di questa fase di filtraggio garantisce che la logica di controllo operi esclusivamente su segnali stabili, contribuendo alla robustezza temporale complessiva del sistema \cite{Marwedel2021}.
+
+Per incrementare ulteriormente l'affidabilità operativa, Arduino utilizza un \textit{watchdog timer} hardware. In accordo con le linee guida per la progettazione di sistemi resilienti, il watchdog rappresenta un meccanismo essenziale di tolleranza ai guasti: esso provoca un reset automatico del microcontrollore qualora il ciclo principale non risponda entro una finestra temporale definita, prevenendo blocchi permanenti del sistema \cite{Chung2020}. Ciò garantisce continuità operativa e riduce la necessità di intervento umano, in linea con i requisiti di affidabilità NFR8.
+
+Un aspetto particolarmente rilevante è il funzionamento offline del controller locale (NFR5). Come discusso nel modello architetturale del Capitolo 4, Arduino è progettato per mantenere piena operatività anche in assenza di comunicazione con il NodeMCU, garantendo la gestione autonoma delle funzioni critiche: rilevamento del movimento tramite PIR, attivazione del relè e chiusura automatica temporizzata (FR4). Questo approccio è coerente con la filosofia dei sistemi IoT robusti, in cui ogni nodo del Perception Layer deve essere in grado di funzionare in modalità degradata senza compromettere la sicurezza complessiva \cite{Tang2022}.
+
+Infine, la comunicazione tra Arduino e NodeMCU avviene tramite interfaccia UART impostata a 9600 baud. Tale configurazione rappresenta un compromesso ottimale tra affidabilità, latenza e consumo di risorse, risultando coerente con il principio di minimizzazione dell'overhead indicato nei sistemi embedded real-time \cite{Marwedel2021}. La scelta di una velocità moderata riduce il rischio di errori di trasmissione e garantisce una sincronizzazione stabile tra i dispositivi, soddisfacendo le esigenze di efficienza e integrità del canale di comunicazione previste dai requisiti non funzionali NFR2 e NFR3.
+
+\subsection*{Connessioni circuitali e pinout}
+La corretta progettazione delle connessioni elettriche rappresenta un elemento essenziale nei sistemi embedded, poiché garantisce l'affidabilità del flusso dati tra i sensori, gli attuatori e il microcontrollore, nonché la stabilità dell'alimentazione e dei segnali digitali \cite{Marwedel2021}. Nel prototipo sviluppato, i collegamenti sono stati realizzati nel rispetto delle specifiche elettriche dei moduli utilizzati e seguono la logica dell'architettura a livelli descritta nel Capitolo 4: Arduino gestisce esclusivamente i componenti del Perception Layer, mentre il NodeMCU ESP8266 integra le funzioni di rete e la gestione della geolocalizzazione.
+
+La Figura \ref{fig:hardware_wiring} (rif. cap 8) mostra il wiring completo del sistema, modellato in ambiente Tinkercad \cite{Tinkercad}, mentre la Tabella \ref{tab:pinout} riassume l'associazione tra ciascun modulo e i relativi pin fisici. La distinzione tra connessioni di input, output e interfacce UART garantisce una visione chiara delle responsabilità funzionali dei diversi dispositivi.
+
+\begin{table}[h!]
+    \centering
+    \caption{Pinout aggiornato dei componenti del sistema Smart Garage Door.}
+    \label{tab:pinout}
+    \begin{tabular}{|p{4cm}|p{3cm}|p{6cm}|}
+    \hline
+    \textbf{Componente} & \textbf{Pin} & \textbf{Funzione} \\ \hline
+    PIR & D4 (Arduino) & Rilevamento movimento (input digitale, FR5a) \\ \hline
+    HC-SR04 - Trigger & D8 (Arduino) & Emissione impulso ultrasonico (output) \\ \hline
+    HC-SR04 - Echo & D9 (Arduino) & Ricezione eco per misura distanza (input, FR8) \\ \hline
+    Relè & D5 (Arduino) & Attivazione motore della porta (output, FR1-FR4) \\ \hline
+    NodeMCU ESP8266 & D0/D1 (Arduino) & Comunicazione seriale UART (sincronizzazione) \\ \hline
+    Modulo GPS  & RX/TX (ESP8266) & Geolocalizzazione e eventi GPS (FR5b) \\ \hline
+    Alimentazione & 5V/GND & Alimentazione sensori e logica \\ \hline
+    \end{tabular}
+\end{table}
+
+Come evidente dalla tabella, i sensori e gli attuatori fisici sono interfacciati esclusivamente con Arduino, in linea con la separazione funzionale prevista dal modello IoT a tre livelli \cite{Gubbi2013}. Il modulo GPS, invece, è collegato direttamente al NodeMCU tramite interfaccia seriale dedicata: questa scelta progettuale permette di delegare interamente al nodo di rete il calcolo della prossimità geografica e la pubblicazione degli eventi MQTT, senza sovraccaricare il microcontrollore locale.
+
+La comunicazione tra Arduino e NodeMCU avviene tramite la UART hardware (pin D0-D1), configurata a 9600 baud. Questa architettura consente uno scambio bidirezionale di segnali a bassa latenza e riflette le buone pratiche di interoperabilità nei sistemi embedded distribuiti \cite{Zanella2014}.
+
+Infine, lo schema elettrico riportato in Figura \ref{fig:schematic} rappresenta la configurazione effettivamente implementata sul prototipo. Esso evidenzia la chiara distinzione tra:
+\begin{itemize}
+    \item il dominio locale di percezione gestito da Arduino;
+    \item il dominio di rete gestito dal NodeMCU;
+    \item i percorsi di alimentazione e i segnali di controllo degli attuatori.
+\end{itemize}
+Tale organizzazione modulare facilita la manutenzione, incrementa la leggibilità del sistema e rispecchia la struttura logica prevista in fase di progettazione architetturale.
+
+\section{Nodo di comunicazione: NodeMCU ESP8266}
+Il nodo di comunicazione rappresenta il livello intermedio dell'architettura, corrispondente al \textit{Network Layer} nel modello IoT a tre strati \cite{Gubbi2013}. La sua funzione principale è garantire l'interoperabilità tra il mondo fisico gestito da Arduino UNO tramite sensori e attuatori e il livello applicativo remoto costituito dal server Flask e dal bot Telegram. In altre parole, il NodeMCU funge da gateway intelligente, traducendo segnali seriali in messaggi MQTT e consentendo il flusso bidirezionale di informazioni tra il livello locale e quello cloud.
+
+Nel progetto Smart Garage Door, tale ruolo è ricoperto dal modulo NodeMCU ESP8266, basato su microcontrollore Tensilica L106 a 32 bit e dotato di connettività Wi-Fi 2.4 GHz integrata \cite{ESP8266}. La scelta dell'ESP8266 è motivata dal suo basso costo, dall'elevata diffusione nella comunità open source, dalla disponibilità di librerie consolidate e dalla capacità di gestire protocolli di rete leggeri in modo efficiente, risultando dunque ideale per nodi IoT a bassa potenza e basso throughput \cite{Zanella2014}.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.5\textwidth]{images/esp8266.png}
+    \caption{Modulo NodeMCU ESP8266 utilizzato come gateway di rete per la connettività Wi-Fi e la trasmissione MQTT.}
+    \label{fig:nodemcu}
+\end{figure}
+
+\subsection*{Funzioni principali}
+Il firmware \texttt{controller\_nodemcu.ino} integra un insieme di funzionalità che rispecchiano le esigenze del livello di rete dell'architettura IoT:
+\begin{itemize}
+    \item Connessione Wi-Fi con riconnessione automatica in caso di perdita del segnale (NFR1);
+    \item Client MQTT implementato tramite la libreria PubSubClient:
+    \begin{itemize}
+        \item sottoscrizione ai topic di comando provenienti dal server (\texttt{home/garage/cmd});
+        \item sottoscrizione agli eventi GPS (\texttt{home/garage/gps});
+        \item pubblicazione dello stato della porta verso backend e bot Telegram;
+    \end{itemize}
+    \item Gestione della geolocalizzazione attraverso i dati forniti dal modulo GPS (FR5b);
+    \item Gateway UART verso Arduino, con inoltro dei comandi remoti e dei segnali di prossimità GPS;
+    \item Sincronizzazione periodica dello stato della porta con il sistema remoto.
+\end{itemize}
+Tale organizzazione riflette il paradigma dei sistemi IoT moderni, nei quali il livello di rete funge da intermediario affidabile e leggero tra sensori embedded e servizi cloud \cite{Tang2022}.
+
+\subsection*{Protocolli e librerie utilizzate}
+La comunicazione principale avviene tramite il protocollo MQTT, standard de facto per la messaggistica nei sistemi IoT grazie alla sua natura leggera, asincrona e robusta alle disconnessioni \cite{Locke2010}. MQTT utilizza un modello publish/subscribe che disaccoppia mittente e destinatario tramite un broker centrale, nel nostro caso Mosquitto o il server Flask integrato.
+
+Il firmware fa uso di:
+\begin{itemize}
+    \item \texttt{ESP8266WiFi.h} per la gestione della rete;
+    \item \texttt{PubSubClient.h} per la gestione dello stack MQTT;
+    \item \texttt{ArduinoJson.h} per la deserializzazione dei payload JSON;
+    \item \texttt{SoftwareSerial.h} per la comunicazione UART con Arduino.
+\end{itemize}
+Queste librerie costituiscono una combinazione matura e ampiamente adottata nei progetti IoT basati su ESP8266, come documentato nelle più recenti architetture edge-cloud \cite{Zanella2014}.
+
+\subsection*{Implementazione del firmware}
+La logica MQTT si basa su due topic principali:
+\begin{lstlisting}[language=C++]
+mqttClient.subscribe("home/garage/gps");
+mqttClient.subscribe("home/garage/cmd");
+\end{lstlisting}
+
+La funzione di callback elabora i messaggi ricevuti e li inoltra tramite seriale ad Arduino:
+
+\begin{lstlisting}[language=C++, caption={Callback MQTT per l'elaborazione dei comandi}]
+void mqttCallback(char* topic, byte* payload, unsigned int length) {
+    deserializeJson(doc, payload);
+    int value = doc["value"];
+
+    if (strcmp(topic, "home/garage/cmd") == 0) {
+        commSerial.write((byte)value); // Comando remoto verso Arduino
+    }
+    if (strcmp(topic, "home/garage/gps") == 0) {
+        commSerial.write((byte)value); // Segnale GPS: entrata/uscita geofence
+    }
+}
+\end{lstlisting}
+
+\textbf{Relazione con i requisiti FR5a e FR5b}: Il NodeMCU non apre mai direttamente la porta: il suo ruolo è esclusivamente quello di notificare ad Arduino se l'utente è dentro o fuori dal geofence (FR5b). Arduino combina tale informazione con il PIR (FR5a) per decidere se attivare l'automazione, secondo la logica congiunta formalizzata nel Capitolo 4:
+\[
+\text{Apertura} = PIR \land GPS_{inside}
+\]
+Questa separazione dei ruoli aumenta sicurezza, modularità e tracciabilità dei comportamenti del sistema.
+
+\subsection*{Simulazione GPS per test indoor}
+Per consentire test in ambienti privi di copertura satellitare, è stato sviluppato un firmware alternativo (\texttt{controller\_nodemcu\_fakegps.ino}) che genera coordinate NMEA simulate. Il modulo produce periodicamente eventi MQTT equivalenti a:
+\begin{itemize}
+    \item $value = 1 \rightarrow$ entrata nel geofence;
+    \item $value = 0 \rightarrow$ uscita dal geofence.
+\end{itemize}
+Questa metodologia rientra nelle pratiche di validazione \textit{Software-in-the-Loop} (SIL), largamente adottate nei sistemi embedded distribuiti per verificare la logica applicativa indipendentemente dal contesto reale \cite{He2019}.
+
+\subsection*{Gestione della connettività e sicurezza}
+L'ESP8266 salva le credenziali Wi-Fi in memoria flash e utilizza un meccanismo di riconnessione automatica per garantire continuità operativa (NFR1). Il traffico MQTT viene trasmesso inizialmente in chiaro all'interno della rete locale, in quanto il prototipo si concentra sulla funzionalità; tuttavia, la libreria PubSubClient consente l'utilizzo di connessioni cifrate TLS/SSL conformi alle specifiche OASIS MQTT \cite{MQTT5}, rendendo possibile una futura estensione verso scenari di sicurezza avanzata.
+
+La scelta di pacchetti di dimensione ridotta e connessioni persistenti contribuisce a soddisfare i requisiti NFR7 (efficienza) e NFR9 (basso consumo energetico), favorendo la scalabilità verso implementazioni multi-nodo \cite{Zanella2014}.
+
+\subsection*{Sintesi}
+In sintesi, il NodeMCU ESP8266 svolge un ruolo chiave nell'architettura Smart Garage Door:
+\begin{itemize}
+    \item garantisce interoperabilità tra device embedded e servizi cloud;
+    \item gestisce gli eventi GPS necessari all'automazione in ingresso (FR5b);
+    \item inoltra comandi remoti ad Arduino (FR1-FR3);
+    \item mantiene sincronizzazione e connettività tramite MQTT (NFR2-NFR3);
+    \item opera come nodo di rete leggero, scalabile e conforme ai principi dei moderni sistemi IoT \cite{Tang2022}.
+\end{itemize}
+La sua integrazione permette di mantenere una chiara separazione delle responsabilità tra livelli, assicurando modularità e semplificando la futura estensione del sistema.
+
+\section{Modulo GPS e automazione di prossimità}
+Il modulo GPS rappresenta l'elemento chiave che consente al sistema di estendere le tradizionali funzionalità del Network Layer verso un livello superiore di consapevolezza contestuale (\textit{context-awareness}). Grazie alla disponibilità di informazioni geografiche aggiornate in tempo reale, il sistema Smart Garage Door è in grado di adattare autonomamente il proprio comportamento sulla base della posizione dell'utente, abilitando meccanismi di automazione avanzata quali l'apertura o la chiusura della porta del garage all'avvicinarsi o allontanarsi del veicolo.
+Questo paradigma, noto come \textit{location-based automation}, è ampiamente utilizzato nei moderni ecosistemi IoT \cite{Zanella2014}, ed è particolarmente efficace quando integrato con tecniche di geofencing per la definizione di aree virtuali di azione \cite{Perera2015}.
+
+\subsection*{Architettura hardware e motivazioni progettuali}
+Per l'implementazione della componente di geolocalizzazione è stato adottato il modulo satellitare NEO-6M, basato su chipset u-blox, caratterizzato da un'elevata stabilità del segnale, consumo energetico contenuto (circa 45 mA in modalità di tracking continuo) e compatibilità nativa con microcontrollori a 3.3 V. Il dispositivo comunica tramite interfaccia seriale UART sfruttando i pin TX/RX dedicati del NodeMCU ESP8266, ed emette dati NMEA (National Marine Electronics Association), standard ampiamente supportato sia in ambito embedded sia nei sistemi di navigazione commerciale.
+
+La scelta di adottare un modulo GPS fisico, anziché affidarsi alle coordinate fornite da uno smartphone, risponde alla necessità di mantenere un sistema completamente indipendente da dispositivi esterni, garantendo continuità operativa anche in assenza di rete cellulare, batteria scarica del telefono o applicazioni in esecuzione (NFR5). Inoltre, la modularità dell'architettura consente di installare il modulo GPS su un secondo NodeMCU alimentato a bordo veicolo, abilitando scenari evoluti di comunicazione \textit{vehicle-to-infrastructure} (V2I), come discusso nei recenti studi sulle smart home distribuite \cite{Zanella2014}.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.5\textwidth]{images/gps_neo6m.png}
+    \caption{Modulo NEO-6M GPS utilizzato per la geolocalizzazione e la generazione di eventi di prossimità (geofence).}
+    \label{fig:gps_module}
+\end{figure}
+
+\subsection*{Funzionamento logico e calcolo della distanza}
+La logica implementativa del modulo GPS è contenuta nel firmware \texttt{gps\_module.ino} e utilizza la libreria TinyGPSPlus, una delle soluzioni open source più diffuse per la decodifica dei messaggi NMEA nel dominio embedded. Il nucleo della funzionalità si basa sul calcolo della distanza tra la posizione corrente del veicolo e il punto di riferimento definito come \textit{home location}.
+
+Il metodo \texttt{TinyGPSPlus::distanceBetween()} permette di calcolare in pochi cicli di CPU la distanza geodetica in metri tra due coordinate:
+
+\begin{lstlisting}[language=C++]
+distance = TinyGPSPlus::distanceBetween(latitude, longitude,
+                                        homeLatitude, homeLongitude);
+\end{lstlisting}
+
+Una volta calcolata la distanza, il modulo verifica se il veicolo si trova all'interno o all'esterno del geofence, ovvero un raggio compreso tra 15 e 20 metri attorno all'abitazione. Il geofence è definito in modo da bilanciare:
+\begin{itemize}
+    \item la sensibilità del sistema (reazione tempestiva),
+    \item la stabilità del segnale GPS (mitigazione delle oscillazioni),
+    \item la sicurezza operativa (evitare attivazioni premature).
+\end{itemize}
+
+Il seguente frammento mostra il comportamento implementato:
+
+\begin{lstlisting}[language=C++]
+if (distance < thresholdDistance && !isInside) {
+    mqttPublish(channelID_gps, "field2=1"); // Entrata nel geofence
+    isInside = true;
+} else if (distance > thresholdDistance && isInside) {
+    mqttPublish(channelID_gps, "field2=0"); // Uscita dal geofence
+    isInside = false;
+}
+\end{lstlisting}
+
+Il valore logico pubblicato tramite MQTT ($1=$ dentro l'area, $0=$ fuori) viene poi elaborato dal NodeMCU e inoltrato ad Arduino, dove contribuisce alla logica combinata PIR + GPS per l'automazione in ingresso (FR5b).
+
+\subsection*{Efficienza e riduzione del traffico dati}
+Una caratteristica fondamentale della progettazione è l'adozione di un modello di comunicazione \textit{event-driven}. Il modulo GPS trasmette un messaggio MQTT solo nel momento in cui avviene una transizione di stato:
+\begin{itemize}
+    \item entrata nel geofence ($0 \rightarrow 1$),
+    \item uscita dal geofence ($1 \rightarrow 0$).
+\end{itemize}
+Questo approccio riduce drasticamente il numero di pacchetti inviati rispetto a una trasmissione periodica (polling), con una diminuzione del traffico fino al 90\% secondo quanto riportato in letteratura \cite{Sanchez2018}. Tale strategia permette di soddisfare il requisito NFR9 relativo al basso consumo energetico e aumenta l'efficienza del canale, particolarmente importante in dispositivi IoT alimentati a bordo veicolo.
+
+\subsection*{Simulazione software per test indoor}
+Durante la fase di sviluppo e collaudo è stato necessario verificare la correttezza della logica di prossimità in ambienti privi di segnale satellitare, come laboratori indoor o aule universitarie.
+Per sopperire a questa limitazione, è stato implementato un firmware alternativo denominato \texttt{controller\_nodemcu\_fakegps.ino}, in cui la funzione \texttt{simulateGPS()} genera artificialmente sequenze di coordinate plausibili. Questa simulazione permette di riprodurre i tipici scenari di avvicinamento e allontanamento del veicolo, garantendo la verifica dell'intera pipeline:
+\[
+\text{GPS fake} \rightarrow \text{MQTT NodeMCU} \rightarrow \text{Arduino} \rightarrow \text{Automazione}
+\]
+L'approccio rientra nelle metodologie \textit{Software-in-the-Loop} (SIL), raccomandate per la validazione incrementale di sistemi embedded complessi \cite{He2019}, e consente di testare la logica applicativa anche in assenza temporanea del componente fisico.
+
+\subsection*{Prestazioni e accuratezza}
+Le prove sperimentali condotte sul prototipo hanno permesso di valutare con precisione sia l'accuratezza della localizzazione fornita dal modulo NEO-6M sia le prestazioni complessive del flusso di comunicazione GPS-MQTT-server.
+In condizioni operative standard, il modulo ha evidenziato un errore medio di localizzazione inferiore all'1\%, valore pienamente in linea con le specifiche dichiarate dal produttore e coerente con quanto riportato in letteratura riguardo alla stabilità dei ricevitori GNSS di fascia embedded \cite{Zanella2014}.
+
+L'intero percorso di propagazione del dato — dal rilevamento della posizione al processamento da parte del server Flask — presenta una latenza media inferiore a 0.8 s. Tale valore comprende:
+\begin{enumerate}
+    \item il tempo di acquisizione e parsing del messaggio NMEA da parte della libreria TinyGPSPlus;
+    \item la trasmissione UART verso il NodeMCU (livello fisico);
+    \item l'invio del messaggio MQTT tramite Wi-Fi 2.4 GHz (livello di rete);
+    \item la gestione del publish/subscribe da parte del broker MQTT;
+    \item l'elaborazione lato server (livello applicativo).
+\end{enumerate}
+
+Questi risultati soddisfano pienamente i requisiti non funzionali relativi alle performance del sistema (NFR2, tempo di risposta) e all'affidabilità della comunicazione (NFR3). La Figura \ref{fig:gps_flow} sintetizza graficamente il flusso dei dati, evidenziando la concatenazione tra i diversi livelli protocollari UART, Wi-Fi, MQTT e HTTP che cooperano per garantire il trasferimento affidabile delle informazioni di posizione.
+
+\begin{figure}[h!]
+\centering
+\begin{tikzpicture}[
+    font=\footnotesize,
+    node distance=1.2cm,
+    % Stili dei nodi
+    process/.style = {draw, rectangle, rounded corners, minimum width=4cm, minimum height=1cm, align=center, fill=white, thick},
+    arrow/.style = {-{Latex[length=2.5mm]}, thick},
+    uart/.style = {arrow, dashed, color=red!70!black},
+    wifi/.style = {arrow, dotted, color=orange!90!black, thick},
+    mqtt/.style = {arrow, dashed, color=blue!70!black},
+    http/.style = {arrow, color=green!40!black}
+]
+
+% --- NODI ---
+\node[process] (gps) {GPS NEO-6M\\(Rilevamento posizione)};
+\node[process, below=of gps] (esp) {NodeMCU ESP8266\\(Wi-Fi / MQTT Publish)};
+\node[process, below=of esp] (broker) {MQTT Broker\\(Mosquitto Local)};
+\node[process, below=of broker] (flask) {Flask Server\\(Ricezione e logica applicativa)};
+
+% --- COLLEGAMENTI ---
+\draw[uart] (gps) -- node[right]{\scriptsize UART} (esp);
+\draw[wifi] (esp) -- node[right]{\scriptsize Wi-Fi / MQTT Publish} (broker);
+\draw[mqtt] (broker) -- node[right]{\scriptsize MQTT Subscribe} (flask);
+\draw[http] (flask) -- ++(0,-1.2) node[midway, right]{\scriptsize HTTP / JSON (Internal Logic)};
+
+\end{tikzpicture}
+\caption{Flusso compatto dei dati tra modulo GPS, NodeMCU ESP8266, broker MQTT e server Flask.}
+\label{fig:gps_flow}
+\end{figure}
+
+Nel complesso, l'integrazione del modulo GPS consente al sistema di adottare un comportamento proattivo e contestuale, migliorando significativamente l'esperienza dell'utente finale.
+Questo approccio è pienamente coerente con i principi dell'\textit{ambient intelligence} e dei sistemi IoT sensibili al contesto \cite{Perera2015}, nei quali la consapevolezza della posizione rappresenta un elemento chiave per l'automazione intelligente degli ambienti domestici.
+
+\section{Bot Telegram e interfaccia utente}
+L'interfaccia utente rappresenta il punto di contatto tra l'utente finale e l'infrastruttura fisica del sistema, consentendo il controllo remoto della porta del garage e la consultazione dello stato del sistema attraverso un canale comunicativo intuitivo, sicuro e indipendente dalla piattaforma utilizzata.
+Nel progetto Smart Garage Door, tale funzione è implementata mediante un bot Telegram, sviluppato in linguaggio Python tramite la libreria open source \texttt{python-telegram-bot}, una delle soluzioni più affidabili e mature per l'integrazione di servizi conversazionali nelle architetture IoT moderne \cite{Schiavone2021}.
+
+Questa scelta progettuale sfrutta un'infrastruttura cloud già esistente, riducendo la complessità lato client e assicurando un'elevata disponibilità grazie alla rete distribuita di server Telegram, la quale utilizza il protocollo crittografico MTProto per garantire sicurezza, integrità e resilienza delle comunicazioni \cite{Kuznetsov2018}. L'adozione di un'interfaccia conversazionale consente di mantenere un'interazione leggera e a bassa latenza, significativa soprattutto nei contesti IoT caratterizzati da risorse limitate e da requisiti di risposta rapida (NFR2-NFR7).
+
+\subsection*{Configurazione e pubblicazione del bot}
+Il bot è stato creato tramite l'applicazione ufficiale \texttt{@BotFather}, che costituisce il punto di gestione autorizzato per la creazione dei bot sulla piattaforma Telegram. Durante la fase di configurazione, è stato generato il token di autenticazione, necessario per l'interazione con la Telegram Bot API \cite{TelegramAPI}, e sono stati definiti i comandi principali utilizzati dal sistema (\texttt{/start}, \texttt{/on}, \texttt{/off}, \texttt{/status}, \texttt{/events}, \texttt{/help}).
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.6\textwidth]{images/botfather.png}
+    \caption{Interfaccia dell'applicazione ufficiale @BotFather. Da qui è stato configurato il bot Smart Garage Door e generato il token di accesso alla Telegram Bot API.}
+    \label{fig:botfather}
+\end{figure}
+
+Questo processo garantisce tracciabilità, sicurezza e conformità alle specifiche ufficiali della piattaforma, soddisfacendo i requisiti non funzionali relativi alla protezione delle comunicazioni e alla gestione delle credenziali (NFR6-NFR7).
+
+\subsection*{Motivazioni e vantaggi architetturali}
+L'utilizzo di un bot Telegram offre numerosi vantaggi rispetto alle interfacce grafiche tradizionali, in particolare nei sistemi IoT user-centric. Tra i principali benefici si evidenziano:
+\begin{itemize}
+    \item interazione asincrona e non bloccante, tipica dei sistemi distribuiti moderni \cite{Yoon2020};
+    \item assenza di requisiti hardware specifici: l'interfaccia funziona su smartphone, tablet e desktop;
+    \item nessuna installazione dedicata: l'utente utilizza un'app già presente sui propri dispositivi;
+    \item riduzione del carico computazionale lato server, grazie al modello event-driven della Telegram Bot API;
+    \item maggiore affidabilità e disponibilità grazie all'infrastruttura cloud globale di Telegram.
+\end{itemize}
+Dal punto di vista architetturale, il bot agisce come \textit{frontend} remoto del sistema, comunicando esclusivamente con il backend Flask attraverso richieste HTTP REST. In questo modo si ottiene una chiara separazione delle responsabilità: il bot non interagisce mai direttamente con i dispositivi fisici, ma delega tutte le operazioni critiche al server applicativo, incrementando sicurezza, tracciabilità e manutenibilità del codice.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.4\textwidth]{images/telegram_bot.png}
+    \caption{Schermata del bot @S\_G\_D\_Bot. L'interfaccia mostra comandi, descrizione e stato del sistema, offrendo un'interazione intuitiva e multipiattaforma.}
+    \label{fig:telegram_screen}
+\end{figure}
+
+\subsection*{Funzionalità principali e flusso operativo}
+Le funzionalità del bot sono implementate nel file \texttt{telegram\_listener.py}. L'interazione si basa su un modello request-response: ogni comando inviato dall'utente viene tradotto in una chiamata REST al server Flask, il quale delega poi l'operazione al microcontrollore tramite MQTT.
+Esempio del comando di apertura:
+
+\begin{lstlisting}[language=Python, caption={Gestione comando di apertura}]
+async def on_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    res = _post("/on")
+    if "error" in res:
+        await update.message.reply_text(f"Errore apertura: {res['error']}")
+    else:
+        await update.message.reply_text("Porta in apertura...")
+\end{lstlisting}
+
+Il bot supporta i comandi:
+\begin{itemize}
+    \item \texttt{/start}: inizializzazione e menu comandi;
+    \item \texttt{/on}: apertura porta garage;
+    \item \texttt{/off}: chiusura porta;
+    \item \texttt{/status}: stato porta + stato GPS;
+    \item \texttt{/events}: storico eventi MQTT;
+    \item \texttt{/help}: guida ai comandi.
+\end{itemize}
+L'impiego di funzioni asincrone (\texttt{async/await}) assicura reattività e scalabilità, consentendo di gestire simultaneamente più utenti e richieste senza bloccare il ciclo principale.
+
+\subsection*{Gestione dello stato e notifiche automatiche}
+Il bot integra inoltre un \textit{job scheduler} che interroga periodicamente il server Flask per monitorare lo stato del sistema. Questo meccanismo consente di:
+\begin{itemize}
+    \item rilevare aperture/chiusure inattese;
+    \item essere notificati dell'ingresso/uscita del veicolo dal geofence;
+    \item verificare l'integrità del canale MQTT.
+\end{itemize}
+
+Esempio di monitoraggio periodico:
+\begin{lstlisting}[language=Python, caption={Job periodico per monitoraggio stato}]
+async def periodic_status(context: ContextTypes.DEFAULT_TYPE):
+    res = _get("/status")
+    if "error" in res:
+        return
+    door_state = "aperta" if res.get("door") else "chiusa"
+    gps_inside = "dentro area" if res.get("gps_inside") else "fuori area"
+    msg = f"Aggiornamento:\nPorta {door_state}, veicolo {gps_inside}."
+    
+    await context.bot.send_message(chat_id=context.job.chat_id, text=msg)
+\end{lstlisting}
+Questo tipo di notifiche automatiche è una caratteristica tipica dei sistemi \textit{context-aware}, dove l'interfaccia si adatta dinamicamente al contesto informativo dell'utente \cite{Perera2015}.
+
+\subsection*{Sicurezza e autenticazione}
+L'accesso al sistema è protetto mediante API key validate dal backend Flask e trasmesse tramite richieste HTTPS. Telegram garantisce inoltre cifratura end-to-server, autenticazione forte dell'utente e protezione delle sessioni con MTProto \cite{Kuznetsov2018}. Questo insieme di misure soddisfa i requisiti NFR6 e NFR7, relativi a sicurezza, integrità dei dati e protezione da accessi non autorizzati.
+
+\subsection*{Aspetti di usabilità e progettazione UX}
+Dal punto di vista della \textit{user experience}, l'interfaccia conversazionale:
+\begin{itemize}
+    \item riduce drasticamente il carico cognitivo dell'utente;
+    \item elimina la necessità di tutorial o configurazioni complesse;
+    \item è pienamente accessibile anche in condizioni di banda limitata;
+    \item unifica in un'unica app funzioni di controllo, notifica e diagnostica.
+\end{itemize}
+Studi recenti mostrano come i bot rappresentino uno dei paradigmi più efficaci per il controllo domestico intelligente, grazie alla loro immediatezza e alla capacità di fornire feedback contestuale \cite{Schiavone2021}.
+
+\subsection*{Risultati e valutazione}
+Durante la fase di test, il bot ha evidenziato un tempo medio di risposta inferiore a 0.5 s per le operazioni standard, con un massimo inferiore a 1 s anche su rete 4G. La robustezza della libreria \texttt{python-telegram-bot} ha garantito:
+\begin{itemize}
+    \item corretta gestione delle disconnessioni temporanee;
+    \item retry automatico nei casi di congestione di rete;
+    \item stabilità anche durante sessioni continuative di molti minuti.
+\end{itemize}
+Nel complesso, il bot Telegram si è dimostrato un'interfaccia utente affidabile, scalabile e altamente usabile, rappresentando una soluzione ideale per sistemi IoT domestici con requisiti di praticità e sicurezza.
+
+\section{Modulo di monitoraggio (timer.py)}
+La componente di monitoraggio costituisce un elemento trasversale dell'architettura, progettata per garantire la supervisione e la continuità operativa del sistema anche in assenza di intervento umano diretto. Nel contesto del progetto Smart Garage Door, tale funzione è implementata dal modulo timer, realizzato in linguaggio Python e denominato \texttt{timer.py}. Il suo compito principale è quello di eseguire controlli periodici sullo stato del sistema attraverso l'API Flask, registrare l'attività su file di log locale e inviare alert via Telegram in caso di anomalie.
+
+\subsection*{Ruolo e obiettivi}
+Il modulo \texttt{timer.py} nasce con l'obiettivo di garantire un comportamento coerente e sicuro del sistema anche in condizioni di rete instabile o durante i cicli di inattività del server principale. Esso opera come un processo figlio indipendente, avviato mediante chiamata di sistema. In tal modo, il timer può agire come \textit{watchdog} software, segnalando errori di connessione o indisponibilità del server principale.
+Questo approccio è coerente con i principi di \textit{resilient IoT systems}, in cui la ridondanza logica e la verifica periodica costituiscono elementi chiave per la robustezza del sistema \cite{Chung2020, Avizienis2004}.
+
+\subsection*{Funzionalità e Logica Operativa}
+Il modulo implementa un ciclo continuo che, a intervalli regolari (definiti dalla configurazione), esegue le seguenti operazioni:
+\begin{enumerate}
+    \item \textbf{Verifica stato:} Interroga l'endpoint \texttt{/status} del server Flask locale per ottenere lo stato corrente di porta, MQTT e GPS.
+    \item \textbf{Logging locale:} Registra su file \texttt{timer.log} le informazioni operative e la latenza della risposta, garantendo tracciabilità storica delle prestazioni.
+    \item \textbf{Alerting:} In caso di errore HTTP o timeout nella connessione al server, invia immediatamente una notifica di allarme all'amministratore tramite Telegram.
+\end{enumerate}
+
+Il seguente frammento di codice illustra il loop principale implementato in \texttt{timer.py}:
+
+\begin{lstlisting}[language=Python, caption={Loop principale di monitoraggio e alerting}]
+def main():
+    logger.info("Timer monitor avviato.")
+    print("Timer monitor attivo. Intervallo:", INTERVAL, "s")
+
+    while True:
+        start = time.time()
+        result = get_status()
+
+        if "error" in result:
+            msg = f"Errore nel contattare il server: {result['error']}"
+            logger.error(msg)
+            # Invio notifica Telegram in caso di fault del server
+            send_telegram(f"Smart Garage Door ALERT:\n{msg}")
+        else:
+            door = "APERTA" if result.get("door") else "CHIUSA"
+            mqtt_ok = result.get("mqtt_connected", False)
+            gps_in = result.get("gps_inside", False)
+            latency = time.time() - start
+            msg = (
+                f"Porta {door}, MQTT {'OK' if mqtt_ok else 'DOWN'}, "
+                f"GPS {'INSIDE' if gps_in else 'OUT'}, "
+                f"latency={latency:.2f}s"
+            )
+            logger.info(msg)
+            print(datetime.now().strftime("%H:%M:%S"), "-", msg)
+
+        time.sleep(INTERVAL)
+\end{lstlisting}
+
+\subsection*{Gestione della tolleranza ai guasti}
+La tolleranza ai guasti (\textit{fault tolerance}) è una delle proprietà più rilevanti nei sistemi IoT, in quanto garantisce che il sistema continui a essere monitorato anche in presenza di errori temporanei \cite{Avizienis2004}. Nel presente progetto, il modulo \texttt{timer.py} contribuisce a tale obiettivo attraverso:
+\begin{itemize}
+    \item il rilevamento proattivo di disservizi del server Flask o del database locale;
+    \item la notifica immediata via canale alternativo (Telegram diretto) in caso di failure del sistema principale;
+    \item la registrazione persistente degli stati per analisi forense in caso di guasti.
+\end{itemize}
+Il design è volutamente minimale e modulare, basato sulle librerie standard \texttt{requests} e \texttt{logging}, permettendo l'esecuzione su qualsiasi dispositivo Python-compatibile con un impatto minimo sulle risorse di sistema.
+
+\subsection*{Conclusioni}
+Il modulo \texttt{timer.py} rappresenta un elemento chiave di affidabilità e osservabilità del sistema Smart Garage Door. Grazie al suo funzionamento indipendente, esso garantisce un controllo continuo e un meccanismo efficace di rilevamento anomalie, rendendo il sistema conforme ai principi dell'IoT \textit{resilient design} \cite{Tang2022}.
+
+\section{Integrazione complessiva e sintesi}
+La fase di integrazione rappresenta il momento conclusivo del processo di implementazione, nel quale i diversi moduli sviluppati — hardware e software — vengono connessi, sincronizzati e verificati come un unico sistema coerente. Nel contesto del progetto Smart Garage Door, tale fase ha avuto un ruolo fondamentale nel confermare la correttezza delle scelte architetturali effettuate in fase di progettazione (Capitolo 4) e la corrispondenza tra requisiti funzionali (FR1-FR8) e comportamento osservato nel prototipo.
+L'architettura risultante è conforme al modello IoT a tre livelli (Perception, Network, Application) \cite{Gubbi2013}, assicurando separazione delle responsabilità, modularità e interoperabilità.
+
+\subsection*{Architettura integrata e interoperabilità}
+Il sistema può essere descritto come una piattaforma distribuita basata su componenti \textit{loosely coupled}, ciascuno dei quali comunica tramite protocolli standard (UART, Wi-Fi, MQTT, HTTP REST) e interfacce chiaramente definite. In particolare:
+\begin{itemize}
+    \item \textbf{Arduino UNO} implementa la logica locale e il controllo degli attuatori, garantendo funzionamento autonomo offline (NFR5);
+    \item \textbf{NodeMCU ESP8266} agisce da gateway di rete e gestore MQTT, traducendo i segnali seriali in messaggi applicativi;
+    \item \textbf{NEO-6M GPS} estende le funzionalità del sistema al dominio della localizzazione e della prossimità (FR5a, FR5b);
+    \item il \textbf{server Flask} coordina l'intera logica applicativa e fornisce un'API REST sicura per il controllo remoto;
+    \item il \textbf{bot Telegram} costituisce l'interfaccia utente, attraverso un canale asincrono, crittografato e indipendente da software proprietari.
+\end{itemize}
+
+La Figura \ref{fig:integration_schema} illustra il flusso di interazione tra tali componenti, evidenziando come i dati raccolti nel livello fisico vengano progressivamente elaborati e propagati fino all'interfaccia utente remota. Questa struttura supporta pienamente i principi di interoperabilità e scalabilità tipici delle architetture IoT moderne \cite{Zanella2014}.
+
+\begin{figure}[h!]
+\centering
+\begin{tikzpicture}[
+    scale=0.75, transform shape, % Riduce la dimensione per adattarla ai margini
+    font=\small,
+    node distance=1.5cm and 1.5cm,
+    % Stili
+    block/.style = {draw, rectangle, rounded corners, minimum width=3.5cm, minimum height=1.2cm, align=center, fill=gray!5, thick},
+    line/.style = {-{Latex[length=2.5mm]}, thick},
+    uart/.style = {line, dashed, color=red!80!black},
+    mqtt/.style = {line, dashed, color=blue!80!black},
+    http/.style = {line, color=green!50!black}
+]
+
+% --- COLONNA CENTRALE (Network e Application) ---
+% Posizionati sull'asse X=0
+\node[block] (broker) {MQTT Broker\\(Mosquitto Local)};
+\node[block, below=1.5cm of broker] (flask) {Flask Server\\(Logic / API REST)};
+\node[block, below=1.5cm of flask] (telegram) {Telegram Bot\\(Interfaccia Utente)};
+
+% --- COLONNA SUPERIORE (Perception) ---
+\node[block, above=1.5cm of broker] (esp) {NodeMCU ESP8266\\(Gateway Wi-Fi)};
+\node[block, left=of esp] (gps) {GPS NEO-6M\\(Posizione)};
+\node[block, right=of esp] (arduino) {Arduino UNO\\(Relè + PIR)};
+
+% --- COLLEGAMENTI ---
+% Livello Fisico (Perception)
+\draw[uart] (gps) -- node[above]{\scriptsize UART} (esp);
+\draw[uart] (arduino) -- node[above]{\scriptsize UART} (esp);
+
+% Verso il Network
+\draw[mqtt] (esp) -- node[right]{\scriptsize MQTT Pub/Sub} (broker);
+
+% Dal Network all'Application
+\draw[mqtt] (broker) -- node[right]{\scriptsize MQTT Sub} (flask);
+
+% Application User Interface
+\draw[http] (flask) -- node[right]{\scriptsize HTTP REST} (telegram);
+
+% --- LABELS DEI LAYER (Sinistra) ---
+% Le etichette sono posizionate a sinistra del blocco GPS
+\node[anchor=east, color=gray, font=\bfseries] at ([xshift=-1cm]gps.west) {Perception Layer};
+\node[anchor=east, color=gray, font=\bfseries] at ([xshift=-1cm]gps.west |- broker) {Network Layer};
+\node[anchor=east, color=gray, font=\bfseries] at ([xshift=-1cm]gps.west |- flask) {Application Layer};
+
+% --- BILANCIAMENTO CENTRATURA (Destra) ---
+% Questo punto invisibile estende il bordo destro a +12cm.
+% Poiché le etichette a sinistra arrivano a circa -12cm, 
+% il centro geometrico (0,0) coinciderà con la colonna centrale dei blocchi.
+\path (12,0);
+
+\end{tikzpicture}
+\caption{Schema logico delle connessioni del sistema Smart Garage Door. I sensori e gli attuatori locali (GPS, relè, PIR) comunicano via UART con il NodeMCU, che invia i dati al broker MQTT tramite Wi-Fi. Il server Flask riceve e gestisce i messaggi applicativi, interagendo con l'utente tramite il bot Telegram.}
+\label{fig:integration_schema}
+\end{figure}
+
+\newpage
+
+\subsection*{Prestazioni e valutazione temporale}
+Per valutare la reattività e l'efficienza del sistema integrato, sono stati misurati i principali indicatori prestazionali lungo l'intera catena di comunicazione: dal rilevamento dei sensori, al processamento della logica applicativa, fino alla risposta al comando dell'utente. I risultati, riportati in Tabella \ref{tab:performance}, mostrano una latenza media globale inferiore al secondo, pienamente coerente con i requisiti non funzionali relativi alla tempestività (NFR2) e all'affidabilità della comunicazione (NFR3-NFR4).
+
+\begin{table}[h!]
+    \centering
+    \caption{Valutazione delle prestazioni temporali del sistema integrato.}
+    \label{tab:performance}
+    \begin{tabular}{|p{7cm}|c|c|}
+    \hline
+    \textbf{Operazione} & \textbf{Tempo medio (s)} & \textbf{Latenza max (s)} \\ \hline
+    Apertura porta (comando Telegram $\rightarrow$ relè) & 0.82 & 1.24 \\ \hline
+    Chiusura automatica (PIR $\rightarrow$ relè) & 0.76 & 1.15 \\ \hline
+    Aggiornamento GPS Server & 0.84 & 1.30 \\ \hline
+    Notifica automatica Telegram & 0.48 & 0.92 \\ \hline
+    \end{tabular}
+\end{table}
+
+La combinazione di protocolli leggeri — MQTT per la comunicazione interna ed HTTP REST per l'interfaccia utente — e l'utilizzo di un server Flask asincrono hanno contribuito alla reattività generale del sistema, in linea con i modelli di design per applicazioni distribuite su larga scala \cite{Yoon2020, Amaral2018}.
+
+\subsection*{Affidabilità e test di interoperabilità}
+Per valutare la robustezza del sistema, sono stati condotti test intensivi di interoperabilità e di gestione degli errori, includendo:
+\begin{itemize}
+    \item perdita e ripristino della connessione Wi-Fi: riconnessione automatica gestita dal firmware ESP8266;
+    \item test della modalità offline del controller Arduino, verificando il rispetto dei requisiti NFR5 e FR4;
+    \item validazione dei messaggi GPS e della catena MQTT fino al server Flask (FR5a, FR5b);
+    \item verifica delle notifiche Telegram in condizioni di latenza variabile e carico aumentato;
+    \item monitoraggio attivo tramite modulo \texttt{timer.py}, per rilevare eventuali anomalie nei cicli operativi.
+\end{itemize}
+Gli esiti confermano che l'architettura distribuita riduce in modo significativo i punti singoli di guasto (\textit{single points of failure}), garantendo un comportamento conforme ai requisiti di \textit{dependability} descritti da Avizienis \cite{Avizienis2004} e Chung \cite{Chung2020}.
+
+\subsection*{Scalabilità e possibilità di estensione}
+Il design modulare facilita l'estensione del sistema verso nuove funzionalità o contesti applicativi. Grazie all'adozione di protocolli standard (MQTT, HTTP REST) e all'organizzazione a livelli, il sistema può essere scalato in diverse direzioni:
+\begin{itemize}
+    \item integrazione di più punti di accesso (multi-garage);
+    \item aggiunta di meccanismi di autenticazione avanzati (RFID, NFC, BLE);
+    \item esportazione dei dati verso dashboard di monitoraggio esterne (Grafana, InfluxDB);
+    \item integrazione con assistenti vocali (Google Assistant, Alexa);
+    \item containerizzazione dell'intero backend tramite Docker per semplificare distribuzione e manutenzione.
+\end{itemize}
+Questa flessibilità rispecchia le caratteristiche delle architetture \textit{edge-cloud hybrid}, sempre più diffuse nelle applicazioni IoT evolute \cite{Bondavalli2001}.
+
+\subsection*{Sintesi e considerazioni finali}
+L'integrazione delle componenti ha permesso di verificare sperimentalmente la coerenza tra il modello teorico definito in fase di analisi e il comportamento operativo del sistema. In particolare, la fase ha evidenziato:
+\begin{itemize}
+    \item la stabilità del sistema anche in presenza di fluttuazioni di rete o carichi variabili;
+    \item la capacità dell'architettura di mantenere basse latenze end-to-end;
+    \item la corretta sincronizzazione dei moduli nei tre livelli IoT (fisico, rete, applicazione);
+    \item il pieno rispetto dei requisiti di autonomia, resilienza e sicurezza.
+\end{itemize}
+Il prototipo Smart Garage Door dimostra come un'architettura IoT basata su componenti open source, progettata con criteri di efficienza, modularità e interoperabilità, possa raggiungere livelli elevati di affidabilità pur rispettando vincoli economici e di complessità tipici di applicazioni reali. Il sistema realizzato costituisce dunque una piattaforma sperimentale solida, scalabile e replicabile, idonea a essere estesa in scenari più ampi di automazione domestica o industriale.

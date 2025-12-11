@@ -1,0 +1,192 @@
+\chapter{Requirements Analysis}
+
+\section{Introduzione}
+La fase di \textbf{analisi dei requisiti} rappresenta un momento cardine all’interno del ciclo di vita del software (\textit{System Development Life Cycle}, SDLC), poiché consente di definire in modo formale le funzionalità, le prestazioni e i vincoli che il sistema deve rispettare.  
+Come evidenziato da Pressman e Maxim \cite{Pressman2019}, una corretta definizione dei requisiti costituisce la premessa fondamentale per garantire coerenza tra gli obiettivi del progetto, le soluzioni implementative e la qualità del prodotto finale.
+
+Sulla base dello scenario delineato nel Capitolo~1 e dell’analisi dello stato dell’arte (Capitolo~2), sono stati individuati e classificati i requisiti funzionali (\textbf{FR}) e non funzionali (\textbf{NFR}) del sistema \textit{Smart Garage Door}.  
+Questi requisiti descrivono il comportamento atteso del sistema, ne delimitano l’ambito applicativo e guidano le successive fasi di progettazione e validazione.  
+L’obiettivo è garantire che il sistema risulti affidabile, interoperabile, scalabile e conforme ai principi di sostenibilità tecnica ed economica propri dei progetti IoT accademici.
+
+\section{Scenario di riferimento}
+Il sistema è progettato per un ambiente domestico dotato di connettività Wi-Fi stabile fino all’area del garage o del cancello.  
+La porta è motorizzata e controllabile elettricamente tramite un contatto digitale, in modo da consentire l’interazione diretta con i microcontrollori.  
+Il sistema integra sensori e attuatori in un’architettura distribuita, basata su nodi cooperanti connessi tramite protocollo \textbf{MQTT} \cite{MQTTspec}.  
+
+L’utente, attraverso un’interfaccia intuitiva basata su \textbf{Telegram Bot API} \cite{TelegramAPI}, può:
+\begin{itemize}
+    \item aprire e chiudere la porta del garage manualmente o da remoto;
+    \item ricevere notifiche in tempo reale sullo stato della porta e sugli eventi rilevati;
+    \item attivare automaticamente l’apertura o la chiusura in base alla posizione GPS del veicolo;
+    \item gestire utenti autorizzati con livelli di accesso differenziati;
+    \item mantenere la piena operatività del sistema anche in assenza di connettività Internet, grazie al fallback locale garantito dal microcontrollore \textbf{ESP8266} \cite{ESP8266}.
+\end{itemize}
+
+Il sistema, inoltre, è concepito per un funzionamento continuo 24/7 e per garantire la tracciabilità di tutte le azioni mediante log memorizzati localmente.  
+L’ambiente di riferimento è quello di un’abitazione privata o di un garage allínterno di complesso condominiale, ma l’architettura è scalabile e può essere estesa a contesti industriali o multipiano.
+
+\section{Requisiti funzionali (FR)}
+I requisiti funzionali definiscono le azioni che il sistema deve essere in grado di compiere, descrivendo i servizi offerti all’utente e i comportamenti osservabili del sistema.  
+Essi sono stati derivati dall’analisi delle esigenze d’uso e dai casi d’uso realistici previsti per il contesto applicativo.  
+La Tabella~\ref{tab:fr} riporta l’elenco completo dei requisiti funzionali identificati.
+
+\begin{table}[h!]
+\centering
+\caption{Elenco dei requisiti funzionali (FR)}
+\label{tab:fr}
+\begin{tabularx}{\textwidth}{@{}clX@{}}
+\toprule
+\textbf{ID} & \textbf{Nome} & \textbf{Descrizione} \\
+\midrule
+FR1 & Apertura/chiusura remota & Il sistema consente all’utente di aprire o chiudere la porta del garage da remoto tramite Telegram o interfaccia web. \\
+FR2 & Consultazione stato & L’utente può verificare in tempo reale lo stato della porta (aperta, chiusa o in movimento). \\
+FR3 & Notifiche automatiche & Il sistema invia notifiche all’utente ogni volta che si verifica una variazione di stato. \\
+FR4 & Chiusura automatica temporizzata & La porta si richiude automaticamente dopo un periodo di inattività o assenza di movimento. \\
+FR5a & Automazione in uscita & La porta si apre automaticamente quando, dall’interno, viene rilevato un movimento verso la soglia associato a un utente autorizzato. \\
+FR5b & Automazione in ingresso & La porta si apre automaticamente al rilevamento di un utente autorizzato in avvicinamento entro un raggio configurabile (basato su GPS). \\
+FR6 & Gestione multiutenza & Il sistema consente l’aggiunta, la rimozione e la gestione di utenti autorizzati. \\
+FR7 & Comando locale / override & È possibile azionare manualmente la porta tramite pulsante fisico, indipendentemente dalla connessione di rete. \\
+FR8 & Rilevazione ostacolo & In presenza di un ostacolo, il sistema interrompe la chiusura e riapre la porta per motivi di sicurezza. \\
+FR9 & Consultazione log eventi & L’amministratore può accedere all’elenco delle azioni e degli eventi registrati dal sistema. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Questi requisiti sono coerenti con i principi di progettazione modulare e sicurezza funzionale propri dell’ingegneria dei sistemi embedded, e garantiscono l’interazione integrata tra componenti hardware e software.
+
+\section{Requisiti non funzionali (NFR)}
+I requisiti non funzionali descrivono le caratteristiche qualitative che il sistema deve possedere per assicurare un livello adeguato di prestazioni, sicurezza e usabilità.  
+Essi influenzano direttamente le scelte tecnologiche e architetturali.  
+La Tabella~\ref{tab:nfr} riporta i principali NFR individuati per il sistema \textit{Smart Garage Door}.
+
+\begin{table}[h!]
+\centering
+\caption{Elenco dei requisiti non funzionali (NFR)}
+\label{tab:nfr}
+\begin{tabularx}{\textwidth}{@{}clX@{}}
+\toprule
+\textbf{ID} & \textbf{Categoria} & \textbf{Descrizione} \\
+\midrule
+NFR1 & Accessibilità & I dati devono essere sempre disponibili e consultabili, con un tempo di conservazione configurabile. \\
+NFR2 & Prestazioni & Il tempo di risposta ai comandi e alle notifiche deve essere inferiore a 1\,s (95° percentile). \\
+NFR3 & Accuratezza & Il sistema deve garantire una precisione superiore al 99\%, con tasso di falsi positivi inferiore all’1\%. \\
+NFR4 & Copertura & La rilevazione GPS deve avvenire entro un raggio massimo di 15\,m dal punto di riferimento. \\
+NFR5 & Disponibilità & Il sistema deve garantire operatività continua (24/7), con modalità di fallback locale in caso di perdita di connessione. \\
+NFR6 & Sicurezza & Devono essere implementati meccanismi di autenticazione e integrità dei dati tramite hashing e gestione sicura delle sessioni. \\
+NFR7 & Privacy & I dati personali devono essere minimizzati e i log cancellati automaticamente dopo un periodo definito. \\
+NFR8 & Interoperabilità & Il sistema deve supportare protocolli standard aperti (MQTT, HTTP) per la compatibilità multi-piattaforma. \\
+NFR9 & Efficienza energetica & Il consumo deve essere ottimizzato per dispositivi alimentati a batteria o connessi a rete domestica. \\
+NFR10 & Costo & Il costo complessivo del sistema non deve superare i 150 euro, garantendo sostenibilità economica. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Le caratteristiche sopra descritte rispondono alle linee guida per i sistemi IoT distribuiti, che richiedono un equilibrio tra prestazioni, consumo e affidabilità \cite{Piyare2013, Palattella2016}.  
+Inoltre, l’attenzione alla sicurezza e alla privacy riflette le raccomandazioni degli standard OASIS per l’uso del protocollo MQTT in contesti sensibili \cite{MQTTspec}.
+
+\section{Tracciabilità FR–NFR}
+Per assicurare coerenza progettuale, è stata redatta una matrice di tracciabilità tra requisiti funzionali e non funzionali.  
+La Tabella~\ref{tab:trace} evidenzia le relazioni di dipendenza, mostrando come ciascun FR sia associato ai NFR che ne influenzano l’implementazione e la verifica.
+
+\begin{table}[h!]
+\centering
+\caption{Tracciabilità tra requisiti funzionali e non funzionali}
+\label{tab:trace}
+\begin{tabularx}{\textwidth}{@{}lX@{}}
+\toprule
+\textbf{FR} & \textbf{NFR impattati} \\
+\midrule
+FR1 – Apertura/chiusura remota & NFR2, NFR6, NFR8, NFR10 \\
+FR2 – Stato porta in tempo reale & NFR1, NFR2, NFR3 \\
+FR3 – Notifiche automatiche & NFR1, NFR2, NFR7 \\
+FR4 – Chiusura automatica temporizzata & NFR3, NFR5, NFR9 \\
+FR5a – Automazione in uscita & NFR3, NFR4, NFR9 \\
+FR5b – Automazione in ingresso & NFR3, NFR4, NFR9 \\
+FR6 – Gestione multiutenza & NFR6, NFR7, NFR8 \\
+FR7 – Comando locale / override & NFR5, NFR8 \\
+FR8 – Rilevazione ostacolo & NFR3, NFR5 \\
+FR9 – Log eventi & NFR1, NFR6, NFR7 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+La tracciabilità consente di mantenere un controllo diretto sull’impatto di ogni requisito non funzionale sul comportamento del sistema e di pianificare test mirati in fase di validazione \cite{Pressman2019}.
+
+
+\section{Analisi comparativa delle tecnologie disponibili} In conformità alle linee guida del corso Internet of Things, è necessario valutare e confrontare le alternative hardware, i sensori, i protocolli di comunicazione e le interfacce utente potenzialmente impiegabili nel sistema Smart Garage Door. Tale confronto è basato sui requisiti non funzionali (NFR) definiti nelle sezioni precedenti e consente di motivare in modo oggettivo le scelte progettuali.
+
+\subsection{Confronto tra microcontrollori} 
+
+\begin{table}[H] 
+\centering 
+\caption{Confronto tra microcontrollori disponibili} \label{tab:mcus} \begin{tabularx}{\textwidth}{@{}lXXX@{}} \toprule \textbf{Parametro} & \textbf{Arduino UNO} & \textbf{NodeMCU ESP8266} & \textbf{Raspberry Pi 3} \\ \midrule Connettività & Nessuna nativa & Wi-Fi 2.4\,GHz integrato & Wi-Fi, BT, Ethernet \\ Consumo energetico & Molto basso & Basso & Elevato \\ Potenza di calcolo & Limitata & Media & Alta \\ Costo & 8–12€ & 5–10€ & 40–60€ \\ Programmazione & C/C++ & C/C++ / MicroPython & Python/Linux \\ I/O digitali & 14 pin & 11 pin & +20 GPIO \\ Uso in IoT & Necessita modulo Wi-Fi esterno & Ideale per IoT Wi-Fi & Sovradimensionato \\ Adatto per Smart Garage Door & Sì (sensori/relè) & Sì (comunicazione) & No (costo/consumo eccessivi) \\ \bottomrule 
+\end{tabularx} 
+\end{table}
+
+ \subsection{Confronto tra sensori} 
+ 
+ \begin{table}[H] 
+ \centering 
+ \caption{Confronto tra sensori utilizzabili per automazioni e sicurezza} \label{tab:sensors} \begin{tabularx}{\textwidth}{@{}lXXXX@{}} \toprule \textbf{Parametro} & \textbf{PIR} & \textbf{IR} & \textbf{Radar Doppler} & \textbf{HC-SR04} \\ \midrule Tipo rilevazione & Movimento termico & Ostacoli vicini & Movimento microonde & Distanza oggetti \\ Accuratezza & Alta indoor & Media & Molto alta & Alta \\ Falsi positivi & Bassi & Medi (luce) & Bassi & Bassi \\ Distanza utile & 3–6\,m & 20–80\,cm & 5–10\,m & 2–400\,cm \\ Costo & 2–4€ & 1–2€ & 8–12€ & 2–4€ \\ Consumo & Molto basso & Basso & Medio & Basso \\ Adatto a FR5a (uscita) & Sì & No & Sì & Parziale \\ Adatto a FR8 (ostacolo) & No & No & No & Sì \\ 
+ \bottomrule 
+ \end{tabularx} 
+ \end{table} 
+ 
+ \subsection{Confronto tra protocolli di comunicazione}
+ 
+ \begin{table}[H] \centering \caption{Confronto tra protocolli di comunicazione per sistemi IoT} \label{tab:protocols} \begin{tabularx}{\textwidth}{@{}lXXXX@{}} \toprule \textbf{Parametro} & \textbf{HTTP/REST} & \textbf{MQTT} & \textbf{CoAP} & \textbf{Webhook} \\ \midrule Pattern & Client--Server & Publish/\newline Subscribe & Client--Server (UDP) & Event callback \\ Peso messaggi & Alto & Molto basso & Basso & Medio \\ Affidabilità & Alta & Alta (QoS) & Media (UDP) & Dipende dal server \\ Reattività & Media & Altissima & Alta & Alta \\ Sicurezza & TLS/HTTPS & TLS & DTLS & HTTPS \\ Difficoltà implementazione & Bassa & Media & Media & Alta lato client \\ Adatto a notifiche & Sì & Ottimo & Sì & Ottimo \\ Adatto per Smart Garage Door & Sì & Sì & Non necessario & Possibile \\ \bottomrule \end{tabularx} \end{table} 
+ 
+ 
+ 
+ \subsection{Confronto tra interfacce utente} \begin{table}[H] \centering \caption{Confronto tra possibili interfacce utente} \label{tab:ui} \begin{tabularx}{\textwidth}{@{}lXXX@{}} \toprule \textbf{Parametro} & \textbf{Telegram Bot} & \textbf{Web App} & \textbf{App nativa} \\ \midrule Costo sviluppo & Nessuno & Medio & Alto \\ Usabilità & Molto alta & Alta & Alta \\ Notifiche push & Immediate & Necessarie API esterne & Native \\ Installazione & Nessuna & Browser & Store (Android/iOS) \\ Sicurezza & Elevata (TLS + Bot API) & Dipende dal server & Alta \\ Multiplatform & Totale & Totale & Totale \\ Adatta al progetto & Sì (migliore) & Opzionale & Non necessaria \\ \bottomrule \end{tabularx} \end{table} 
+ 
+ \section{Scelta finale delle tecnologie} 
+ La scelta delle tecnologie da impiegare nella realizzazione del sistema \textit{Smart Garage Door} rappresenta un passaggio cruciale all’interno della fase di analisi, poiché condiziona direttamente la progettazione architetturale, l’implementazione e le future attività di test e validazione. Come evidenziato da Pressman e Maxim~\cite{Pressman2019}, le decisioni tecnologiche devono essere il risultato di un processo razionale basato su confronti oggettivi, vincoli progettuali e requisiti funzionali e non funzionali. 
+ 
+ Le sezioni precedenti hanno proposto un confronto sistematico e approfondito tra microcontrollori, sensori, protocolli di comunicazione e interfacce utente, mettendo in evidenza punti di forza, limiti e aspetti di idoneità rispetto alle esigenze dello scenario applicativo. Le tecnologie selezionate nelle tabelle comparative costituiscono ora una base motivata per definire lo stack tecnologico più adeguato in termini di affidabilità, scalabilità, costo ed efficienza energetica, in linea con i principi dei sistemi IoT descritti da Holler et al.~\cite{Holler2014} e Palattella et al.~\cite{Palattella2016}.
+ 
+  \subsection{Microcontrollori} Il confronto riportato nella Tabella~\ref{tab:mcus} mostra come i diversi microcontrollori disponibili nel kit (Arduino UNO, NodeMCU ESP8266 e Raspberry Pi 3) presentino caratteristiche funzionali, computazionali ed energetiche profondamente differenti, riflettendo trade-off tipici della progettazione embedded~\cite{Piyare2013}. 
+  
+  L’\textbf{Arduino UNO} si distingue per la sua affidabilità, la latenza minima, la semplicità di programmazione e il controllo diretto degli I/O digitali, elementi fondamentali per la gestione dei sensori di prossimità, del pulsante manuale e del relè che controlla l’azionamento della porta. Inoltre, il basso consumo energetico e la totale prevedibilità del comportamento in tempo reale lo rendono particolarmente adatto a funzioni critiche come la rilevazione ostacoli (FR8) e l’attivazione manuale di emergenza (FR7). 
+  
+  Il \textbf{NodeMCU ESP8266} costituisce invece il nodo ideale per la componente di comunicazione del sistema. La disponibilità di Wi-Fi integrato, il supporto nativo ai protocolli MQTT e HTTP, un consumo ridotto e un costo estremamente contenuto lo rendono un dispositivo perfettamente conforme agli NFR di costo (NFR10), disponibilità (NFR5) ed efficienza energetica (NFR9). La presenza di un ambiente di sviluppo maturo e di una comunità estremamente attiva facilita inoltre l’integrazione con piattaforme esterne come Telegram, ThingSpeak e servizi RESTful~\cite{MQTTspec,ESP8266}. 
+  
+  La \textbf{Raspberry Pi 3}, pur offrendo performance superiori, viene scartata poiché il suo impiego comporterebbe complessità non necessarie, un consumo energetico superiore, costi incompatibili con gli NFR e un approccio sistemistico sovradimensionato rispetto alle esigenze del progetto. La scelta finale prevede dunque una \textbf{architettura a due microcontrollori}, nella quale: \begin{itemize} \item l’\textbf{Arduino UNO} esegue le operazioni di basso livello, garantendo determinismo e risposta immediata; \item il \textbf{NodeMCU ESP8266} svolge la funzione di \textit{gateway IoT}, gestendo comunicazioni, logica applicativa e interazione con l’utente. \end{itemize} Questa separazione rispecchia il paradigma \textit{perception layer} – \textit{network/application layer} tipico delle architetture IoT multilivello~\cite{Holler2014}. 
+  
+  \subsection{Sensori}
+  
+   La Tabella~\ref{tab:sensors} evidenzia che sensori differenti (PIR, IR, radar Doppler e HC-SR04) presentano specificità funzionali che li rendono più o meno adatti a diversi compiti all’interno del sistema. 
+   
+   Il \textbf{sensore PIR}, basato sulla rilevazione di variazioni nell’infrarosso passivo, risulta la soluzione ottimale per l’automazione in uscita (FR5a): garantisce consumi minimi, elevata affidabilità in ambienti indoor e un tasso molto ridotto di falsi positivi. L’impiego del PIR è coerente con gli NFR relativi all’efficienza energetica (NFR9) e all’accuratezza (NFR3). 
+   
+   L’\textbf{HC-SR04}, grazie al suo principio di funzionamento ultrasonico, permette una misurazione precisa delle distanze ed è ampiamente utilizzato in applicazioni di rilevazione ostacoli. La sua elevata stabilità, unita al basso costo, lo rende ideale per garantire la sicurezza meccanica della porta (FR8) e soddisfare gli NFR di disponibilità (NFR5) e accuratezza (NFR3). 
+   
+   I sensori IR e radar, pur offrendo vantaggi in alcuni scenari, sono stati scartati rispettivamente per: \begin{itemize} \item interferenza luminosa e minore robustezza operativa degli IR; \item costo e complessità non giustificati dei radar Doppler in un ambiente domestico. \end{itemize} 
+   
+   \subsection{Protocolli di comunicazione} Il confronto in Tabella~\ref{tab:protocols} mette a confronto HTTP/REST, MQTT, CoAP e Webhooks. Secondo Cirani et al.~\cite{Cirani2019}, la scelta dei protocolli in sistemi IoT deve tener conto del modello di comunicazione, della frequenza degli aggiornamenti, della latenza e dei requisiti energetici dei dispositivi. 
+   
+   Il protocollo \textbf{HTTP/REST} si rivela la scelta più naturale per la gestione dei comandi puntuali e delle interrogazioni di stato (FR1, FR2, FR7), grazie alla semplicità implementativa, alla disponibilità di librerie mature e alla piena compatibilità con la Telegram Bot API. La natura stateless del protocollo garantisce inoltre una separazione chiara tra client e server, favorendo la scalabilità e la manutenzione~\cite{Guinard2016}. 
+   
+   Il protocollo \textbf{MQTT}, progettato per comunicazioni machine-to-machine leggere, garantisce notifiche efficienti e affidabilità tramite i livelli QoS. Benché non strettamente necessario nello stadio iniziale, esso rappresenta un’opzione strategica per estensioni future (NFR8), ad esempio per notifiche asincrone in tempo reale o per supportare più dispositivi in scenari multi-utente. 
+   
+   Il protocollo \textbf{CoAP}, pur essendo ideale in reti altamente vincolate, risulta meno vantaggioso in un contesto Wi-Fi domestico, dove le risorse disponibili non giustificano l’adozione di un modello basato su UDP~\cite{Shelby2014}. I Webhooks vengono scartati per l’assenza di un server esterno persistente, in quanto richiederebbero un’infrastruttura non necessaria in un progetto embedded.
+   
+   \subsection{Interfaccia utente} La scelta dell’interfaccia utente è un elemento critico per assicurare una buona esperienza d’uso e al tempo stesso mantenere sostenibilità economica e semplicità architetturale. La comparativa in Tabella~\ref{tab:ui} evidenzia che: \begin{itemize} \item Le \textbf{Web App} richiedono certificati HTTPS, hosting dedicato e manutenzione. \item Le \textbf{app native} presentano costi e complessità di sviluppo incompatibili con i vincoli del progetto. \item La \textbf{Telegram Bot API} offre notifiche push integrate, autenticazione built-in, forte sicurezza tramite TLS e totale assenza di costi infrastrutturali~\cite{TelegramAPI}. \end{itemize} Telegram soddisfa inoltre pienamente gli NFR relativi alla sicurezza (NFR6), alla privacy (NFR7) e alla multi-piattaforma. Il paradigma conversazionale consente inoltre di semplificare l’interazione utente in modo naturale e intuitivo~\cite{Guinard2016}. \subsection{Sintesi delle scelte tecnologiche} L’insieme delle tecnologie selezionate configura un’architettura IoT modulare, robusta e pienamente aderente agli FR e NFR identificati. La combinazione: \begin{itemize} \item Arduino UNO come controllore dei sensori e del relè; \item ESP8266 come nodo di rete e gestore della logica; \item Sensori PIR e HC-SR04 per automazione e sicurezza; \item Protocolli HTTP/REST e, in prospettiva, MQTT; \item Telegram Bot come interfaccia utente primaria, \end{itemize} consente di ottenere un sistema equilibrato tra affidabilità, efficienza energetica, sicurezza e sostenibilità economica. Questa configurazione costituisce la base per la progettazione architetturale descritta nel Capitolo~4, garantendo un corretto allineamento con il ciclo di vita del software e con le migliori pratiche di progettazione IoT. 
+   
+   
+   \section{Riepilogo FR -- Soluzioni Hardware e Software} 
+   
+La Tabella~\ref{tab:fr_hw_sw} riassume l’associazione tra ciascun requisito funzionale (FR) e le soluzioni hardware, software e protocollari adottate per soddisfarlo. Questa struttura consente di evidenziare la completa tracciabilità tra requisiti, componenti fisici e scelte implementative, in accordo con le linee guida del corso e con il modello SDLC. 
+   
+Questa tabella chiude formalmente la fase di Analisi, mostrando come ogni funzione richiesta
+sia stata tradotta in una scelta tecnologica concreta e motivata dagli NFR. Essa prepara inoltre
+la transizione verso il Capitolo 4, in cui tali soluzioni verranno integrate nell’architettura di
+sistema all’interno dei tre livelli (Perception, Network e Application Layer ).
+
+
+\begin{table}[H] \centering \caption{Mappatura tra requisiti funzionali e soluzioni HW/SW adottate} \label{tab:fr_hw_sw} \renewcommand{\arraystretch}{1.35} \begin{tabularx}{\textwidth}{@{} p{3.5cm} X X X@{}} \toprule \textbf{FR} & \textbf{Hardware \newline coinvolto} & \textbf{Software / \newline Logica} & \textbf{Protocollo / \newline Interfaccia} \\ \midrule FR1 – Apertura/chiusura remota & Relay + Arduino UNO + ESP8266 & Flask API: endpoint /garage/door/open–close; logica di controllo & HTTP/REST via Telegram Bot API \\ FR2 – Consultazione stato porta & Arduino UNO (stato relè / sensori) + ESP8266 & Endpoint /garage/door/state; sincronizzazione MQTT–Flask & HTTP/REST (GET) \\ FR3 – Notifiche automatiche & ESP8266 (publisher MQTT) & Event handler Flask + Telegram Bot notifier & MQTT + Telegram API \\ FR4 – Chiusura automatica temporizzata & Arduino UNO (timer locale) & Timer interno + logica anti-false activation & Nessun protocollo esterno (logica locale) \\ FR5a – Automazione in uscita (PIR) & Sensore PIR + Arduino UNO + relè & Algoritmo combinato movimento → attuazione porta & UART (Arduino→ESP) + logica locale \\ FR5b – Automazione in ingresso (GPS) & Modulo GPS (via ESP8266) & Geofence evaluator + trigger apertura & HTTP/REST (GET /gps/status) + UART \\ FR6 – Gestione multiutenza & ESP8266 + Flask Server & DB utenti, permessi e autenticazione bot & Telegram Bot API + Flask \\ FR7 – Comando locale (pulsante) & Pulsante fisico + Arduino UNO & Interrupt/ISR su Arduino; override logica remota & Pure local control (offline mode) \\ FR8 – Rilevazione ostacolo & HC-SR04 + Arduino UNO & Misura distanza + stop + inversione porta & UART (segnalazione stato) \\ FR9 – Consultazione log eventi & ESP8266 + Flask Server & Endpoint /garage/logs; registrazione eventi & HTTP/REST + ThingSpeak API (opzionale) \\ \bottomrule \end{tabularx} \end{table} 
+
+
+\section{Impatto dei requisiti non funzionali sulle decisioni progettuali} I requisiti non funzionali (NFR) hanno guidato in modo determinante tutte le scelte hardware, software e protocollari del sistema. La Tabella~\ref{tab:nfr_decisions} sintetizza come ciascun NFR abbia influenzato le decisioni progettuali chiave, garantendo coerenza metodologica e aderenza al modello SDLC. 
+
+\begin{table}[H] \centering \caption{Mappatura tra NFR e decisioni progettuali adottate} \label{tab:nfr_decisions} \renewcommand{\arraystretch}{1.35} \begin{tabularx}{\textwidth}{@{} p{3.5cm} X X@{}} \toprule \textbf{NFR} & \textbf{Descrizione} & \textbf{Decisioni progettuali \newline derivate} \\ \midrule NFR1 – Accessibilità dei dati & I dati devono essere sempre disponibili e consultabili & Adozione di endpoint REST leggibili; server Flask con log persistenti; periodic upload verso ThingSpeak. \\ NFR2 – Prestazioni & Tempo risposta < 1s & Separazione Arduino (real-time) / ESP8266 (network); uso di HTTP/REST per comandi rapidi; logica locale senza round-trip cloud. \\ NFR3 – Accuratezza & Precisione > 99\% & Uso di PIR (alta affidabilità indoor) e HC-SR04; escluso IR perché sensibile alla luce; escluso radar per falsi doppi. \\ NFR4 – Copertura GPS & Raggio massimo 15m & Implementazione di geofence lato ESP8266; integrazione FakeGPS per test controllati. \\ NFR5 – Disponibilità / Operatività offline & Sistema attivo 24/7 anche senza Internet & Architettura ibrida locale–remota: Arduino mantiene il controllo anche in assenza di rete; override fisico; logica di fallback. \\ NFR6 – Sicurezza & Integrità, autenticazione & Telegram Bot API (autenticazione built-in); endpoint POST protetti; messaggi su UART con codifica semplificata. \\ NFR7 – Privacy & Minimizzazione dati personali & Nessun cloud proprietario; log conservati solo localmente; GPS usato solo per geofence senza storico. \\ NFR8 – Interoperabilità & Protocolli standard aperti & Adozione di HTTP/REST e MQTT; uso di JSON; struttura ROA coerente con standard IoT. \\ NFR9 – Efficienza energetica & Ottimizzazione consumi & ESP8266 e Arduino scelti per basso assorbimento; escluso Raspberry Pi (consumo troppo alto). \\ NFR10 – Costo massimo 150€ & Sostenibilità economica & Scartato Raspberry Pi; scartati sensori radar; uso di moduli low-cost (PIR, HC-SR04, ESP8266). \\ \bottomrule \end{tabularx} \end{table} 

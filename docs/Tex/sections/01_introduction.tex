@@ -1,0 +1,149 @@
+\chapter{Introduction}
+
+\section{Contesto e motivazioni}
+
+Negli ultimi anni, l’avvento dell’\textbf{Internet of Things (IoT)} ha profondamente modificato il modo in cui le persone interagiscono con l’ambiente circostante, ridefinendo i concetti di comfort, sicurezza e automazione domestica.  
+La diffusione di sensori intelligenti, microcontrollori a basso consumo e piattaforme cloud ha favorito la nascita di ecosistemi di dispositivi interconnessi, in grado di raccogliere, elaborare e condividere informazioni in tempo reale, migliorando l’efficienza delle attività quotidiane.  
+Come evidenziato da Atzori et al. \cite{Atzori2010} e Gubbi et al. \cite{Gubbi2013}, l’IoT rappresenta oggi uno dei principali paradigmi abilitanti della trasformazione digitale, con un impatto crescente sulla vita domestica, industriale e urbana.
+
+In un contesto sociale sempre più frenetico, la necessità di semplificare la gestione della casa e di ridurre le dimenticanze accidentali — come lasciare una porta aperta o non attivare un sistema di chiusura — si traduce in una crescente domanda di soluzioni \textit{smart} affidabili e personalizzabili.  
+La domotica moderna, alimentata dallo sviluppo delle tecnologie IoT, rappresenta oggi uno dei principali motori di innovazione nel mercato residenziale, con applicazioni che spaziano dal controllo dell’illuminazione alla climatizzazione, dalla sicurezza perimetrale alla gestione degli accessi.
+
+Tra i dispositivi più diffusi in questo ambito rientrano i \textbf{controller intelligenti per porte da garage}, il cui mercato ha conosciuto un’espansione costante.  
+Secondo un’analisi di \textit{Vantage Market Research} \cite{Vantage2023}, il valore globale del mercato dei controller per porte da garage intelligenti è stato stimato a 164,4 milioni di dollari statunitensi nel 2020 e si prevede raggiungerà circa 200,55 milioni di dollari entro il 2028, con un tasso di crescita annuo composto (CAGR) pari al 2,5\%.  
+La Figura~\ref{fig:market} illustra l’andamento previsto del mercato nel periodo 2024–2035.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.8\textwidth]{images/market_trend.png}
+    \caption{Mercato globale dei controller per porte da garage intelligenti (USD): tendenze e previsioni 2024–2035. Fonte: \cite{Vantage2023}}
+    \label{fig:market}
+\end{figure}
+
+La crescita del mercato è trainata in particolare dal Nord America e dall’Europa, dove l’attenzione verso la sicurezza domestica e l’efficienza energetica stimola l’adozione di soluzioni connesse.  
+Dal punto di vista immobiliare, la rilevanza del garage come elemento integrante dell’abitazione è confermata da studi di settore: secondo il \textit{Philadelphia Inquirer} (2022), la parola “Garage” figura al secondo posto tra i termini più ricorrenti negli annunci immobiliari del Nord-Est degli Stati Uniti, a dimostrazione del valore funzionale e simbolico di questo spazio domestico.
+
+Dal punto di vista della sicurezza, uno dei fattori che giustifica l’adozione di sistemi automatizzati è la prevenzione dei furti con scasso.  
+Secondo Holler et al. \cite{Holler2014}, circa il 9\% delle effrazioni domestiche avviene attraverso la porta del garage, spesso a causa di semplici dimenticanze o della mancata chiusura dei sistemi di accesso.  
+Un sistema di automazione intelligente può quindi ridurre significativamente tali rischi, intervenendo a supporto dell’errore umano e migliorando la protezione degli ambienti residenziali.
+
+Alla luce di queste considerazioni, il progetto \textbf{Smart Garage Door} nasce con l’obiettivo di sviluppare un sistema IoT per la gestione automatica e remota di una porta da garage, capace di coniugare semplicità, affidabilità e scalabilità.  
+L’idea `e di realizzare un dispositivo
+che consenta all’utente di controllare l’accesso sia localmente — attraverso sensori di movimento
+e pulsanti fisici — sia da remoto, tramite applicazioni basate su Telegram Bot e server Flask.
+Il sistema integra inoltre una logica di automazione di prossimit`a, che sfrutta i dati GPS
+per riconoscere la presenza dell’utente e attivare automaticamente l’apertura o la chiusura del
+garage, riducendo il rischio di dimenticanze e aumentando la sicurezza dell’abitazione.
+
+La scelta di questo caso d’uso risponde anche a un obiettivo formativo: applicare in modo concreto le tecnologie studiate durante il corso di \textit{Internet of Things} per la realizzazione di un prototipo completo, economicamente sostenibile e tecnicamente scalabile.  
+Il sistema proposto, grazie al suo carattere modulare e open source, si presta inoltre a successive evoluzioni, come l’integrazione di sensori per la rilevazione di ostacoli, la gestione energetica intelligente e l’interoperabilità con piattaforme di domotica avanzata.
+
+
+\section{Obiettivi del progetto}
+L’obiettivo principale è la progettazione e realizzazione di un sistema IoT in grado di:
+\begin{itemize}
+    \item consentire l’apertura e la chiusura della porta del garage da remoto, attraverso interfacce utente semplici e sicure;
+    \item implementare un meccanismo di \textbf{automazione di prossimità}, che apra automaticamente la porta al rilevamento dell’utente in avvicinamento, e la richiuda quando il veicolo si allontana;
+    \item fornire \textbf{notifiche in tempo reale} sugli eventi di apertura, chiusura o errore tramite canali digitali (Telegram);
+    \item integrare una logica di \textbf{chiusura automatica temporizzata} e gestione locale in assenza di connettività;
+    \item supportare più utenti autenticati e registrare le principali azioni di sistema (gestione multiutenza).
+\end{itemize}
+
+Oltre agli obiettivi funzionali, il progetto è stato orientato al rispetto di una serie di vincoli di tipo non funzionale, tra cui:
+\begin{itemize}
+    \item \textbf{costo complessivo inferiore a 150\,€};
+    \item \textbf{basso consumo energetico}, compatibile con dispositivi alimentati a batteria;
+    \item \textbf{tempo di risposta inferiore a 1\,s};
+    \item \textbf{affidabilità} e \textbf{tasso di falsi positivi inferiore all’1\%} nella rilevazione di prossimità.
+\end{itemize}
+
+\section{Scenario di riferimento e assunzioni}
+
+Il progetto \textbf{Smart Garage Door} è concepito per un contesto domestico reale, in cui la porta del garage è collocata in prossimità di un’abitazione privata dotata di copertura Wi-Fi stabile fino all’area esterna.  
+In linea con l’evoluzione dei sistemi di \textit{smart home} descritta da Atzori et al. \cite{Atzori2010} e Gubbi et al. \cite{Gubbi2013}, il sistema proposto mira a integrare funzionalità di automazione, controllo remoto e interazione intelligente all’interno di un ecosistema IoT locale, mantenendo al contempo indipendenza operativa in caso di perdita di connettività.
+
+Si assumono le seguenti condizioni di contesto e funzionamento:
+\begin{itemize}
+    \item il meccanismo di apertura è compatibile con un comando elettrico digitale, azionabile tramite relè collegato al microcontrollore;
+    \item lo stato della porta (aperta, chiusa o in movimento) può essere rilevato mediante sensore dedicato o segnale di feedback dal motore;
+    \item gli utenti dispongono di uno \textit{smartphone} connesso a Internet, identificabile tramite \textbf{Telegram Bot API} \cite{TelegramAPI} o identificatore univoco GPS/BLE;
+    \item la rete Wi-Fi domestica copre l’area del garage, garantendo comunicazione stabile con il nodo \textbf{ESP8266} \cite{ESP8266};
+    \item il sistema è in grado di operare in modalità locale anche in assenza di rete, sfruttando la comunicazione diretta tra i microcontrollori.
+\end{itemize}
+
+L’ambiente operativo si colloca dunque in una tipica abitazione unifamiliare, ma l’architettura modulare progettata consente una facile estensione a scenari più complessi, come parcheggi condominiali o accessi industriali.  
+Il sistema è stato pensato per una \textbf{operatività continua (24/7)}, garantendo la disponibilità del servizio e la tracciabilità degli eventi (requisiti NFR1 e NFR5).
+
+Dal punto di vista funzionale, il dispositivo è destinato a utenti che possiedono una o più autorimesse e desiderano incrementare sicurezza e comfort, riducendo la dipendenza dalla memoria e dalle azioni manuali.  
+Il sistema deve monitorare costantemente lo stato della porta e reagire ai comandi in tempo reale, offrendo all’utente la possibilità di:
+\begin{itemize}
+    \item aprire o chiudere la porta manualmente, localmente o da remoto;
+    \item ricevere notifiche di stato e messaggi di conferma in tempo reale;
+    \item beneficiare di un’automazione basata sulla posizione GPS, capace di riconoscere se l’utente sta rientrando o uscendo di casa, e di azionare automaticamente la porta;
+    \item aggiungere o rimuovere persone autorizzate a interagire con il sistema.
+\end{itemize}
+
+Tale approccio riflette i principi delle architetture IoT modulari proposte da Holler et al. \cite{Holler2014} e Palattella et al. \cite{Palattella2016}, basate sulla cooperazione di nodi intelligenti e sull’uso di protocolli leggeri per la comunicazione macchina-macchina.  
+La possibilità di estendere il sistema a contesti multiutente o multipiano dimostra la scalabilità dell’architettura progettata, in linea con i paradigmi di interoperabilità e adattabilità propri delle moderne infrastrutture IoT.
+
+Dal punto di vista esperienziale, il sistema è pensato per migliorare il comfort dell’utente finale: durante la guida, ad esempio, l’automazione di prossimità elimina la necessità di interazione manuale, riducendo i tempi di accesso e aumentando la sicurezza.  
+L’invio di messaggi di feedback, come saluti o notifiche personalizzate, tramite l’interfaccia \textbf{Telegram} \cite{TelegramAPI}, contribuisce a rendere il sistema più trasparente e intuitivo, favorendo l’adozione anche da parte di utenti non esperti.
+
+Infine, il progetto include un meccanismo di \textbf{chiusura automatica temporizzata}, volto a garantire sicurezza aggiuntiva in caso di dimenticanze, e la possibilità di operare in modalità \textit{failsafe}, assicurando la chiusura automatica in caso di guasto alla rete o al nodo di controllo.  
+Queste funzionalità rispondono a quanto indicato nei principi di progettazione robusta dei sistemi IoT resilienti descritti da Pressman e Maxim \cite{Pressman2019}, assicurando coerenza tra requisiti funzionali, prestazioni e affidabilità complessiva.
+
+\section{Analisi di fattibilità}
+
+\subsection{Fattibilità tecnica}
+Dal punto di vista tecnico, il sistema \textbf{Smart Garage Door} risulta pienamente realizzabile con componenti hardware e software a basso costo, ampiamente reperibili sul mercato e supportati da una vasta comunità open source.  
+L’impiego della scheda \textbf{NodeMCU ESP8266} \cite{ESP8266} garantisce connettività Wi-Fi integrata e compatibilità nativa con il protocollo \textbf{MQTT} \cite{MQTTspec}, ampiamente adottato nei sistemi IoT per la sua leggerezza, affidabilità e capacità di funzionare in ambienti a risorse limitate.  
+
+L’integrazione con un \textbf{microcontrollore Arduino} \cite{ArduinoRef} consente di gestire le logiche locali e i sensori di movimento (PIR e relè) in modo indipendente dal nodo di rete, aumentando la resilienza del sistema.  
+Il modulo \textbf{GPS} fornisce una localizzazione accurata dell’utente e consente la realizzazione di automazioni di prossimità basate sulla distanza, in linea con le architetture distribuite e cooperanti descritte da Holler et al. \cite{Holler2014}.
+
+Sul piano software, l’infrastruttura è stata progettata per garantire interoperabilità, scalabilità e semplicità d’integrazione.  
+Il framework \textbf{Flask} \cite{Flask2024} è stato scelto per la realizzazione del server web e delle API REST, grazie alla sua leggerezza e al supporto nativo per la gestione di richieste asincrone.  
+La comunicazione utente–sistema è invece affidata al \textbf{Telegram Bot API} \cite{TelegramAPI}, che fornisce un’interfaccia intuitiva e sicura senza la necessità di sviluppare un’app mobile dedicata.  
+
+Complessivamente, la soluzione proposta sfrutta tecnologie consolidate e standard aperti, assicurando compatibilità con future estensioni e pieno allineamento con i principi di interoperabilità e modularità propri dell’ingegneria dei sistemi IoT \cite{Palattella2016}.
+
+\subsection{Fattibilità economica}
+La fattibilità economica del progetto è garantita dall’adozione di componenti hardware low-cost e di software completamente open source.  
+Il costo complessivo del prototipo, comprensivo di microcontrollori, sensori, moduli GPS, cablaggi e alimentazione, è stimato in circa 90–100\,€, ampiamente al di sotto del limite imposto dal requisito non funzionale NFR10 (\textit{costo ≤ 150\,€}).  
+
+Non sono previsti costi di licenza software, poiché tutte le tecnologie adottate — Arduino IDE, Python, Flask, MQTT e Telegram — sono distribuite sotto licenza libera.  
+Questo approccio consente non solo una notevole riduzione dei costi di sviluppo, ma anche una maggiore trasparenza e riproducibilità accademica, in linea con gli obiettivi del corso e con le buone pratiche di progettazione sostenibile indicate da Pressman e Maxim \cite{Pressman2019}.  
+
+Tali scelte risultano inoltre coerenti con l’andamento del mercato dei dispositivi smart per l’automazione domestica, che secondo Vantage Market Research \cite{Vantage2023} è in costante crescita, trainato dalla domanda di soluzioni economiche, affidabili e modulari.
+
+\subsection{Fattibilità organizzativa}
+Il progetto è stato sviluppato da un team di due persone, con una chiara suddivisione dei compiti tra la parte hardware e quella software, secondo un approccio ingegneristico iterativo e incrementale basato sul \textbf{System Development Life Cycle (SDLC)} \cite{Pressman2019}.  
+Le attività sono state articolate in quattro fasi principali:
+\begin{enumerate}
+    \item \textbf{Planning}: definizione del contesto applicativo, obiettivi e vincoli;
+    \item \textbf{Analysis}: identificazione e formalizzazione dei requisiti funzionali e non funzionali;
+    \item \textbf{Design e Implementation}: progettazione dell’architettura e sviluppo del prototipo hardware–software;
+    \item \textbf{Testing e Validation}: esecuzione dei test funzionali e valutazione delle prestazioni del sistema.
+\end{enumerate}
+
+L’utilizzo di strumenti di controllo versione (Git) e la documentazione dettagliata delle scelte progettuali hanno garantito tracciabilità e coerenza tra le fasi, riducendo il rischio di regressioni e facilitando la revisione del codice.  
+La collaborazione tra le due componenti del team ha seguito una logica di integrazione continua, con cicli di verifica hardware–software settimanali.  
+Questo approccio ha permesso di rispettare i tempi di sviluppo previsti, massimizzando l’efficienza e assicurando una piena aderenza ai principi di progettazione iterativa promossi dalla metodologia SDLC.
+
+
+\section{Struttura del documento}
+
+Il presente elaborato è organizzato secondo le fasi del \textbf{System Development Life Cycle (SDLC)} \cite{Pressman2019}, che fornisce una struttura metodologica per l’analisi, la progettazione, l’implementazione e la validazione di sistemi complessi.  
+Ogni capitolo corrisponde a una specifica fase del ciclo di vita del progetto, garantendo tracciabilità e coerenza tra obiettivi, soluzioni e risultati.
+
+Il \textbf{Capitolo~2} presenta una rassegna dello stato dell’arte, analizzando le principali soluzioni esistenti nel campo dei sistemi di automazione per porte da garage e individuando le aree di miglioramento che hanno motivato lo sviluppo del progetto.  
+
+Il \textbf{Capitolo~3} descrive nel dettaglio i requisiti funzionali (FR) e non funzionali (NFR), il contesto applicativo e le assunzioni di progetto, ponendo le basi per le scelte progettuali successive.  
+
+Il \textbf{Capitolo~4} illustra le scelte di progettazione e l’architettura complessiva del sistema, includendo l’analisi comparativa tra lo scenario teorico a budget illimitato e la soluzione reale implementata nel prototipo.  
+
+Il \textbf{Capitolo~5} documenta la fase di implementazione, riportando la struttura del codice, le configurazioni hardware–software e le principali interfacce operative (Flask, Telegram, MQTT).  
+
+Il \textbf{Capitolo~6} raccoglie i risultati dei test sperimentali, con particolare attenzione alla validazione dei requisiti e alla valutazione delle prestazioni del sistema in condizioni reali.  
+
+Infine, il \textbf{Capitolo~7} presenta le conclusioni, una sintesi dei risultati ottenuti e le prospettive di sviluppo futuro, delineando possibili direzioni di miglioramento e ampliamento del progetto.

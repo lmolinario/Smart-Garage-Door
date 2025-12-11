@@ -1,0 +1,107 @@
+\documentclass[11pt,a4paper]{article}
+
+% Packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{textcomp}
+\usepackage{microtype}
+\geometry{margin=2cm}
+
+% Title
+\title{\textbf{Smart Garage Door \\ Requisiti Funzionali e Non Funzionali}}
+\author{Matteo Tuzi \and Lello Molinario}
+\date{8 settembre 2025}
+
+\begin{document}
+
+\maketitle
+
+\vspace{-0.5em}
+\section*{Scenario e Assunzioni}
+Il sistema è concepito per un contesto domestico in cui la porta del garage deve poter essere aperta e chiusa in modo automatico o su richiesta dell’utente. L’utilizzo avviene in abitazioni private, con copertura di rete sufficiente fino all’area del cancello o del box.  
+
+Si assume che il meccanismo di apertura sia compatibile con un controllo digitale tramite contatto elettrico e che sia possibile rilevare lo stato della porta (aperta, chiusa, in movimento). È prevista la presenza di un’interfaccia utente remota per l’interazione e la consultazione dello stato del sistema.  
+
+Nel rispetto dei vincoli del corso, i dispositivi devono essere considerati \textit{battery-powered}, orientando il progetto verso componenti e protocolli di comunicazione a basso consumo.
+
+\vspace{0.5em}
+\section*{Obiettivo}
+L’obiettivo è realizzare un sistema \textit{IoT} per il controllo intelligente della porta del garage, che migliori comfort, sicurezza e automazione domestica.  
+Il sistema deve consentire l’apertura e la chiusura da remoto, l’invio di notifiche automatiche sugli stati, la chiusura temporizzata e la gestione multiutenza.  
+Deve garantire affidabilità, basso consumo energetico, costi contenuti e un’architettura modulare, facilmente evolvibile nel tempo.
+
+\vspace{0.5em}
+\section*{Requisiti Funzionali}
+\renewcommand{\arraystretch}{1.2}
+\setlength{\tabcolsep}{5pt}
+\begin{longtable}{>{\bfseries}p{0.08\textwidth} p{0.28\textwidth} p{0.30\textwidth} p{0.28\textwidth}}
+\toprule
+FR & Descrizione & Input & Output \\
+\midrule
+FR1 & Apertura/chiusura remota della porta & Comando utente remoto & Cambio di stato della porta \\
+FR2 & Consultazione dello stato della porta in tempo reale & Richiesta utente & Stato porta (aperta/chiusa/in movimento) \\
+FR3 & Notifiche automatiche ai cambi di stato & Evento di variazione & Notifica all’utente \\
+FR4 & Chiusura temporizzata automatica & Timer scaduto / nessun movimento rilevato & Comando di chiusura \\
+FR5a & Automazione di prossimità in uscita &
+Rilevazione dell’intenzione di uscita dall’interno del garage (porta chiusa e movimento verso la soglia) &
+Apertura automatica della porta solo se viene confermato un effettivo tentativo di uscita. \\
+FR5b & Automazione di prossimità in ingresso &
+Rilevazione di un utente autorizzato che si avvicina al garage dall’esterno entro un raggio configurabile &
+Apertura automatica della porta subordinata al riconoscimento dell’utente e alla distanza inferiore alla soglia definita. \\
+FR6 & Gestione multiutenza & Richiesta di aggiunta o rimozione di utenti & Aggiornamento dell’elenco degli utenti autorizzati \\
+FR7 & Comando locale / override & Intervento manuale & Esecuzione immediata del comando \\
+FR8 & Rilevazione ostacolo con riapertura & Sensore ostacolo attivo & Arresto e riapertura della porta \\
+FR9 & Consultazione log essenziale & Richiesta amministratore & Elenco di eventi e azioni registrate \\
+\bottomrule
+\end{longtable}
+
+\vspace{0.5em}
+\section*{Requisiti Non Funzionali}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{>{\bfseries}p{0.1\textwidth} p{0.83\textwidth}}
+\toprule
+NFR1 & Accessibilità continua ai dati, con tempo di conservazione configurabile. \\
+NFR2 & Tempo di risposta massimo pari a 1\,s (percentile 95) per comandi e notifiche. \\
+NFR3 & Accuratezza superiore al 99\%, con tasso di falsi positivi nella rilevazione di prossimità inferiore all’1\%. \\
+NFR4 & Rilevazione della presenza dell’utente entro un raggio massimo di 15\,m. \\
+NFR5 & Disponibilità del servizio 24/7 con possibilità di controllo locale in caso di perdita di connessione. \\
+NFR6 & Adozione di misure di sicurezza per autenticazione, integrità dei dati e prevenzione degli accessi non autorizzati. \\
+NFR7 & Tutela della privacy mediante minimizzazione dei dati trattati e limitazione del periodo di conservazione dei log. \\
+NFR8 & Compatibilità con più piattaforme utente e interoperabilità con sistemi di controllo standard. \\
+NFR9 & Consumo energetico contenuto, con funzionamento ottimizzato per dispositivi alimentati a batteria. \\
+NFR10 & Costo complessivo del sistema non superiore a 150 euro. \\
+\bottomrule
+\end{tabular}
+
+\vspace{0.5em}
+\section*{Tracciabilità FR $\rightarrow$ NFR}
+\renewcommand{\arraystretch}{1.2}
+\begin{longtable}{>{\bfseries}p{0.1\textwidth} p{0.33\textwidth} p{0.45\textwidth}}
+\toprule
+FR & Descrizione & NFR impattati \\
+\midrule
+FR1 & Apertura/chiusura remota & NFR2, NFR6, NFR8, NFR10 \\
+FR2 & Stato porta in tempo reale & NFR1, NFR2, NFR3 \\
+FR3 & Notifiche e messaggi & NFR1, NFR2, NFR7 \\
+FR4 & Auto-close temporizzato & NFR3, NFR5, NFR9 \\
+FR5a & Automazione di prossimità in uscita & NFR3, NFR4, NFR9 \\
+FR5b & Automazione di prossimità in ingresso & NFR3, NFR4, NFR9 \\
+FR6 & Gestione utenti & NFR6, NFR7, NFR8 \\
+FR7 & Override locale & NFR5, NFR8 \\
+FR8 & Stop su ostacolo & NFR3, NFR5 \\
+FR9 & Log eventi & NFR1, NFR6, NFR7 \\
+\bottomrule
+\end{longtable}
+
+\vspace{0.5em}
+\section*{Conclusioni}
+Il progetto \textit{Smart Garage Door} integra requisiti funzionali e non funzionali bilanciando semplicità d’uso, sicurezza e sostenibilità.  
+La tracciabilità mostra come ogni funzione sia vincolata da criteri qualitativi che ne guidano l’implementazione, assicurando coerenza tra scenario, obiettivi e scelte progettuali.  
+Il risultato atteso è un sistema affidabile, economico ed evolvibile, pronto a migliorare comfort e sicurezza in un contesto domestico reale.
+
+\end{document}

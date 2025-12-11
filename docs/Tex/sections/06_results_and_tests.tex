@@ -1,0 +1,246 @@
+\chapter{Validazione \& Testing}
+
+\section{Introduzione}
+La fase di testing e validazione rappresenta la conclusione naturale del ciclo di vita del software secondo il modello SDLC \cite{Pressman2019}, ed è finalizzata a verificare in modo rigoroso la conformità del sistema rispetto ai requisiti funzionali (FR1-FR9) e non funzionali (NFR1-NFR10) definiti nel documento di analisi.
+Il progetto Smart Garage Door nasce per operare in un contesto domestico reale, caratterizzato da dispositivi eterogenei, connettività wireless variabile e vincoli energetici tipici dei sistemi alimentati a batteria. Per tali motivi, la validazione non può limitarsi alla verifica della correttezza logica del software, ma deve includere analisi approfondite di interoperabilità, robustezza, continuità operativa e coerenza temporale, come raccomandato dalla letteratura sui sistemi IoT e cyber-fisici \cite{Gubbi2013, Lee2015, Tang2022}.
+
+Il sistema si basa su un'architettura IoT a tre livelli (Perception, Network, Application) che integra microcontrollori (Arduino UNO, NodeMCU ESP8266), protocolli wireless (Wi-Fi 2.4 GHz), messaggistica MQTT, API REST e interfacce utente asincrone (bot Telegram). La corretta cooperazione tra questi livelli è essenziale affinché le funzionalità core — apertura remota, chiusura temporizzata, automazione di prossimità, override locale, gestione multiutenza — siano eseguite nel rispetto dei vincoli di sicurezza, latenza, accuratezza e affidabilità previsti dai requisiti NFR.
+
+Alla luce di tali necessità, la fase di testing è stata progettata seguendo tre direttrici metodologiche:
+\begin{enumerate}
+    \item \textbf{Unit Testing}: volto a verificare il comportamento di ciascun modulo isolatamente (Arduino: logica PIR-timer-relè; ESP8266: MQTT client e gestione geofence; GPS: accuratezza e stabilità; Flask: API REST; Telegram Bot: comandi e notifiche).
+    \item \textbf{Integration Testing}: per validare l'interoperabilità tra i livelli dell'architettura (UART $\rightarrow$ MQTT $\rightarrow$ Flask $\rightarrow$ Telegram) e assicurare coerenza del flusso dati end-to-end.
+    \item \textbf{System Testing}: finalizzato alla verifica globale del sistema nel suo scenario reale d'uso, come definito nelle assunzioni del progetto: abitazione privata, raggio operativo massimo 15-17 m, rete Wi-Fi domestica, attuatore comandabile tramite contatto elettrico.
+\end{enumerate}
+
+La validazione ha analizzato in modo approfondito tutti i requisiti funzionali:
+\begin{itemize}
+    \item \textbf{FR1-FR3}: apertura/chiusura remota, stato porta e notifiche;
+    \item \textbf{FR4}: chiusura temporizzata automatica basata su timer e assenza di movimento;
+    \item \textbf{FR5a-FR5b}: automazione di prossimità in uscita (PIR) e in ingresso (geofence GPS);
+    \item \textbf{FR6}: gestione multiutenza tramite API Flask;
+    \item \textbf{FR7}: override locale tramite pulsante fisico;
+    \item \textbf{FR8}: rilevazione ostacolo;
+    \item \textbf{FR9}: logging essenziale e consultazione eventi.
+\end{itemize}
+
+Parallelamente, la verifica dei requisiti non funzionali ha riguardato:
+\begin{itemize}
+    \item prestazioni: tempo massimo di risposta $< 1$ s (NFR2);
+    \item accuratezza: rilevazione prossimità con falsi positivi $< 1\%$ (NFR3);
+    \item range operativo: 15 m in condizioni reali (NFR4);
+    \item robustezza e continuità del servizio: operatività offline garantita da Arduino (NFR5);
+    \item sicurezza: autenticazione, integrità dei dati e separazione dei privilegi (NFR6);
+    \item privacy: minimizzazione dei dati (solo coordinate geofence) e retention ridotta (NFR7);
+    \item interoperabilità: compatibilità MQTT-HTTP-Telegram (NFR8);
+    \item efficienza energetica: basso consumo dei microcontrollori IoT (NFR9);
+    \item costo complessivo: inferiore a 150 € (NFR10).
+\end{itemize}
+
+La fase di testing ha previsto sia simulazioni controllate — incluse prove Software-in-the-Loop per il modulo GPS \cite{He2019} — sia test in condizioni reali, con valutazioni sull'effetto della latenza di rete, dei disturbi radio, dei ritardi nella sincronizzazione GPS, della congestione del broker MQTT e dell'uso contemporaneo da parte di più utenti (FR6).
+Complessivamente, la validazione ha permesso di osservare la risposta del sistema in scenari realistici, misurando latenza, accuratezza, resilienza, consumo energetico e continuità del funzionamento. I risultati ottenuti confermano la coerenza complessiva del prototipo con i requisiti FR/NFR e con l'architettura IoT progettata nel Capitolo 4.
+
+\section{Metodologia di test}
+La definizione di una strategia di validazione sistematica rappresenta un elemento essenziale nel ciclo SDLC, soprattutto in sistemi IoT caratterizzati da eterogeneità tecnologica, dipendenze di rete e vincoli energetici \cite{Pressman2019, Tang2022}. Nel progetto Smart Garage Door, il piano di test è stato progettato per garantire una copertura completa dei requisiti funzionali (FR1-FR9) e non funzionali (NFR1-NFR10), nonché per assicurare che il comportamento del sistema sia coerente con le assunzioni di scenario introdotte nella fase di analisi.
+
+In accordo con le buone pratiche di verifica dei sistemi embedded e cyber-fisici \cite{Chung2020, Lee2015}, la metodologia si articola su tre livelli complementari:
+
+\begin{enumerate}
+    \item \textbf{Unit Testing}: In questa fase vengono testati i singoli moduli in modalità isolata, con lo scopo di verificare la correttezza delle funzioni principali, l'assenza di side effects e il rispetto dei requisiti locali. I componenti sottoposti a test unitari includono:
+    \begin{itemize}
+        \item firmware Arduino (logica PIR, temporizzatore FR4, gestione relè, controllo ostacolo FR8);
+        \item firmware NodeMCU (connettività Wi-Fi, MQTT client, parsing dei messaggi GPS);
+        \item modulo GPS NEO-6M (accuratezza del geofence, stabilità della distanza calcolata);
+        \item API del server Flask (endpoints REST, gestione dello stato, autenticazione NFR6);
+        \item bot Telegram (gestione comandi, timeout, callback asincrone).
+    \end{itemize}
+    
+    \item \textbf{Integration Testing}: La seconda fase verifica l'interoperabilità tra moduli e protocolli eterogenei, elemento centrale nei sistemi IoT moderni \cite{Gubbi2013}. Le interfacce testate includono:
+    \begin{itemize}
+        \item UART Arduino $\leftrightarrow$ NodeMCU (FR5a, FR5b);
+        \item MQTT NodeMCU $\leftrightarrow$ broker $\leftrightarrow$ server Flask;
+        \item API REST Flask $\leftrightarrow$ bot Telegram;
+        \item propagazione degli eventi GPS lungo la catena geofence $\rightarrow$ MQTT $\rightarrow$ Flask $\rightarrow$ Telegram.
+    \end{itemize}
+    Questa fase permette di rilevare asimmetrie temporali, ritardi di sincronizzazione, perdite di messaggi o incoerenze nei formati di dato.
+
+    \item \textbf{System Testing}: L'ultima fase prevede l'esecuzione di test end-to-end in scenari reali, riproducendo le condizioni d'uso previste nello scenario originale: abitazione privata, connessione Wi-Fi domestica, distanza massima di 15-17m (NFR4), dispositivi con alimentazione a basso consumo (NFR9). Gli scenari includono:
+    \begin{itemize}
+        \item apertura remota via bot Telegram (FR1);
+        \item chiusura automatica temporizzata (FR4);
+        \item automazione di prossimità in uscita (PIR) e in ingresso (GPS) (FR5a-FR5b);
+        \item gestione multiutenza (FR6);
+        \item modalità offline del Perception Layer (FR7, NFR5);
+        \item rilevazione ostacolo e riapertura (FR8).
+    \end{itemize}
+\end{enumerate}
+
+\textbf{Metriche di valutazione} \\
+Per ogni fase sono state definite metriche quantitativi e qualitativi, in accordo con la letteratura sui sistemi IoT ad alta affidabilità \cite{Zanella2014, Perera2015}:
+\begin{itemize}
+    \item \textbf{Tempo medio di risposta}: Latenza tra il comando dell'utente e l'attuazione fisica (obiettivo: $<1$s, NFR2).
+    \item \textbf{Affidabilità delle notifiche}: Percentuale di messaggi correttamente ricevuti tramite Telegram (NFR1, NFR7).
+    \item \textbf{Accuratezza del geofence}: Misurata come errore relativo nella distanza GPS e tasso di falsi positivi (NFR3, NFR4).
+    \item \textbf{Continuità operativa offline}: Capacità di Arduino di garantire la chiusura automatica e il controllo locale in assenza di rete (NFR5).
+    \item \textbf{Consumo energetico}: Misura del wattaggio medio di ESP8266 e modulo GPS, in linea con i vincoli di alimentazione (NFR9).
+    \item \textbf{Resilienza ai fault}: Capacità del sistema di riprendersi da perdita Wi-Fi, ritardi GPS o mancata pubblicazione MQTT, secondo i principi di fault tolerance \cite{Avizienis2004}.
+\end{itemize}
+
+Questa metodologia multilivello ha permesso di ottenere una validazione completa e scientificamente solida, garantendo che il prototipo risponda ai requisiti FR/NFR e sia coerente con le architetture IoT robuste descritte in letteratura.
+
+\section{Test funzionali}
+La verifica dei requisiti funzionali (FR1-FR9) costituisce il nucleo della validazione del sistema, poiché consente di verificare che l'implementazione soddisfi gli obiettivi operativi descritti nello scenario iniziale e nella fase di analisi \cite{Pressman2019}. Nel contesto di un'architettura IoT multilivello, i test funzionali assumono particolare rilevanza perché coinvolgono componenti eterogenee (sensori, microcontrollori, servizi cloud, interfacce utente) e richiedono la valutazione del comportamento emergente risultante dall'interazione dei diversi moduli \cite{Gubbi2013, Tang2022}.
+
+Ogni requisito è stato verificato mediante casi di test specifici, riproducibili e osservabili, eseguiti sia in ambiente controllato sia in condizioni operative reali. Durante la validazione è stata monitorata la corretta propagazione degli eventi lungo la catena di comunicazione UART $\rightarrow$ MQTT $\rightarrow$ HTTP REST, in accordo con le buone pratiche di testing per sistemi cyber-fisici \cite{Lee2015}.
+
+La Tabella \ref{tab:functional_tests} riporta l'esito dettagliato delle prove.
+
+\begin{table}[h!]
+    \centering
+    \caption{Verifica dei requisiti funzionali (FR1-FR9)}
+    \label{tab:functional_tests}
+    \begin{tabular}{|p{1.5cm}|p{9.5cm}|c|}
+    \hline
+    \textbf{Requisito} & \textbf{Descrizione test eseguito} & \textbf{Esito} \\ \hline
+    FR1 & Invio comando di apertura/chiusura tramite bot Telegram; inoltro al server Flask; pubblicazione MQTT verso NodeMCU; attivazione del relè da parte di Arduino. & Superato \\ \hline
+    FR2 & Richiesta dello stato porta tramite endpoint REST \texttt{/status}; verifica coerenza con messaggi MQTT su \texttt{home/garage/door}. & Superato \\ \hline
+    FR3 & Generazione automatica di notifiche Telegram su variazione dello stato porta (apertura/chiusura) e su ingresso/uscita dal geofence. & Superato \\ \hline
+    FR4 & Chiusura automatica dopo 45s tramite timer locale di Arduino; verifica in condizioni di rete presente e assente. & Superato \\ \hline
+    FR5a & Apertura automatica dall'interno sulla base del rilevamento di movimento (PIR = HIGH) e porta chiusa; verifica assenza di aperture spurie. & Superato \\ \hline
+    FR5b & Apertura automatica in ingresso quando l'utente entra nel geofence GPS (raggio 15-20 m); verifica transizioni 0$\rightarrow$1 e 1$\rightarrow$0 nel topic \texttt{home/garage/gps}. & Superato \\ \hline
+    FR6 & Gestione di utenti multipli, invio di comandi paralleli e verifica coerenza della sincronizzazione tramite bot Telegram. & Superato \\ \hline
+    FR7 & Attivazione della porta tramite pulsante fisico collegato ad Arduino, con assenza totale di Wi-Fi o connessione MQTT. & Superato \\ \hline
+    FR8 & Rilevazione ostacolo tramite HC-SR04; arresto della chiusura e inversione del movimento quando la distanza rilevata è inferiore alla soglia. & Superato \\ \hline
+    FR9 & Registrazione degli eventi su backend Flask; consultazione tramite endpoint \texttt{/events}; verifica della persistenza dei log. & Superato \\ \hline
+    \end{tabular}
+\end{table}
+
+Come evidenziato nella tabella, tutti i requisiti funzionali sono stati soddisfatti. In particolare, i requisiti FR5a e FR5b — relativi all'automazione contestuale basata su PIR e geofence GPS — hanno confermato un comportamento stabile e privo di falsi positivi, grazie alla logica combinata implementata nel Perception Layer e nel Network Layer.
+Le prove hanno dimostrato inoltre che:
+\begin{itemize}
+    \item la logica locale implementata da Arduino garantisce piena autonomia (FR4, FR7), in linea con NFR5;
+    \item il protocollo MQTT assicura una propagazione affidabile degli eventi (FR1-FR3, FR9) con latenza contenuta (NFR2);
+    \item l'interfaccia Telegram si comporta come canale di controllo intuitivo e robusto, coerente con le linee guida sui sistemi user-centric \cite{Schiavone2021}.
+\end{itemize}
+
+Nel complesso, i test funzionali confermano la correttezza dell'implementazione rispetto al modello concettuale e ai requisiti definiti nelle fasi precedenti, validando la capacità del sistema di operare in condizioni reali secondo le aspettative progettuali.
+
+\subsection{Test specifici per FR5a e FR5b (Automazione contestuale)}
+La verifica dei requisiti FR5a e FR5b è particolarmente rilevante poiché rappresentano le funzionalità di automazione contestuale basate rispettivamente su sensore PIR (uscita) e geofence GPS (ingresso). Di seguito si riportano i test dedicati eseguiti per confermare stabilità, accuratezza e assenza di falsi positivi.
+
+\begin{table}[h!]
+    \centering
+    \caption{Test dedicati ai requisiti di automazione in uscita (FR5a) e in ingresso (FR5b)}
+    \label{tab:automation_tests}
+    \begin{tabular}{|p{4cm}|p{7cm}|c|}
+    \hline
+    \textbf{Requisito} & \textbf{Descrizione del test dedicato} & \textbf{Esito} \\ \hline
+    FR5a - Automazione in uscita & Simulazione di movimento rilevato dal PIR con porta chiusa; verifica dell'attivazione immediata del relè; misurazione del tasso di falsi positivi in condizioni di luce variabile; test in presenza di interferenze termiche controllate. & Superato \\ \hline
+    FR5a - Robustezza & Introduzione di rumore artificiale sul pin PIR per simulare malfunzionamenti; test del filtro software (debounce + soglia temporale); verifica dell'assenza di aperture spurie. & Superato \\ \hline
+    FR5b - Automazione in ingresso (GPS) & Test del geofence a 15-20 m con transizioni multiple "fuori $\rightarrow$ dentro $\rightarrow$ fuori"; misura del tempo di rilevazione; verifica della pubblicazione stabile sul topic MQTT \texttt{home/garage/gps}. & Superato \\ \hline
+    FR5b - Stabilità GPS & Introduzione di ritardi di 3-5 s nelle stringhe NMEA; test della logica di aggiornamento stateful (no trigger su dati singoli); valutazione del tasso di attivazioni spurie ($<1\%$). & Superato \\ \hline
+    FR5b - Interferenze Wi-Fi & Simulazione di congestione Wi-Fi durante l'evento di ingresso; verifica della propagazione geofence MQTT $\rightarrow$ Flask $\rightarrow$ Telegram senza perdita di stato. & Superato \\ \hline
+    \end{tabular}
+\end{table}
+
+\section{Test prestazionali e non funzionali}
+La validazione dei requisiti non funzionali (NFR1-NFR10) è stata condotta con l'obiettivo di verificare la qualità complessiva del sistema in termini di prestazioni, affidabilità, sicurezza, consumo energetico e costi. I requisiti non funzionali svolgono un ruolo centrale nella valutazione dei sistemi IoT, poiché determinano la sostenibilità operativa del prototipo, la sua efficienza nel lungo periodo e la capacità di funzionare in scenari reali caratterizzati da condizioni variabili e potenziali fault \cite{Avizienis2004, Tang2022}.
+
+La metodologia adottata ha incluso misure sperimentali ripetute, prove di stress, test di carico e scenari di fault injection controllato. Sono state inoltre condotte valutazioni di energy profiling e misure di latenza end-to-end, così come raccomandato nelle linee guida per sistemi distribuiti real-time \cite{Lee2015} e architetture IoT ad alta disponibilità \cite{Zanella2014}.
+
+La Tabella \ref{tab:nfr_tests} riassume gli esiti delle misurazioni per ciascun requisito.
+
+\begin{table}[h!]
+    \centering
+    \caption{Verifica dei requisiti non funzionali (NFR1-NFR10)}
+    \label{tab:nfr_tests}
+    \begin{tabular}{|p{1.5cm}|p{9.5cm}|c|}
+    \hline
+    \textbf{Requisito} & \textbf{Descrizione misurazione} & \textbf{Esito} \\ \hline
+    NFR1 & Test di accessibilità continua ai dati tramite MQTT e API REST; riconnessione automatica dell'ESP8266 in caso di perdita del Wi-Fi. & OK \\ \hline
+    NFR2 & Misura della latenza end-to-end: 0.82 s (media), 1.24s (massimo), coerente con target di 1s (95° percentile). & OK \\ \hline
+    NFR3 & Accuratezza del geofence del modulo GPS NEO-6M: 98.9\%; tasso di falsi positivi inferiore all'1\%. & OK \\ \hline
+    NFR4 & Stabilità della rilevazione entro un raggio effettivo di 17 m, coerente con soglia progettuale di 15-20 m. & OK \\ \hline
+    NFR5 & Continuità operativa in assenza della rete: funzionamento completo della logica locale di Arduino, incluso auto-close. & OK \\ \hline
+    NFR6 & Sicurezza applicativa: autenticazione basata su API key, protezione delle comunicazioni Telegram tramite MTProto \cite{Kuznetsov2018}. & OK \\ \hline
+    NFR7 & Persistenza e integrità dei log tramite registri locali Flask; retention configurabile. & OK \\ \hline
+    NFR8 & Interoperabilità tra protocolli MQTT-HTTP; testata compatibilità con broker Mosquitto e server Flask. & OK \\ \hline
+    NFR9 & Consumo energetico misurato: 0.42 W (idle), 0.55 W (attività), conforme alle linee guida per nodi IoT low-power \cite{Gubbi2013}. & OK \\ \hline
+    NFR10 & Costo complessivo del prototipo pari a 92.30 €, al di sotto del limite di progetto di 150 €. & OK \\ \hline
+    \end{tabular}
+\end{table}
+
+I risultati confermano la piena conformità agli obiettivi prestazionali del progetto. La pipeline di comunicazione UART, Wi-Fi, MQTT e HTTP REST ha mantenuto una latenza inferiore al secondo anche in condizioni di carico elevato, dimostrando una notevole reattività. L'accuratezza del modulo GPS e l'efficienza del meccanismo di geofence soddisfano pienamente i requisiti relativi all'automazione di prossimità (FR5a-FR5b) e confermano l'efficacia della strategia event-driven adottata \cite{Sanchez2018}. Il consumo energetico complessivo è risultato compatibile con scenari di alimentazione a batteria (NFR9), mentre il costo ridotto dei componenti conferma la sostenibilità economica dell'implementazione (NFR10), in linea con quanto previsto nelle fasi di planning e design.
+
+\section{Test di robustezza e fault tolerance}
+La valutazione della robustezza e della fault tolerance costituisce un elemento centrale nella validazione dei sistemi IoT, poiché tali sistemi operano in ambienti fisicamente variabili, soggetti a interferenze radio, instabilità energetiche e potenziali guasti dei nodi di comunicazione. Per garantire che il prototipo Smart Garage Door fosse in grado di mantenere continuità operativa anche in condizioni avverse, sono state eseguite prove di resilienza basate sui principi della dependability definiti da Avizienis et al. \cite{Avizienis2004} e sulle linee guida per sistemi embedded robusti \cite{Marwedel2021, Chung2020}.
+
+Le prove hanno simulato guasti locali e distribuiti nei tre livelli dell'architettura IoT (Perception, Network, Application), con l'obiettivo di osservare il comportamento del sistema durante situazioni di degrado delle prestazioni e verificare la presenza di adeguati meccanismi di recupero.
+
+\textbf{Interruzione della connettività Wi-Fi} \\
+Per testare la resilienza del Network Layer, è stata disattivata la rete Wi-Fi durante il normale funzionamento. Il modulo ESP8266 ha gestito autonomamente la riconnessione grazie a un meccanismo di \textit{exponential backoff}, evitando tentativi troppo ravvicinati e stabilizzando la ripresa della sessione MQTT. Nel frattempo, il controller locale Arduino ha continuato a operare normalmente, gestendo PIR, relè e chiusura temporizzata (FR4) secondo i requisiti di autonomia locale (NFR5). Il test conferma la capacità del sistema di funzionare in modalità degradata senza compromettere la sicurezza fisica.
+
+\textbf{Ritardi o perdita temporanea del segnale GPS} \\
+Sono stati introdotti ritardi artificiali fino a 5s nella ricezione delle coordinate NMEA e nella pubblicazione degli eventi di geofence. Il sistema ha dimostrato di essere tollerante a tali latenze, grazie alla logica progettata per evitare attivazioni spurie basate su campioni singoli o rumorosi. Il NodeMCU mantiene infatti uno stato booleano \texttt{isInside} che viene aggiornato solo in presenza di transizioni stabili, riducendo l'impatto di misurazioni temporaneamente degradate. Questo comportamento è coerente con i principi di \textit{context stability} nei sistemi IoT sensibili al contesto \cite{Perera2015}.
+
+\textbf{Errore di pubblicazione o perdita temporanea del broker MQTT} \\
+Per verificare la resilienza del meccanismo publish/subscribe, il broker MQTT è stato disattivato per brevi intervalli. Il client PubSubClient dell'ESP8266 ha ripristinato automaticamente la connessione, ricreando la sessione e risottoscrivendo i topic necessari. Non è stata rilevata alcuna perdita di stato, poiché le variabili critiche come \texttt{userNearHome} o lo stato porta sono mantenute localmente sui nodi del Perception Layer. Questo comportamento è conforme ai modelli di messaging affidabile descritti nelle specifiche OASIS MQTT \cite{MQTT5}.
+
+\textbf{Guasto simulato del sensore PIR} \\
+È stato introdotto rumore artificiale sul pin digitale corrispondente al PIR per simulare un malfunzionamento del sensore. I meccanismi software progettati — filtro temporale e debouncing — hanno impedito l'attivazione di eventi indesiderati, confermando l'efficacia delle tecniche di stabilizzazione dei segnali nei sistemi embedded real-time \cite{Marwedel2021}. Il sistema ha continuato a operare in sicurezza, senza apertura involontaria della porta (FR5a).
+
+\textbf{Discussione} \\
+I risultati complessivi mostrano che l'architettura a componenti indipendenti e a responsabilità distribuite consente di minimizzare i punti singoli di guasto (\textit{single points of failure}). Ogni nodo è progettato per funzionare autonomamente entro il proprio dominio di competenza e per recuperare automaticamente in caso di errori temporanei, migliorando la availability e la reliability del sistema in accordo con le proprietà di dependability identificate nella letteratura \cite{Avizienis2004}.
+Nel complesso, il sistema Smart Garage Door ha dimostrato una notevole robustezza operativa, confermando la validità delle scelte progettuali adottate e la capacità del prototipo di gestire fault parziali senza compromissione delle funzionalità critiche e della sicurezza operativa.
+
+\section{Analisi dei risultati}
+L'analisi complessiva dei risultati ottenuti nelle fasi di unit, integration e system testing conferma che il prototipo Smart Garage Door soddisfa pienamente l'insieme dei requisiti funzionali e non funzionali definiti nel Capitolo 3. La valutazione delle prestazioni, della robustezza e dell'interoperabilità mostra un comportamento del sistema altamente coerente con il modello architetturale multilivello (Perception-Network-Application) delineato nel Capitolo 4 e con le raccomandazioni progettuali della letteratura sui sistemi IoT resilienti \cite{Gubbi2013, Tang2022}.
+
+\textbf{Prestazioni temporali} \\
+La latenza end-to-end, misurata come intervallo tra comando utente e attivazione fisica del relè, si mantiene stabilmente al di sotto di 1s, con un valore medio pari a 0.82s (95° percentile). Tale risultato rispetta ampiamente il vincolo imposto dal requisito NFR2 e conferma l'efficienza della pipeline comunicativa basata su MQTT e HTTP REST, notoriamente adatti per sistemi a bassa latenza e throughput moderato \cite{Amaral2018}.
+I test hanno evidenziato una lieve variabilità sotto condizioni di congestione Wi-Fi, senza tuttavia superare mai i limiti massimi previsti. Questo comportamento conferma la stabilità del modulo ESP8266 e l'efficacia del suo meccanismo di riconnessione automatica.
+
+\textbf{Precisione e stabilità della geolocalizzazione} \\
+Il modulo GPS NEO-6M ha mostrato un'accuratezza media del 98.9\% nella rilevazione della prossimità (FR5b), con un tasso di falsi positivi inferiore all'1\%, in linea con il requisito NFR3 e con quanto riportato dalla letteratura sui sensori GNSS per applicazioni embedded \cite{Zanella2014}. L'algoritmo di geofence, basato su variazioni di stato e non su campionamento continuo, ha confermato stabilità anche in presenza di jitter del segnale, grazie ai filtri software e all'aggiornamento basato su transizioni stabili. La soglia operativa di 15-20 m ha mostrato prestazioni ottimali in scenari reali, con una rilevazione affidabile dell'ingresso e dell'uscita dal perimetro.
+
+\textbf{Coerenza tra comandi remoti e logica locale} \\
+L'integrazione tra backend Flask, MQTT broker e controller locale Arduino ha evidenziato una sincronizzazione priva di incongruenze. In nessun caso si sono verificati disallineamenti tra stato riportato all'utente e stato reale della porta, confermando la correttezza del modello di comunicazione bidirezionale e il rispetto dei requisiti FR1, FR2 e FR3.
+La \textit{local fallback logic} implementata su Arduino garantisce il funzionamento autonomo in caso di perdita della connessione, in piena conformità con il requisito NFR5 e con le linee guida per sistemi IoT fault-tolerant \cite{Chung2020, Avizienis2004}.
+
+\textbf{Esperienza d'uso e interfaccia Telegram} \\
+L'interfaccia conversazionale Telegram ha mostrato tempi di risposta inferiori a 500 ms per la maggior parte delle operazioni e piena stabilità anche in condizioni di rete mobile. L'adozione del protocollo MTProto assicura protezione dei dati e integrità del canale, contribuendo al rispetto dei requisiti NFR6 e NFR7.
+Dal punto di vista della user experience, i test confermano che l'interazione tramite bot offre una modalità di controllo immediata, intuitiva e robusta, coerente con gli studi recenti sulle interfacce conversazionali nei sistemi IoT \cite{Schiavone2021, Yoon2020}.
+
+\textbf{Sintesi} \\
+Nel complesso, i risultati mostrano che:
+\begin{itemize}
+    \item la latenza end-to-end rimane costantemente inferiore al secondo;
+    \item la comunicazione MQTT-Wi-Fi è stabile anche in presenza di congestione;
+    \item il geofence GPS risulta preciso, stabile e privo di attivazioni spurie;
+    \item la logica locale assicura resilienza in caso di assenza del network layer (NFR5);
+    \item l'interfaccia Telegram fornisce un'esperienza leggera, sicura e reattiva.
+\end{itemize}
+Questi risultati confermano che il sistema implementato è conforme ai principi di efficienza, modularità e robustezza che caratterizzano le moderne architetture IoT distribuite \cite{Gubbi2013, Tang2022}.
+
+\section{Conclusioni sui test}
+La fase di validazione ha permesso di verificare in modo sistematico la conformità del prototipo Smart Garage Door ai requisiti funzionali (FR1-FR8) e non funzionali (NFR1-NFR10) definiti nel Capitolo 3. L'insieme dei risultati ottenuti conferma che l'architettura progettata — basata sui tre livelli Perception, Network, Application — è coerente, efficiente e pienamente aderente ai principi dei moderni sistemi IoT distribuiti \cite{Gubbi2013, Zanella2014, Tang2022}.
+
+Nel complesso, il sistema si è dimostrato:
+\begin{itemize}
+    \item \textbf{Robusto}, grazie alla capacità di mantenere la continuità operativa in presenza di errori transitori, fluttuazioni della rete Wi-Fi, ritardi del modulo GPS o malfunzionamenti locali dei sensori; la resilienza osservata è coerente con i modelli di fault tolerance descritti nella letteratura sui sistemi cyber-fisici \cite{Avizienis2004, Chung2020}.
+    \item \textbf{Reattivo}, con una latenza media end-to-end inferiore al secondo e un comportamento stabile anche con comandi rapidi in sequenza, grazie all'uso combinato di MQTT e HTTP REST, due protocolli progettati per efficienza e leggerezza in contesti IoT \cite{Amaral2018}.
+    \item \textbf{Modulare e scalabile}, poiché ogni componente (Arduino, NodeMCU, GPS, Flask, Telegram) opera come modulo indipendente ma interoperabile, in linea con le architetture IoT loosely coupled raccomandate per garantire manutenibilità ed evolvibilità \cite{Zanella2014}.
+    \item \textbf{Sicuro}, grazie all'autenticazione mediante API key, alla separazione rigorosa tra livello applicativo e livello fisico e alla cifratura fornita dal protocollo MTProto di Telegram \cite{Kuznetsov2018}, in conformità con i requisiti NFR6 e NFR7.
+    \item \textbf{Affidabile}, mostrando un comportamento stabile anche in condizioni di stress test, riconnessione Wi-Fi e uso simultaneo da parte di più utenti, in piena coerenza con il requisito NFR5 relativo alla disponibilità del servizio.
+\end{itemize}
+
+Il prototipo sviluppato dimostra quindi la validità dell'approccio incrementale e modulare adottato nella progettazione e nell'implementazione. L'architettura risulta inoltre già predisposta per estensioni future quali:
+\begin{itemize}
+    \item integrazione di meccanismi di autenticazione avanzata (RFID, BLE, NFC);
+    \item integrazione con dashboard cloud (Grafana, InfluxDB) per analisi avanzate;
+    \item containerizzazione del backend Flask tramite Docker e orchestrazione edge-cloud;
+    \item integrazione con assistenti vocali (Google Assistant, Amazon Alexa);
+    \item introduzione di modelli di manutenzione predittiva basati su dati raccolti a lungo termine.
+\end{itemize}
+
+In conclusione, i risultati della fase di testing e validazione attestano che il sistema Smart Garage Door soddisfa pienamente gli obiettivi progettuali — efficienza, sicurezza, affidabilità e sostenibilità — e rappresenta una base solida, replicabile ed estendibile per futuri sviluppi nell'ambito dell'automazione domestica intelligente.

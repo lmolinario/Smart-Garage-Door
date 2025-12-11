@@ -1,0 +1,27 @@
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+Negli ultimi anni, il paradigma dell’\textbf{Internet of Things (IoT)} ha radicalmente trasformato il modo in cui gli ambienti domestici e industriali vengono gestiti, introducendo soluzioni in grado di migliorare comfort, sicurezza e risparmio energetico. In tale contesto, il presente progetto, denominato \textbf{Smart Garage Door}, propone lo sviluppo di un sistema IoT modulare e scalabile per l’automazione intelligente di una porta da garage.  
+L’obiettivo è quello di consentire un controllo remoto e automatico della porta, garantendo allo stesso tempo affidabilità, sicurezza dei dati e semplicità d’uso per l’utente finale.
+
+Il sistema è concepito come un insieme distribuito di nodi cooperanti che comunicano attraverso il protocollo \textbf{MQTT} su rete \textbf{Wi-Fi}. L’architettura prevede tre componenti principali:  
+\begin{itemize}
+    \item un \textbf{microcontrollore Arduino}, incaricato del controllo fisico della porta e della gestione dei sensori locali (PIR per la rilevazione di movimento e relè per l’attuazione del motore);  
+    \item un \textbf{nodo NodeMCU ESP8266}, che funge da unità di comunicazione e gateway MQTT, responsabile della trasmissione dei comandi e delle notifiche;  
+    \item un \textbf{modulo GPS}, utilizzato per la localizzazione dell’utente e per l’automazione di prossimità, attivando l’apertura del cancello al rilevamento di un dispositivo autorizzato entro una distanza configurabile.
+\end{itemize}
+
+La parte software è stata progettata per garantire un’interazione fluida e sicura tra i diversi livelli del sistema. Un \textbf{server Flask}, sviluppato in linguaggio \textbf{Python}, coordina la logica applicativa, gestisce le sessioni utente e registra lo stato del sistema.  
+In parallelo, un \textbf{bot Telegram} fornisce un’interfaccia utente remota intuitiva, permettendo di eseguire operazioni di apertura, chiusura, verifica dello stato della porta e gestione multiutenza, nonché di ricevere notifiche in tempo reale sugli eventi di sistema.  
+
+Il progetto è stato sviluppato seguendo il \textbf{System Development Life Cycle (SDLC)}, articolato in quattro fasi principali: \textit{Planning}, \textit{Analysis}, \textit{Design} e \textit{Implementation \& Testing}. Durante la fase di progettazione sono state analizzate due prospettive complementari:  
+\begin{enumerate}
+    \item una \textbf{analisi a budget illimitato}, orientata all’individuazione di soluzioni ottimali dal punto di vista prestazionale e tecnologico;  
+    \item una \textbf{analisi realistica}, volta all’implementazione effettiva del prototipo entro i vincoli imposti dal corso (costo complessivo inferiore a 150\,€, dispositivi alimentati a batteria, e connettività Wi-Fi disponibile).  
+\end{enumerate}
+
+La realizzazione finale integra diverse funzionalità: controllo remoto della porta, chiusura temporizzata automatica, automazione di prossimità tramite GPS, invio di notifiche Telegram, gestione multiutente e aggiornamento continuo dello stato tramite protocollo MQTT.  
+Il sistema è stato verificato con test funzionali che hanno confermato la piena rispondenza ai requisiti specificati, con tempi di risposta inferiori al secondo e tasso di errore nella rilevazione di prossimità inferiore all’1\%.  
+
+Il risultato è una soluzione \textbf{affidabile, economica e modulare}, concepita per essere facilmente estendibile con nuove componenti e funzioni. Tra i possibili sviluppi futuri si annoverano l’integrazione di sensori per la rilevazione di ostacoli, l’adozione di meccanismi di autenticazione avanzata e la realizzazione di una dashboard web per la consultazione dei log e il monitoraggio energetico.  
+L’esperienza progettuale dimostra come un approccio metodico e ingegneristico basato sul ciclo SDLC consenta di passare efficacemente dall’analisi dei requisiti alla realizzazione di un sistema IoT completo, sostenibile e conforme ai requisiti di sicurezza e affidabilità propri delle applicazioni domestiche intelligenti.
