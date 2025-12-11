@@ -867,57 +867,58 @@ La Figura~\ref{fig:software_layers} mostra la struttura multilayer del sistema, 
 flusso informativo verticale (bottom–up) e i comandi top–down verso gli attuatori.
 
 
-
 \begin{figure}[H]
 \centering
 \begin{tikzpicture}[
-    every node/.style={font=\footnotesize},
-    layerbox/.style={
+    font=\footnotesize,
+    layer/.style={
         rectangle, draw, rounded corners,
-        minimum width=10cm,
-        minimum height=18mm,
-        align=center,
-        fill=gray!10
+        minimum width=11cm,
+        minimum height=12mm,
+        fill=gray!10,
+        align=center
     },
     comp/.style={
         rectangle, draw, rounded corners,
-        minimum width=32mm,
-        minimum height=10mm,
+        minimum width=28mm,
+        minimum height=8mm,
         fill=gray!5,
         align=center
-    }
+    },
+    arrow/.style={-{Latex[length=2mm]}, thick}
 ]
 
-\node[layerbox] (app) {\textbf{Application Layer}\\Flask Server, Digital Twin (DR/CVO), API REST, Telegram Interface};
+% --- LAYERS ---
+\node[layer] (app) {Application Layer};
+\node[layer, below=7mm of app] (net) {Network Layer};
+\node[layer, below=7mm of net] (perc) {Perception Layer};
 
-\node[layerbox, below=5mm of app] (net) {\textbf{Network Layer}\\ESP8266 Gateway, MQTT Client, UART Bridge, HTTP Client};
+% --- COMPONENTS ---
+% Application
+\node[comp, below=2mm of app.north west, anchor=north west, xshift=5mm] (api) {API REST};
+\node[comp, right=4mm of api] (dt) {Digital Twin (DR/CVO)};
+\node[comp, right=4mm of dt] (tg) {Telegram Bot};
 
-\node[layerbox, below=5mm of net] (perc) {\textbf{Perception Layer}\\Arduino UNO, PIR Sensor, HC-SR04, Servo/Relè};
+% Network
+\node[comp, below=2mm of net.north west, anchor=north west, xshift=5mm] (uart) {UART Bridge};
+\node[comp, right=4mm of uart] (mqtt) {MQTT Client};
+\node[comp, right=4mm of mqtt] (httpc) {HTTP Client};
 
-\node[comp, above=0mm of app.south west, anchor=south west, xshift=6mm] (api) {API REST};
-\node[comp, right=5mm of api] (dt) {Digital Twin\\(DR/CVO)};
-\node[comp, right=5mm of dt] (tg) {Telegram Bot};
+% Perception
+\node[comp, below=2mm of perc.north west, anchor=north west, xshift=5mm] (pir) {PIR Sensor};
+\node[comp, right=4mm of pir] (ultra) {HC-SR04};
+\node[comp, right=4mm of ultra] (servo) {Servo/Relè};
 
-\node[comp, above=0mm of net.south west, anchor=south west, xshift=6mm] (uart) {UART Bridge};
-\node[comp, right=5mm of uart] (mqtt) {MQTT Client};
-\node[comp, right=5mm of mqtt] (httpc) {HTTP Client};
+% --- ARROWS ---
+\draw[arrow] (perc.north) -- ++(0,2mm) -- (net.south)
+    node[midway, right]{Dati sensori};
 
-\node[comp, above=0mm of perc.south west, anchor=south west, xshift=6mm] (pir) {PIR Sensor};
-\node[comp, right=5mm of pir] (ultra) {HC-SR04};
-\node[comp, right=5mm of ultra] (servo) {Servo/Relè};
-
-\draw[->, thick] (perc.north) -- node[right]{Dati sensori} (net.south);
-\draw[->, thick] (net.north) -- node[right]{Messaggi MQTT / HTTP} (app.south);
-
-
-\label{fig:software_layers}
-\end{tikzpicture}
-
+\draw[arrow] (net.north) -- ++(0,2mm) -- (app.south)
+    node[midway, right]{Messaggi MQTT / HTTP};
+\end {tikzpicture}
 \caption{Architettura software multilayer del sistema \textit{Smart Garage Door}.}
-
+\label{fig:software_layers}
 \end{figure}
-
-
 
 
 \section{Flowchart dei requisiti funzionali}
