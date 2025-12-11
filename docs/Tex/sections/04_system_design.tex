@@ -744,12 +744,12 @@ che funge da \textit{data store} centrale. Tale struttura è progettata per esse
 
 La struttura dati principale include:
 
-\begin{lstlisting}[language=Python]
-state = {
-    "door": false,              # Stato porta (aperta/chiusa)
-    "mqtt_connected": false,    # Stato connessione broker
-    "gps_inside": false,        #Prossimità utente (FR5b)
 
+\begin{lstlisting}[language=python]
+
+state={"door": False,# Stato porta (aperta/chiusa)
+    "mqtt_connected": False,    # Stato connessione broker
+    "gps_inside": False,#Prossimita'  utente (FR5b)
     "distance": None,           # Ultima distanza rilevata (FR8)
     "pir": None,                # Ultimo valore sensore PIR (FR5a)
     "events": []                # Storico eventi applicativi
@@ -766,26 +766,14 @@ Per garantire tracciabilità e supporto diagnostico (NFR8), il sistema mantiene
 uno \textbf{storico degli eventi} generati da sensori, comandi MQTT e interazioni
 utente. Ogni evento è rappresentato come un oggetto strutturato:
 
-
-\begin{lstlisting}
-state = {
-    "door": False,              # Stato porta (open/closed)
-    "mqtt_connected": False,    # Stato connessione broker
-    "gps_inside": False,        # Prossimita utente (FR5b)
-    "distance": None,           # Ultima distanza rilevata (FR8)
-    "pir": None,                # Ultimo valore sensore PIR (FR5a)
-    "events": []                # Storico eventi applicativi
+\begin{lstlisting}[language=Python]
+event = {
+    "timestamp": "2025-12-11T14:32:05",
+    "type": "DOOR_OPEN",
+    "source": "Arduino",
+    "details": {"pir": 1, "gps_inside": 1}
 }
 \end{lstlisting}
-
-
-
-
-
-
-
-
-
 
 Gli eventi recenti sono conservati direttamente in memoria, mentre l'intero flusso
 viene replicato anche in file di log locale (\texttt{server.log}) per permettere:
