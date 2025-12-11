@@ -467,7 +467,7 @@ e costituiscono il riferimento progettuale per l’implementazione descritta nel
 
 \begin{figure}[H]
 \centering
-\begin{tikzpicture}[node distance=12mm]
+\begin{tikzpicture}[node distance=8mm]
 
 \node[startstop] (start) {Inizio};
 
@@ -477,13 +477,13 @@ e costituiscono il riferimento progettuale per l’implementazione descritta nel
 \node[block, below left=15mm and 20mm of pircheck] (noaction) {Nessuna azione};
 \node[startstop, below=of noaction] (end1) {Fine};
 
-\node[block, below right=15mm and 20mm of pircheck] (dist) {Lettura distanza\\ sensore ultrasuoni};
+\node[block, below right=15mm and -1mm of pircheck] (dist) {Lettura distanza\\ sensore ultrasuoni};
 \node[decision, below=of dist] (distcheck) {Utente vicino alla porta?\\ (distanza < soglia)};
 
-\node[block, below left=15mm and 20mm of distcheck] (stop2) {Nessuna apertura};
+\node[block, below left=15mm and -1mm of distcheck] (stop2) {Nessuna apertura};
 \node[startstop, below=of stop2] (end2) {Fine};
 
-\node[block, below right=15mm and 20mm of distcheck] (open) {Arduino attiva relè\\ apertura porta};
+\node[block, below right=15mm and -25mm of distcheck] (open) {Arduino attiva relè\\ apertura porta};
 \node[block, below=of open] (status) {Aggiornamento stato porta};
 \node[block, below=of status] (notify) {Notifica a sistema / Telegram};
 \node[startstop, below=of notify] (end3) {Fine};
@@ -499,10 +499,10 @@ e costituiscono il riferimento progettuale per l’implementazione descritta nel
 \draw[arrow] (pircheck.east) -- ++(55mm,0) |- (dist);
 \draw[arrow] (dist) -- (distcheck);
 
-\draw[arrow] (distcheck.west) -- ++(-45mm,0) |- (stop2);
+\draw[arrow] (distcheck.west) -- ++(-25mm,0) |- (stop2);
 \draw[arrow] (stop2) -- (end2);
 
-\draw[arrow] (distcheck.east) -- ++(55mm,0) |- (open);
+\draw[arrow] (distcheck.east) -- ++(25mm,0) |- (open);
 \draw[arrow] (open) -- (status);
 \draw[arrow] (status) -- (notify);
 \draw[arrow] (notify) -- (end3);
@@ -516,24 +516,24 @@ e costituiscono il riferimento progettuale per l’implementazione descritta nel
 
 \begin{figure}[H]
 \centering
-\begin{tikzpicture}[node distance=12mm]
+\begin{tikzpicture}[node distance=8mm]
 
 \node[startstop] (start) {Inizio};
 
 \node[block, below=of start] (gpsupdate) {Ricezione aggiornamento GPS\\ da ESP8266};
 \node[decision, below=of gpsupdate] (nearhome) {Utente dentro\\ il geofence?};
 
-\node[block, below left=15mm and 20mm of nearhome] (noaction) {userNearHome = false\\ Nessuna automazione};
+\node[block, below left=15mm and 10mm of nearhome] (noaction) {userNearHome = false\\ Nessuna automazione};
 \node[startstop, below=of noaction] (end1) {Fine};
 
-\node[block, below right=15mm and 20mm of nearhome] (setflag) {userNearHome = true};
+\node[block, below right=15mm and -10mm of nearhome] (setflag) {userNearHome = true};
 \node[block, below=of setflag] (dist) {Lettura distanza\\ da sensore ultrasuoni};
 \node[decision, below=of dist] (distcheck) {Utente vicino alla porta?\\ (distanza < soglia)};
 
 \node[block, below left=15mm and 20mm of distcheck] (stop) {Condizione non soddisfatta};
 \node[startstop, below=of stop] (end2) {Fine};
 
-\node[block, below right=15mm and 20mm of distcheck] (open) {Attiva relè\\ apertura porta};
+\node[block, below right=15mm and -25mm of distcheck] (open) {Attiva relè\\ apertura porta};
 \node[block, below=of open] (status) {Aggiorna stato porta};
 \node[block, below=of status] (notify) {Invia notifica a Telegram};
 \node[startstop, below=of notify] (end3) {Fine};
@@ -546,14 +546,21 @@ e costituiscono il riferimento progettuale per l’implementazione descritta nel
 \draw[arrow] (nearhome.west) -- ++(-45mm,0) |- (noaction);
 \draw[arrow] (noaction) -- (end1);
 
-\draw[arrow] (nearhome.east) -- ++(55mm,0) |- (setflag);
+\draw[arrow] (nearhome.east) -- ++(35mm,0) |- (setflag);
 \draw[arrow] (setflag) -- (dist);
 \draw[arrow] (dist) -- (distcheck);
 
-\draw[arrow] (distcheck.west) -- ++(-45mm,0) |- (stop);
+
+
+\draw[arrow] (distcheck.west) -- ++(-27mm,0)
+    -- ++(0,-10mm)        % SCENDI -> punta verso sud
+    -- (stop.north);      % risali fino al bordo superiore
+
+
+
 \draw[arrow] (stop) -- (end2);
 
-\draw[arrow] (distcheck.east) -- ++(55mm,0) |- (open);
+\draw[arrow] (distcheck.east) -- ++(15mm,0) |- (open);
 \draw[arrow] (open) -- (status);
 \draw[arrow] (status) -- (notify);
 \draw[arrow] (notify) -- (end3);
@@ -572,15 +579,15 @@ e costituiscono il riferimento progettuale per l’implementazione descritta nel
 \node[startstop] (start) {Inizio};
 
 \node[block, below=of start] (cmd) {Ricezione comando\\ da Telegram};
-\node[block, below=of cmd] (extract) {Identificazione utente\\ (Telegram ID)};
+\node[block, below=of cmd] (extract) {Identificazione utente};
 
 \node[decision, below=of extract] (auth) {Utente autorizzato?};
 
-\node[block, below left=15mm and 20mm of auth] (deny) {Comando rifiutato\\ + notifica accesso negato};
+\node[block, below left=15mm and 10mm of auth] (deny) {Comando rifiutato\\ + notifica accesso negato};
 \node[block, below=of deny] (logdeny) {Log evento di sicurezza};
 \node[startstop, below=of logdeny] (end1) {Fine};
 
-\node[block, below right=15mm and 20mm of auth] (accept) {Autorizzazione concessa};
+\node[block, below right=15mm and 10mm of auth] (accept) {Autorizzazione concessa};
 \node[block, below=of accept] (forward) {Invia comando a MQTT\\ per NodeMCU / Arduino};
 \node[startstop, below=of forward] (end2) {Fine};
 
@@ -593,7 +600,7 @@ e costituiscono il riferimento progettuale per l’implementazione descritta nel
 \draw[arrow] (deny) -- (logdeny);
 \draw[arrow] (logdeny) -- (end1);
 
-\draw[arrow] (auth.east) -- ++(55mm,0) |- (accept);
+\draw[arrow] (auth.east) -- ++(45mm,0) |- (accept);
 \draw[arrow] (accept) -- (forward);
 \draw[arrow] (forward) -- (end2);
 
