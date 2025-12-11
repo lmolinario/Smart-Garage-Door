@@ -246,6 +246,165 @@ Questa rappresentazione consente di definire un’astrazione chiara e standardiz
 
 
 
+\section{Modellazione dei dati applicativi: VO, DR e CVO}
+
+
+La definizione di un modello formale dei dati rappresenta un elemento essenziale nel processo di \textit{system design}, in quanto consente di stabilire una chiara separazione tra lo stato interno del sistema, le rappresentazioni esposte all’esterno e i meccanismi di comunicazione tra i diversi livelli dell’architettura.
+
+Nel progetto \textit{Smart Garage Door}, tale modellazione è realizzata attraverso tre astrazioni complementari:
+
+\textbf{Domain Representation (DR)}, \textbf{Canonical View Object (CVO)} e \textbf{View Object (VO)}.
+
+
+Questo approccio, ampiamente utilizzato nelle architetture orientate ai servizi e nei sistemi IoT distribuiti \cite{Guinard2016, Gubbi2013}, garantisce consistenza semantica, riduzione dell’accoppiamento tra componenti e una maggiore facilità di evoluzione del sistema nel tempo.
+
+
+\subsection{Domain Representation (DR)}
+
+
+La \textit{Domain Representation} costituisce il modello dei dati interni al sistema, ovvero la rappresentazione delle informazioni così come vengono mantenute nel livello applicativo (Application Layer).
+
+La DR riflette la struttura logica del dominio fisico (porta del garage, stato dei sensori, connessioni MQTT), mantenendo un’organizzazione ottimizzata per l’elaborazione locale da parte del server Flask.
+
+
+Nel progetto, la DR è rappresentata da un insieme di strutture dati Python che costituiscono lo \texttt{state manager} del sistema:
+
+
+\begin{itemize}
+
+\item \textbf{doorState}: booleano interno che indica se la porta è aperta o chiusa;
+
+\item \textbf{gpsInside}: flag logico che indica se il veicolo si trova all’interno del geofence;
+
+\item \textbf{mqttConnected}: stato di salute della connessione MQTT;
+
+\item \textbf{distance}: ultimo valore fornito dal sensore ultrasonico;
+
+\item \textbf{pirValue}: valore corrente del sensore PIR;
+
+\item \textbf{eventLog}: lista interna di eventi generati da Arduino o da ESP8266.
+
+\end{itemize}
+
+
+La DR non è esposta direttamente all’utente e non dipende dalla forma dei messaggi REST o MQTT: essa rappresenta il \textit{core} dello stato operativo, ottimizzato per affidabilità, atomicità degli aggiornamenti e manutenibilità del codice \cite{Pressman2019}.
+
+
+\subsection{Canonical View Object (CVO)}
+
+
+Il \textit{Canonical View Object} rappresenta il modello dati \textbf{canonico} utilizzato per la comunicazione all’esterno del dominio applicativo.
+
+Si tratta della rappresentazione “stabile” che il server Flask utilizza per:
+
+
+\begin{itemize}
+
+\item rispondere alle richieste REST del bot Telegram;
+
+\item esporre lo stato verso eventuali servizi terzi;
+
+\item mantenere un formato coerente e indipendente dalla struttura interna della DR;
+
+\item serializzare lo stato del sistema in messaggi JSON leggibili e interoperabili.
+
+\end{itemize}
+
+
+Il CVO costituisce quindi una forma standardizzata dei dati, capace di garantire interoperabilità tra componenti eterogenei, come raccomandato nei sistemi IoT distribuiti \cite{Guinard2016}.
+
+
+Esempio di CVO restituito dall’endpoint \texttt{/status}:
+
+
+\begin{lstlisting}[language=json, caption={Esempio di Canonical View Object esposto dal server Flask}]
+
+{
+
+"door": true,
+
+"gps_inside": false,
+
+"mqtt_connected": true,
+
+"distance": 128,
+
+"pir": 0,
+
+"events": [
+
+{"type": "open", "timestamp": "2025-12-11T16:45:21"},
+
+{"type": "gps_update", "value": 1, "timestamp": "2025-12-11T16:47:10"}
+
+]
+
+}
+
+\end{lstlisting}
+
+
+Il CVO non coincide con la DR: esso è un formato pensato per la comunicazione tra livelli (Network → Application) e tra applicativo e utente finale.
+
+
+\subsection{View Object (VO)}
+
+
+Il \textit{View Object} rappresenta l’ultima trasformazione del dato, ovvero la forma pensata per l’utente finale.
+
+Nel progetto, il VO viene generato dalla componente che gestisce il bot Telegram e si presenta come un messaggio testuale formato secondo criteri di chiarezza, sintesi e coerenza conversazionale.
+
+
+Esempio di VO generato dal comando \texttt{/status}:
+
+
+\begin{lstlisting}[caption={Esempio di View Object per l’interfaccia Telegram}]
+
+Porta: APERTA
+
+GPS: veicolo fuori area
+
+MQTT: connesso
+
+Distanza ostacolo: 128 cm
+
+PIR: nessun movimento rilevato
+
+\end{lstlisting}
+
+
+Il VO è quindi una trasformazione del CVO orientata alla comprensione umana.
+
+La separazione VO  - CVO -  DR garantisce:
+
+
+\begin{itemize}
+
+\item indipendenza della logica interna dal formato di visualizzazione;
+
+\item possibilità di evolvere l’interfaccia Telegram senza alterare il back-end;
+
+\item coerenza della comunicazione tra i livelli dell’architettura IoT;
+
+\item rispetto del principio di \textit{loose coupling} richiesto nei sistemi distribuiti \cite{Gubbi2013}.
+
+\end{itemize}
+
+
+\subsection{Relazione tra DR, CVO e VO}
+
+
+La relazione tra \textbf{DR}, \textbf{CVO} e \textbf{VO} può essere espressa come:
+\[
+\text{DR} \longrightarrow \text{CVO} \longrightarrow \text{VO}
+\]
+
+La distinzione si articola come segue:
+\begin{enumerate}
+    \item la \textbf{DR} rappresenta lo stato reale e interno del sistema;
+    \item il \textbf{CVO} è il formato standardizzato utilizzato per comunicare (API REST, MQTT, UART);
+    \item il \textbf{VO} è la vista user-friendly presentata all’utente nell’interfaccia Telegram.
+\end{enumerate}
 
 
 
@@ -587,9 +746,10 @@ La struttura dati principale include:
 
 \begin{lstlisting}[language=Python]
 state = {
-    "door": False,              # Stato porta (aperta/chiusa)
-    "mqtt_connected": False,    # Stato connessione broker
-    "gps_inside": False,        # Prossimità utente (FR5b)
+    "door": false,              # Stato porta (aperta/chiusa)
+    "mqtt_connected": false,    # Stato connessione broker
+    "gps_inside": false,        #Prossimità utente (FR5b)
+
     "distance": None,           # Ultima distanza rilevata (FR8)
     "pir": None,                # Ultimo valore sensore PIR (FR5a)
     "events": []                # Storico eventi applicativi
@@ -606,14 +766,26 @@ Per garantire tracciabilità e supporto diagnostico (NFR8), il sistema mantiene
 uno \textbf{storico degli eventi} generati da sensori, comandi MQTT e interazioni
 utente. Ogni evento è rappresentato come un oggetto strutturato:
 
-\begin{lstlisting}[language=Python]
-event = {
-    "timestamp": "2025-12-11T14:32:05",
-    "type": "DOOR_OPEN",
-    "source": "Arduino",
-    "details": {"pir": 1, "gps_inside": 1}
+
+\begin{lstlisting}
+state = {
+    "door": False,              # Stato porta (open/closed)
+    "mqtt_connected": False,    # Stato connessione broker
+    "gps_inside": False,        # Prossimita utente (FR5b)
+    "distance": None,           # Ultima distanza rilevata (FR8)
+    "pir": None,                # Ultimo valore sensore PIR (FR5a)
+    "events": []                # Storico eventi applicativi
 }
 \end{lstlisting}
+
+
+
+
+
+
+
+
+
 
 Gli eventi recenti sono conservati direttamente in memoria, mentre l'intero flusso
 viene replicato anche in file di log locale (\texttt{server.log}) per permettere:

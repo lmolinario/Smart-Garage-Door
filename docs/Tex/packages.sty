@@ -184,3 +184,20 @@
         thick
     }
 }
+
+
+\usepackage{listings}
+\usepackage{xcolor}
+
+\lstdefinelanguage{json}{
+    basicstyle=\ttfamily\small,
+    numbers=left,
+    numberstyle=\tiny,
+    stepnumber=1,
+    numbersep=8pt,
+    showstringspaces=false,
+    breaklines=true,
+    string=[s]{"}{"},
+    comment=[l]{\%},
+    morestring=[b]',
+}
