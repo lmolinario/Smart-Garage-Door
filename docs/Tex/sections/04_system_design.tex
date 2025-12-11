@@ -301,6 +301,434 @@ In particolare, la logica locale su Arduino assicura il funzionamento autonomo a
 
 
 
+\section{Flowchart dei requisiti funzionali}
+
+In questa sezione vengono presentati i diagrammi di flusso che descrivono la logica
+di controllo associata a ciascun requisito funzionale (FR1–FR9).
+Essi rappresentano la traduzione operativa delle specifiche analizzate nel Capitolo~3
+e costituiscono il riferimento progettuale per l’implementazione descritta nel Capitolo~5.
+
+\subsection{Flowchart FR1 – Apertura remota}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=12mm]
+
+\node[startstop] (start) {Inizio};
+\node[block, below=of start] (cmd) {Ricezione comando\\ \texttt{/open} da Telegram};
+\node[block, below=of cmd] (auth) {Verifica utente autorizzato};
+\node[decision, below=of auth] (authok) {Autorizzato?};
+\node[block, below left=15mm and 20mm of authok] (deny) {Invia notifica:\\ accesso negato};
+\node[block, below right=15mm and 20mm of authok] (send) {Invia comando MQTT\\ \texttt{garage/cmd = OPEN}};
+\node[block, below=of send] (ardu) {Arduino attiva relè\\ apertura porta};
+\node[block, below=of ardu] (status) {Aggiorna stato porta};
+\node[block, below=of status] (notify) {Invia notifica a Telegram};
+\node[startstop, below=of notify] (end) {Fine};
+
+% Edges
+\draw[arrow] (start) -- (cmd);
+\draw[arrow] (cmd) -- (auth);
+\draw[arrow] (auth) -- (authok);
+
+\draw[arrow] (authok.west) -- ++(-45mm,0) |- (deny);
+\draw[arrow] (deny) |- (end);
+
+\draw[arrow] (authok.east) -- ++(55mm,0) |- (send);
+\draw[arrow] (send) -- (ardu);
+\draw[arrow] (ardu) -- (status);
+\draw[arrow] (status) -- (notify);
+\draw[arrow] (notify) -- (end);
+
+\end{tikzpicture}
+\caption{Flowchart relativo al requisito funzionale FR1 – Apertura remota.}
+\end{figure}
+
+
+\subsection{Flowchart FR2 – Chiusura remota}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=12mm]
+
+\node[startstop] (start) {Inizio};
+\node[block, below=of start] (cmd) {Ricezione comando\\ \texttt{/close} da Telegram};
+\node[block, below=of cmd] (auth) {Verifica utente autorizzato};
+\node[decision, below=of auth] (authok) {Autorizzato?};
+
+\node[block, below left=15mm and 20mm of authok] (deny) {Invia notifica:\\ accesso negato};
+
+\node[block, below right=15mm and 20mm of authok] (send) {Invia comando MQTT\\ \texttt{garage/cmd = CLOSE}};
+\node[block, below=of send] (ardu) {Arduino attiva relè\\ chiusura porta};
+\node[block, below=of ardu] (status) {Aggiorna stato porta};
+\node[block, below=of status] (notify) {Invia notifica a Telegram};
+
+\node[startstop, below=of notify] (end) {Fine};
+
+% Edges
+\draw[arrow] (start) -- (cmd);
+\draw[arrow] (cmd) -- (auth);
+\draw[arrow] (auth) -- (authok);
+
+\draw[arrow] (authok.west) -- ++(-45mm,0) |- (deny);
+\draw[arrow] (deny) |- (end);
+
+\draw[arrow] (authok.east) -- ++(55mm,0) |- (send);
+\draw[arrow] (send) -- (ardu);
+\draw[arrow] (ardu) -- (status);
+\draw[arrow] (status) -- (notify);
+\draw[arrow] (notify) -- (end);
+
+\end{tikzpicture}
+\caption{Flowchart relativo al requisito funzionale FR2 – Chiusura remota.}
+\end{figure}
+
+
+\subsection{Flowchart FR3 – Consultazione dello stato della porta}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=12mm]
+
+\node[startstop] (start) {Inizio};
+\node[block, below=of start] (cmd) {Ricezione comando\\ \texttt{/status} da Telegram};
+\node[block, below=of cmd] (req) {Flask invia richiesta\\ stato a ESP8266};
+\node[block, below=of req] (esp) {ESP8266 richiede stato\\ ad Arduino via UART};
+\node[block, below=of esp] (ardu) {Arduino legge sensori:\\ PIR, distanza, stato porta};
+\node[block, below=of ardu] (resp) {Arduino invia risposta\\ a ESP8266};
+\node[block, below=of resp] (format) {Flask formatta risposta\\ in messaggio testuale};
+\node[block, below=of format] (send) {Invia stato porta\\ a Telegram};
+\node[startstop, below=of send] (end) {Fine};
+
+% Edges
+\draw[arrow] (start) -- (cmd);
+\draw[arrow] (cmd) -- (req);
+\draw[arrow] (req) -- (esp);
+\draw[arrow] (esp) -- (ardu);
+\draw[arrow] (ardu) -- (resp);
+\draw[arrow] (resp) -- (format);
+\draw[arrow] (format) -- (send);
+\draw[arrow] (send) -- (end);
+
+\end{tikzpicture}
+\caption{Flowchart relativo al requisito funzionale FR3 – Consultazione dello stato della porta.}
+\end{figure}
+
+
+\subsection{Flowchart FR4 – Chiusura automatica}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=12mm]
+
+\node[startstop] (start) {Inizio};
+\node[block, below=of start] (open) {Porta aperta\\ (evento di apertura)};
+\node[block, below=of open] (timer) {Avvio timer interno};
+\node[decision, below=of timer] (expired) {Timer scaduto?};
+
+\node[block, below left=15mm and 20mm of expired] (wait) {Continua attesa};
+\node[block, below right=15mm and 20mm of expired] (check) {Verifica presenza ostacoli\\ (sensore distanza)};
+
+\node[decision, below=of check] (obstacle) {Ostacolo presente?};
+
+\node[block, below left=15mm and 20mm of obstacle] (abort) {Annulla chiusura\\ e riavvia timer};
+
+\node[block, below right=15mm and 20mm of obstacle] (close) {Attiva relè\\ chiusura porta};
+
+\node[block, below=of close] (status) {Aggiorna stato porta};
+\node[block, below=of status] (notify) {Invia notifica al sistema};
+\node[startstop, below=of notify] (end) {Fine};
+
+
+% Edges
+\draw[arrow] (start) -- (open);
+\draw[arrow] (open) -- (timer);
+\draw[arrow] (timer) -- (expired);
+
+\draw[arrow] (expired.west) -- ++(-45mm,0) |- (wait);
+\draw[arrow] (wait) |- (expired);
+
+\draw[arrow] (expired.east) -- ++(55mm,0) |- (check);
+\draw[arrow] (check) -- (obstacle);
+
+\draw[arrow] (obstacle.west) -- ++(-45mm,0) |- (abort);
+\draw[arrow] (abort) |- (timer);
+
+\draw[arrow] (obstacle.east) -- ++(55mm,0) |- (close);
+\draw[arrow] (close) -- (status);
+\draw[arrow] (status) -- (notify);
+\draw[arrow] (notify) -- (end);
+
+\end{tikzpicture}
+\caption{Flowchart relativo al requisito funzionale FR4 – Chiusura automatica.}
+\end{figure}
+
+
+\subsection{Flowchart FR5a – Automazione in uscita (PIR)}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=12mm]
+
+\node[startstop] (start) {Inizio};
+
+\node[block, below=of start] (pir) {Lettura sensore PIR};
+\node[decision, below=of pir] (pircheck) {Movimento rilevato?};
+
+\node[block, below left=15mm and 20mm of pircheck] (noaction) {Nessuna azione};
+\node[startstop, below=of noaction] (end1) {Fine};
+
+\node[block, below right=15mm and 20mm of pircheck] (dist) {Lettura distanza\\ sensore ultrasuoni};
+\node[decision, below=of dist] (distcheck) {Utente vicino alla porta?\\ (distanza < soglia)};
+
+\node[block, below left=15mm and 20mm of distcheck] (stop2) {Nessuna apertura};
+\node[startstop, below=of stop2] (end2) {Fine};
+
+\node[block, below right=15mm and 20mm of distcheck] (open) {Arduino attiva relè\\ apertura porta};
+\node[block, below=of open] (status) {Aggiornamento stato porta};
+\node[block, below=of status] (notify) {Notifica a sistema / Telegram};
+\node[startstop, below=of notify] (end3) {Fine};
+
+
+% Edges
+\draw[arrow] (start) -- (pir);
+\draw[arrow] (pir) -- (pircheck);
+
+\draw[arrow] (pircheck.west) -- ++(-45mm,0) |- (noaction);
+\draw[arrow] (noaction) -- (end1);
+
+\draw[arrow] (pircheck.east) -- ++(55mm,0) |- (dist);
+\draw[arrow] (dist) -- (distcheck);
+
+\draw[arrow] (distcheck.west) -- ++(-45mm,0) |- (stop2);
+\draw[arrow] (stop2) -- (end2);
+
+\draw[arrow] (distcheck.east) -- ++(55mm,0) |- (open);
+\draw[arrow] (open) -- (status);
+\draw[arrow] (status) -- (notify);
+\draw[arrow] (notify) -- (end3);
+
+\end{tikzpicture}
+\caption{Flowchart relativo al requisito funzionale FR5a – Automazione in uscita (PIR).}
+\end{figure}
+
+
+\subsection{Flowchart FR5b – Automazione in ingresso (GPS)}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=12mm]
+
+\node[startstop] (start) {Inizio};
+
+\node[block, below=of start] (gpsupdate) {Ricezione aggiornamento GPS\\ da ESP8266};
+\node[decision, below=of gpsupdate] (nearhome) {Utente dentro\\ il geofence?};
+
+\node[block, below left=15mm and 20mm of nearhome] (noaction) {userNearHome = false\\ Nessuna automazione};
+\node[startstop, below=of noaction] (end1) {Fine};
+
+\node[block, below right=15mm and 20mm of nearhome] (setflag) {userNearHome = true};
+\node[block, below=of setflag] (dist) {Lettura distanza\\ da sensore ultrasuoni};
+\node[decision, below=of dist] (distcheck) {Utente vicino alla porta?\\ (distanza < soglia)};
+
+\node[block, below left=15mm and 20mm of distcheck] (stop) {Condizione non soddisfatta};
+\node[startstop, below=of stop] (end2) {Fine};
+
+\node[block, below right=15mm and 20mm of distcheck] (open) {Attiva relè\\ apertura porta};
+\node[block, below=of open] (status) {Aggiorna stato porta};
+\node[block, below=of status] (notify) {Invia notifica a Telegram};
+\node[startstop, below=of notify] (end3) {Fine};
+
+
+% Edges
+\draw[arrow] (start) -- (gpsupdate);
+\draw[arrow] (gpsupdate) -- (nearhome);
+
+\draw[arrow] (nearhome.west) -- ++(-45mm,0) |- (noaction);
+\draw[arrow] (noaction) -- (end1);
+
+\draw[arrow] (nearhome.east) -- ++(55mm,0) |- (setflag);
+\draw[arrow] (setflag) -- (dist);
+\draw[arrow] (dist) -- (distcheck);
+
+\draw[arrow] (distcheck.west) -- ++(-45mm,0) |- (stop);
+\draw[arrow] (stop) -- (end2);
+
+\draw[arrow] (distcheck.east) -- ++(55mm,0) |- (open);
+\draw[arrow] (open) -- (status);
+\draw[arrow] (status) -- (notify);
+\draw[arrow] (notify) -- (end3);
+
+\end{tikzpicture}
+\caption{Flowchart relativo al requisito funzionale FR5b – Automazione in ingresso (GPS).}
+\end{figure}
+
+
+\subsection{Flowchart FR6 – Sicurezza dei comandi}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=12mm]
+
+\node[startstop] (start) {Inizio};
+
+\node[block, below=of start] (cmd) {Ricezione comando\\ da Telegram};
+\node[block, below=of cmd] (extract) {Identificazione utente\\ (Telegram ID)};
+
+\node[decision, below=of extract] (auth) {Utente autorizzato?};
+
+\node[block, below left=15mm and 20mm of auth] (deny) {Comando rifiutato\\ + notifica accesso negato};
+\node[block, below=of deny] (logdeny) {Log evento di sicurezza};
+\node[startstop, below=of logdeny] (end1) {Fine};
+
+\node[block, below right=15mm and 20mm of auth] (accept) {Autorizzazione concessa};
+\node[block, below=of accept] (forward) {Invia comando a MQTT\\ per NodeMCU / Arduino};
+\node[startstop, below=of forward] (end2) {Fine};
+
+% Edges
+\draw[arrow] (start) -- (cmd);
+\draw[arrow] (cmd) -- (extract);
+\draw[arrow] (extract) -- (auth);
+
+\draw[arrow] (auth.west) -- ++(-45mm,0) |- (deny);
+\draw[arrow] (deny) -- (logdeny);
+\draw[arrow] (logdeny) -- (end1);
+
+\draw[arrow] (auth.east) -- ++(55mm,0) |- (accept);
+\draw[arrow] (accept) -- (forward);
+\draw[arrow] (forward) -- (end2);
+
+\end{tikzpicture}
+\caption{Flowchart relativo al requisito funzionale FR6 – Sicurezza dei comandi.}
+\end{figure}
+
+
+\subsection{Flowchart FR7 – Comando locale manuale}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=12mm]
+
+\node[startstop] (start) {Inizio};
+
+\node[block, below=of start] (press) {Rilevazione pressione\\ pulsante manuale};
+\node[block, below=of press] (debounce) {Debounce ingresso};
+\node[block, below=of debounce] (readstate) {Lettura stato porta};
+
+\node[decision, below=of readstate] (isopen) {Porta aperta?};
+
+\node[block, below left=15mm and 20mm of isopen] (close) {Attiva relè\\ chiusura porta};
+\node[block, below=of close] (updatestateC) {Aggiorna stato porta};
+\node[block, below=of updatestateC] (notifyC) {Invia notifica (se online)};
+\node[startstop, below=of notifyC] (end1) {Fine};
+
+\node[block, below right=15mm and 20mm of isopen] (open) {Attiva relè\\ apertura porta};
+\node[block, below=of open] (updatestateO) {Aggiorna stato porta};
+\node[block, below=of updatestateO] (notifyO) {Invia notifica (se online)};
+\node[startstop, below=of notifyO] (end2) {Fine};
+
+% Edges
+\draw[arrow] (start) -- (press);
+\draw[arrow] (press) -- (debounce);
+\draw[arrow] (debounce) -- (readstate);
+\draw[arrow] (readstate) -- (isopen);
+
+\draw[arrow] (isopen.west) -- ++(-45mm,0) |- (close);
+\draw[arrow] (close) -- (updatestateC);
+\draw[arrow] (updatestateC) -- (notifyC);
+\draw[arrow] (notifyC) -- (end1);
+
+\draw[arrow] (isopen.east) -- ++(55mm,0) |- (open);
+\draw[arrow] (open) -- (updatestateO);
+\draw[arrow] (updatestateO) -- (notifyO);
+\draw[arrow] (notifyO) -- (end2);
+
+\end{tikzpicture}
+\caption{Flowchart relativo al requisito funzionale FR7 – Comando locale manuale.}
+\end{figure}
+
+
+\subsection{Flowchart FR8 – Rilevazione ostacolo}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=12mm]
+
+\node[startstop] (start) {Inizio};
+
+\node[block, below=of start] (moving) {Porta in movimento\\ (fase di chiusura)};
+\node[block, below=of moving] (read) {Lettura distanza\\ sensore ultrasuoni};
+
+\node[decision, below=of read] (obstacle) {Distanza < soglia?\\ (Ostacolo presente)};
+
+% ramo NO (continua)
+\node[block, below right=15mm and 20mm of obstacle] (continue) {Continua chiusura};
+\node[startstop, below=of continue] (end1) {Fine};
+
+% ramo SI (ostacolo)
+\node[block, below left=15mm and 20mm of obstacle] (stop) {Arresto immediato\\ movimento porta};
+\node[block, below=of stop] (invert) {Eventuale inversione\\ movimento (opzionale)};
+\node[block, below=of invert] (update) {Aggiorna stato porta};
+\node[block, below=of update] (notify) {Invia notifica al sistema};
+\node[startstop, below=of notify] (end2) {Fine};
+
+% Edges
+\draw[arrow] (start) -- (moving);
+\draw[arrow] (moving) -- (read);
+\draw[arrow] (read) -- (obstacle);
+
+\draw[arrow] (obstacle.east) -- ++(55mm,0) |- (continue);
+\draw[arrow] (continue) -- (end1);
+
+\draw[arrow] (obstacle.west) -- ++(-45mm,0) |- (stop);
+\draw[arrow] (stop) -- (invert);
+\draw[arrow] (invert) -- (update);
+\draw[arrow] (update) -- (notify);
+\draw[arrow] (notify) -- (end2);
+
+\end{tikzpicture}
+\caption{Flowchart relativo al requisito funzionale FR8 – Rilevazione ostacolo.}
+\end{figure}
+
+
+\subsection{Flowchart FR9 – Notifiche eventi}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=12mm]
+
+\node[startstop] (start) {Inizio};
+
+\node[block, below=of start] (event) {Generazione evento\\ (apertura, chiusura, ostacolo, accesso negato, GPS...)};
+
+\node[block, below=of event] (ardu) {Arduino invia evento\\ via UART a ESP8266};
+
+\node[block, below=of ardu] (esp) {ESP8266 aggiorna stato\\ e inoltra evento a Flask};
+
+\node[block, below=of esp] (log) {Flask registra evento\\ nel registro locale};
+
+\node[block, below=of log] (notif) {Preparazione messaggio\\ di notifica};
+
+\node[block, below=of notif] (send) {Invio notifica a Telegram};
+
+\node[startstop, below=of send] (end) {Fine};
+
+
+% Edges
+\draw[arrow] (start) -- (event);
+\draw[arrow] (event) -- (ardu);
+\draw[arrow] (ardu) -- (esp);
+\draw[arrow] (esp) -- (log);
+\draw[arrow] (log) -- (notif);
+\draw[arrow] (notif) -- (send);
+\draw[arrow] (send) -- (end);
+
+\end{tikzpicture}
+\caption{Flowchart relativo al requisito funzionale FR9 – Notifiche eventi.}
+\end{figure}
+
+
+
+
 \section{Componenti hardware e software}
 
 \subsection{Componenti hardware}

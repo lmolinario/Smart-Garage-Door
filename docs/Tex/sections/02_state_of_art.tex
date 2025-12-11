@@ -1,4 +1,4 @@
-\chapter{State of the Art}
+\chapter{Stato dell'Arte}
 
 \section{Panoramica dei sistemi di automazione domestica}
 
@@ -168,9 +168,17 @@ Interruzione servizio in caso di failure cloud; concorrenza di soluzioni Wi-Fi o
 
 \end{table}
 
+\section*{Sintesi dell'analisi competitors}
 
-\subsection{Confronto sintetico tra competitors}
-Per completezza, si riporta una tabella comparativa che mette in relazione le principali caratteristiche.
+L’analisi sistematica dello stato dell’arte ha evidenziato come le principali soluzioni commerciali per l’automazione delle porte da garage presentino alcune limitazioni strutturali ricorrenti. In particolare, tali dispositivi si basano su architetture \textit{cloud–centric}, nelle quali la logica applicativa, l’autenticazione e il processamento degli eventi risiedono quasi interamente su server remoti. Questa impostazione comporta una scarsa autonomia operativa locale e rende l’utente fortemente dipendente dalla disponibilità della rete Internet e dall’infrastruttura del vendor.
+
+Ulteriori criticità emergono dall’impiego di protocolli di comunicazione eterogenei e spesso proprietari (HTTP/HTTPS, BLE, Zigbee), che risultano poco interoperabili tra ecosistemi differenti. Tale frammentazione contrasta con i principi di apertura, generalità e riusabilità che caratterizzano le architetture IoT moderne, come discusso nelle lezioni teoriche del corso. Inoltre, l’assenza di veri meccanismi di \textit{local fallback} impedisce il funzionamento del sistema in condizioni degradate, violando una delle buone pratiche dei sistemi distribuiti, ovvero la capacità dei nodi periferici di mantenere funzionalità minime anche in presenza di connettività intermittente.
+
+Dal punto di vista economico, i prodotti commerciali analizzati presentano costi medi elevati (200–250\,€), dovuti alla presenza di hub proprietari, servizi premium e infrastrutture cloud integrate. Questo aspetto risulta particolarmente significativo in un contesto accademico e sperimentale, dove si privilegiano soluzioni a basso costo, facilmente replicabili e basate su componenti open-source.
+
+Al contrario, il progetto \textit{Smart Garage Door} si caratterizza per un approccio \textbf{locale-first} e per un’architettura pienamente distribuita, nella quale Arduino e ESP8266 collaborano per garantire resistenza ai guasti, autonomia locale e assenza di \textit{single point of failure}. L’impiego di protocolli standard e aperti (HTTP, MQTT) assicura interoperabilità e indipendenza da piattaforme proprietarie, mentre l’integrazione con sensori fisici (PIR, ultrasuoni) e dati GPS consente di realizzare automazioni affidabili e a bassa incidenza di falsi positivi. La natura open-source della soluzione permette inoltre la trasparenza del codice, la possibilità di estendere il sistema e un’elevata sostenibilità economica e didattica.
+
+Per completezza, si riporta una tabella comparativa che sintetizza le principali differenze tra le soluzioni analizzate.
 
 \begin{table}[H]
 \centering
@@ -192,62 +200,42 @@ Open-source & No & No & No & Sì \\
 \end{tabularx}
 \end{table}
 
-\section*{Sintesi dell'analisi competitors}
-Il confronto sistematico delle soluzioni esistenti evidenzia come i sistemi commerciali condividano alcune limitazioni strutturali: dipendenza dal cloud, mancanza di interoperabilità, costi elevati e scarsa autonomia locale.
+L’assenza di interoperabilità standard e la dipendenza dai cloud proprietari risultano quindi gli ostacoli principali alla diffusione di soluzioni aperte, resilienti e replicabili. Come evidenziato da Piyare e Lee \cite{Piyare2013}, l’adozione di protocolli leggeri e la decentralizzazione dell’intelligenza locale costituiscono elementi fondamentali per garantire efficienza, affidabilità e riduzione dei consumi nei sistemi IoT a risorse limitate. In questo contesto, il protocollo \textbf{MQTT} \cite{MQTTspec} rappresenta un’alternativa più efficiente rispetto alle architetture REST cloud-based, consentendo comunicazione asincrona, bassissima latenza e robustezza in ambienti domestici.
 
-Il progetto \textit{Smart Garage Door}, al contrario, si distingue per:
-\begin{itemize}
-    \item funzionamento locale anche senza Internet;
-    \item logica distribuita su Arduino e ESP8266, senza single point of failure;
-    \item interoperabilità garantita tramite protocolli standard aperti (HTTP/MQTT);
-    \item architettura open-source, replicabile e didatticamente sostenibile;
-    \item automazioni basate sia su sensori fisici sia su dati GPS, riducendo falsi positivi;
-    \item nessuna dipendenza da cloud proprietari, migliorando privacy e sicurezza.
-\end{itemize}
-
-Questa analisi costituisce la base per la definizione delle scelte tecnologiche illustrate nel Capitolo successivo.
-
-
-
-\section{Analisi comparativa e limiti delle soluzioni attuali}
-
-Il confronto tra le soluzioni commerciali evidenzia alcune caratteristiche comuni:
-\begin{itemize}
-    \item prevalenza di architetture \textbf{centralizzate} basate su servizi cloud, con limitata autonomia locale;
-    \item utilizzo di protocolli di comunicazione eterogenei (HTTP, BLE, Zigbee), spesso non interoperabili tra ecosistemi differenti;
-    \item dipendenza dalla connessione Internet per l’esecuzione delle operazioni principali;
-    \item costi complessivi elevati (200–250\,€ in media), in contrasto con gli obiettivi di accessibilità e sostenibilità tipici dei progetti accademici IoT.
-\end{itemize}
-
-L’assenza di interoperabilità standard e la dipendenza dal cloud proprietario costituiscono i principali ostacoli alla diffusione di soluzioni aperte e replicabili.  
-Come sottolineato da Piyare e Lee \cite{Piyare2013}, la leggerezza dei protocolli di comunicazione e la decentralizzazione dell’intelligenza locale sono elementi essenziali per garantire efficienza e resilienza in ambienti a risorse limitate.  
-In questo senso, l’utilizzo del protocollo \textbf{MQTT} \cite{MQTTspec}, rispetto a soluzioni HTTP o REST basate su cloud, consente una comunicazione asincrona e affidabile con consumo energetico minimo, particolarmente adatta per scenari residenziali.  
-L’impiego della scheda \textbf{ESP8266} \cite{ESP8266} rafforza ulteriormente questa prospettiva, offrendo un equilibrio ottimale tra costo, potenza di elaborazione e connettività Wi-Fi integrata.
+L’utilizzo della scheda \textbf{ESP8266} \cite{ESP8266}, combinato con la micrologica locale di Arduino, consente di adottare un modello distribuito che massimizza resilienza e continuità del servizio, risultando pienamente coerente con i principi architetturali IoT e con il modello SDLC illustrato nel Capitolo 4.
+Questa analisi costituisce la base per le scelte tecnologiche e architetturali descritte nel Capitolo successivo.
 
 \section{Contributo del progetto \textit{Smart Garage Door}}
 
-Alla luce delle analisi precedenti, il progetto \textbf{Smart Garage Door} si propone come una soluzione innovativa e accademicamente replicabile che affronta in modo diretto le criticità delle piattaforme esistenti.  
-Le principali caratteristiche distintive sono:
+Alla luce dell’analisi comparativa svolta, il progetto \textbf{Smart Garage Door} si configura come una soluzione innovativa, aperta e pienamente replicabile in ambito accademico, capace di rispondere in modo sistematico alle principali criticità rilevate nelle piattaforme commerciali analizzate.
+L’approccio seguito integra principi di progettazione distribuita, attenzione alla sostenibilità economica e adozione di tecnologie standardizzate, con l’obiettivo di massimizzare interoperabilità, affidabilità e trasparenza architetturale.
+
+Le caratteristiche distintive che qualificano il contributo progettuale sono le seguenti:
+
 \begin{itemize}
-    \item \textbf{Architettura ibrida locale–remota}, in grado di operare anche in assenza di connessione Internet, garantendo affidabilità continua e coerenza con il requisito NFR5;
-    \item \textbf{Adozione di componenti open source e protocolli standard} (\textit{MQTT, Flask, Telegram API}), che riducono costi e complessità di integrazione;
-    \item \textbf{Automazione di prossimità basata su GPS}, preferita al BLE per una maggiore accuratezza e stabilità in contesti outdoor;
-    \item \textbf{Interfaccia utente tramite Telegram Bot API} \cite{TelegramAPI} e \textbf{server Flask} \cite{Flask2024}, per una gestione multiutente intuitiva e sicura;
-      \item \textbf{Budget complessivo inferiore a 150\,€}, conforme ai requisiti di accessibilità e sostenibilità economica.
+    \item \textbf{Architettura ibrida locale–remota}, in cui la logica di controllo primaria risiede nei microcontrollori (Arduino Uno ed ESP8266), garantendo operatività anche in assenza di connettività Internet. Tale proprietà, direttamente collegata al requisito \textbf{NFR5}, consente al sistema di evitare dipendenze critiche da server esterni e di mantenere continuità di servizio in scenari degradati.
+
+    \item \textbf{Adozione di componenti open-source e protocolli standard} (\textit{MQTT}, \textit{HTTP/Flask}, \textit{Telegram Bot API}), che favoriscono la piena interoperabilità del sistema e riducono sia i costi sia la complessità di integrazione con futuri moduli o servizi. Tale scelta è coerente con i principi di apertura e riusabilità tipici delle moderne architetture IoT a più livelli.
+
+    \item \textbf{Automazione di prossimità basata su GPS}, implementata tramite il modulo \texttt{FakeGPS} del NodeMCU, preferita al BLE per la maggiore stabilità e accuratezza in ambienti outdoor. Questa soluzione permette di ridurre i falsi positivi in fase di rilevamento ingresso-uscita, in accordo con i principi di efficienza delle risorse e affidabilità funzionale.
+
+    \item \textbf{Interfaccia utente leggera, multi-piattaforma e sicura}, realizzata attraverso le \textbf{Telegram Bot API} \cite{TelegramAPI} e un server \textbf{Flask} \cite{Flask2024}. Ciò consente una gestione intuitiva, multiutente e  facilmente estendibile, in linea con i requisiti di usabilità e di separazione tra livelli architetturali.
+
+    \item \textbf{Budget complessivo inferiore a 150\,€}, che rende il sistema economicamente accessibile, sostenibile e ideale per scenari didattici, sperimentali o di prototipazione rapida. L’utilizzo di componenti quali ESP8266 e Arduino permette inoltre una piena trasparenza della logica hardware e software.
 \end{itemize}
 
-Il progetto, dunque, non si limita a replicare soluzioni commerciali, ma propone un modello \textbf{open-source, scalabile e autonomo}, in grado di integrare i principi di modularità, efficienza e interoperabilità alla base dell’ingegneria dei sistemi IoT moderni.  
-Tale approccio si inserisce pienamente nella logica dello \textbf{System Development Life Cycle (SDLC)} \cite{Pressman2019}, applicando in modo rigoroso le fasi di analisi, progettazione, implementazione e validazione in un contesto applicativo concreto.
+Il progetto, nel suo insieme, non si limita a riprodurre funzionalità già presenti negli strumenti commerciali, ma propone un modello \textbf{open-source, scalabile e autonomo}, costruito secondo i criteri di modularità, efficienza e interoperabilità propri dell’ingegneria IoT contemporanea.
+L’intero ciclo di sviluppo è stato strutturato secondo il paradigma dello \textbf{System Development Life Cycle (SDLC)} \cite{Pressman2019}, applicato in tutte le sue fasi: analisi dei requisiti, progettazione multilivello, implementazione, test e validazione funzionale.
 
+\vspace{4mm}
 
 \section{Conclusioni della revisione dello stato dell’arte}
 
-L’analisi dello stato dell’arte evidenzia che, nonostante l’ampia disponibilità di soluzioni commerciali per l’automazione delle porte da garage, la maggior parte di esse rimane vincolata a infrastrutture proprietarie e a modelli di comunicazione chiusi. Ciò limita la personalizzazione, aumenta i costi di mantenimento e riduce la possibilità di integrazione con altri sistemi IoT.
+La revisione dello stato dell’arte ha mostrato che, nonostante la diffusione di soluzioni commerciali per l’automazione delle porte da garage, tali sistemi rimangono generalmente vincolati a \textbf{architetture chiuse, dipendenti dal cloud} e spesso non interoperabili. Questo limita la possibilità di personalizzare il comportamento del sistema, ne aumenta i costi di mantenimento e riduce la flessibilità nell’integrazione con ecosistemi domotici eterogenei.
 
-Il progetto \textit{Smart Garage Door} propone dunque un paradigma alternativo rispetto alle soluzioni commerciali analizzate, fondato su un’architettura leggera, decentralizzata e pienamente controllabile dall’utente. La Tabella~\ref{tab:swot} riassume i principali elementi caratterizzanti attraverso un’analisi SWOT, evidenziando in modo sintetico punti di forza, limiti attuali, opportunità evolutive e potenziali minacce.
+In questo contesto, il progetto \textit{Smart Garage Door} introduce un paradigma alternativo, fondato su un'architettura \textbf{decentralizzata, leggera e pienamente controllabile dall’utente finale}. La combinazione di logica locale, protocolli aperti e assenza di dipendenze da infrastrutture proprietarie garantisce maggiore trasparenza, sicurezza e robustezza operativa. La Tabella~\ref{tab:swot} sintetizza tali evidenze attraverso un’analisi SWOT, utile per identificare punti di forza, limiti attuali e potenziali direzioni evolutive.
 
-In questo modo, il progetto adotta un modello di automazione domestica locale e decentralizzata, basato su componenti trasparenti, interoperabili e a basso costo. L’assenza di dipendenze da servizi cloud e il controllo diretto da parte dell’utente contribuiscono a migliorare sicurezza e affidabilità operativa. Tale impostazione, pienamente coerente con la letteratura sui sistemi IoT distribuiti \cite{Palattella2016, Piyare2013, Holler2014}, costituisce una base solida per future estensioni verso ambienti domestici più integrati, scalabili e interoperabili.
-
+Questa impostazione si colloca perfettamente nell’alveo della letteratura sui sistemi IoT distribuiti e resilienti \cite{Palattella2016, Piyare2013, Holler2014}, e costituisce una base solida per estensioni future orientate verso ambienti domestici integrati, smart building e scenari multi-dispositivo.
 
 \begin{table}[H]
 \centering
@@ -257,10 +245,10 @@ In questo modo, il progetto adotta un modello di automazione domestica locale e 
 \begin{tabularx}{\textwidth}{|X|X|}
 \hline
 \textbf{Strengths} & \textbf{Weaknesses} \\ \hline
-Funzionamento locale e indipendente dal cloud; uso di componenti open e standard (ESP8266, MQTT/HTTP, Flask, Telegram); costi hardware ridotti; elevata replicabilità didattica. &
+Funzionamento locale indipendente dal cloud; uso di componenti open e protocolli standard (ESP8266, MQTT/HTTP, Flask, Telegram); costi hardware ridotti; elevata replicabilità didattica. &
 Assenza di gestione utenti avanzata; scalabilità limitata a una singola autorimessa; dipendenza dalla copertura Wi-Fi domestica; sicurezza basata su meccanismi minimi. \\ \hline
 \textbf{Opportunities} & \textbf{Threats} \\ \hline
 Estensione a multi-porta e multi-utente; integrazione con ecosistemi domotici (Home Assistant, Node-RED); adozione di sensori avanzati; applicabilità a contesti condominiali o industriali. &
-Rischi legati alla rete Wi-Fi; possibili interferenze sui sensori PIR/ultrasuoni; dipendenza da servizi esterni (Telegram Bot API); vulnerabilità fisiche dei nodi in ambienti esterni. \\ \hline
+Rischi legati alla rete Wi-Fi; possibili interferenze nei sensori PIR/ultrasuoni; dipendenza da servizi esterni (Telegram Bot API); vulnerabilità fisiche dei nodi in ambienti esterni. \\ \hline
 \end{tabularx}
 \end{table}
