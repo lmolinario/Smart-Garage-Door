@@ -418,21 +418,21 @@ e costituiscono il riferimento progettuale per l’implementazione descritta nel
 
 \begin{figure}[H]
 \centering
-\begin{tikzpicture}[node distance=12mm]
+\begin{tikzpicture}[node distance=10mm]
 
 \node[startstop] (start) {Inizio};
 \node[block, below=of start] (open) {Porta aperta\\ (evento di apertura)};
 \node[block, below=of open] (timer) {Avvio timer interno};
 \node[decision, below=of timer] (expired) {Timer scaduto?};
 
-\node[block, below left=15mm and 20mm of expired] (wait) {Continua attesa};
-\node[block, below right=15mm and 20mm of expired] (check) {Verifica presenza ostacoli\\ (sensore distanza)};
+\node[block, below left=10mm and 5mm of expired] (wait) {Continua attesa};
+\node[block, below right=10mm and 5mm of expired] (check) {Verifica presenza ostacoli\\ (sensore distanza)};
 
 \node[decision, below=of check] (obstacle) {Ostacolo presente?};
 
 \node[block, below left=15mm and 20mm of obstacle] (abort) {Annulla chiusura\\ e riavvia timer};
 
-\node[block, below right=15mm and 20mm of obstacle] (close) {Attiva relè\\ chiusura porta};
+\node[block, below right=15mm and -20mm of obstacle] (close) {Attiva relè\\ chiusura porta};
 
 \node[block, below=of close] (status) {Aggiorna stato porta};
 \node[block, below=of status] (notify) {Invia notifica al sistema};
@@ -444,16 +444,16 @@ e costituiscono il riferimento progettuale per l’implementazione descritta nel
 \draw[arrow] (open) -- (timer);
 \draw[arrow] (timer) -- (expired);
 
-\draw[arrow] (expired.west) -- ++(-45mm,0) |- (wait);
-\draw[arrow] (wait) |- (expired);
+\draw[arrow] (expired.west) -- ++(-30mm,0) |- (wait);
+\draw[arrow] (wait.south) -- ++(0,-10mm) |- ++(-25mm,0) |- (expired.north);
 
-\draw[arrow] (expired.east) -- ++(55mm,0) |- (check);
+\draw[arrow] (expired.east) -- ++(45mm,0) |- (check);
 \draw[arrow] (check) -- (obstacle);
 
 \draw[arrow] (obstacle.west) -- ++(-45mm,0) |- (abort);
-\draw[arrow] (abort) |- (timer);
+\draw[arrow] (abort.south) -- ++(0,-10mm) |- ++(-50mm,0)|- (timer);
 
-\draw[arrow] (obstacle.east) -- ++(55mm,0) |- (close);
+\draw[arrow] (obstacle.east) -- ++(25mm,0) |- (close);
 \draw[arrow] (close) -- (status);
 \draw[arrow] (status) -- (notify);
 \draw[arrow] (notify) -- (end);
