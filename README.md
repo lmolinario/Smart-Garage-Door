@@ -15,11 +15,6 @@ L’obiettivo è realizzare un sistema intelligente per il controllo remoto e au
 
 # Risorse del Progetto
 
-## Documentazione LaTeX (Crixet)
-
-Documentazione completa del progetto: analisi, architettura, firmware, validazione.
-
-**[https://app.crixet.com/?u=b5bcfa26-246c-4614-964f-bb1eaa324145&pg=1&m=main.tex&d=7](https://app.crixet.com/?u=b5bcfa26-246c-4614-964f-bb1eaa324145&pg=1&m=main.tex&d=7)**
 
 ---
 
