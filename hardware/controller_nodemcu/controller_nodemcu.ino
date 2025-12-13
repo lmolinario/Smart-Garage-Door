@@ -80,7 +80,7 @@ bool userInside = false;     // stato corrente del geofence
 unsigned long lastGeoCheck = 0;
 const unsigned long GEO_INTERVAL = 5000;  // ogni 5 secondi
 
-const float GEOFENCE_RADIUS = 80.0;  // metri (raggio geofence)
+const float GEOFENCE_RADIUS = 15.0;  // metri (raggio geofence)
 
 // =========================================================
 // EEPROM: salvataggio coordinate garage
