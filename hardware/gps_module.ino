@@ -19,21 +19,21 @@
  *   FR3 – Pubblicazione automatica stato (MQTT)
  *   NFR9 – Riduzione traffico dati
  * ============================================================
- 🧠 Spiegazione tecnica
+  Spiegazione tecnica
 Funzione	Descrizione
 TinyGPSPlus::distanceBetween()	Calcola la distanza (in metri) tra coordinate attuali e coordinate del garage.
 isInside	Flag booleano per evitare pubblicazioni ripetute inutili.
 thresholdDistance	Raggio del geofence (default 20 m).
 mqttClient.publish(topic_gps, …)	Pubblica eventi di entrata/uscita sul broker MQTT.
 gpsSerial	Porta seriale software dedicata alla comunicazione col modulo NEO-6M (pin D3 ↔ TX, D4 ↔ RX).
-📡 Connessioni hardware NodeMCU ↔ GPS NEO-6M
+Connessioni hardware NodeMCU ↔ GPS NEO-6M
 GPS Pin	NodeMCU Pin	Descrizione
 VCC	3.3 V	Alimentazione GPS
 GND	GND	Massa
 TX	D3	Trasmette dati GPS → ESP8266
 RX	D4	Riceve comandi (opzionale)
 PPS	—	(non usato)
-🧩 Integrazione con il progetto
+ Integrazione con il progetto
 
 Pubblica eventi MQTT compatibili con controller_nodemcu.ino, topic home/garage/gps.
 
