@@ -34,6 +34,7 @@ import os
 import json
 import requests
 import logging
+import asyncio
 from datetime import datetime
 from telegram import Update, Bot
 from telegram.ext import (
@@ -137,6 +138,9 @@ def _is_inside_geofence(lat, lon):
 logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(message)s",
     level=logging.INFO,
+    handlers=[
+        logging.StreamHandler()  # Assicura che i log vadano anche a console
+    ]
 )
 logger = logging.getLogger("telegram-bot")
 
@@ -226,37 +230,37 @@ def _post(path: str, data=None):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     text = (
-        "*Benvenuto nel sistema Smart Garage Door!*\n"
+        "<b>Benvenuto nel sistema Smart Garage Door!</b>\n"
         "Questo bot ti permette di controllare e monitorare il prototipo IoT.\n\n"
 
-        "*Autenticazione *\n"
-        "• /login <user> <pass> – Effettua login\n"
+        "<b>Autenticazione</b>\n"
+        "• /login &lt;user&gt; &lt;pass&gt; - Effettua login\n"
         "• /changepass - Cambia password (utente o admin)\n"
-        "• /logout – Chiudi la sessione\n\n"
+        "• /logout - Chiudi la sessione\n\n"
 
-        "*Comandi principali*\n"
-        "• /on – Apri la porta\n"
-        "• /off – Chiudi la porta\n"
-        "• /status – Stato attuale del sistema\n\n"
+        "<b>Comandi principali</b>\n"
+        "• /on - Apri la porta\n"
+        "• /off - Chiudi la porta\n"
+        "• /status - Stato attuale del sistema\n\n"
         
-        "*Sensori*\n"
-        "• /pir – Stato sensore PIR (uscita)\n"
-        "• /obstacle – Stato sensore ostacolo HC-SR04\n\n"
+        "<b>Sensori</b>\n"
+        "• /pir - Stato sensore PIR (uscita)\n"
+        "• /obstacle - Stato sensore ostacolo HC-SR04\n\n"
 
-        "*Funzioni amministrative*\n\n"
-        "      *Gestione utenti (admin)*\n"
-        "       • /listusers – Visualizza gli utenti attivi\n"
-        "       • /adduser <user> <pass> – Aggiungi utente\n"
-        "       • /deluser <user> – Rimuovi utente\n\n"
-        "      *Localizzazione e prossimità*\n"
-        "       • /gps <lat> <lon> – Invia posizione manuale\n\n"
-        "      *Funzioni amministrative*\n"
-        "       • /adminstatus – Cruscotto diagnostico\n\n"
+        "<b>Funzioni amministrative</b>\n\n"
+        "      <b>Gestione utenti (admin)</b>\n"
+        "       • /listusers - Visualizza gli utenti attivi\n"
+        "       • /adduser &lt;user&gt; &lt;pass&gt; - Aggiungi utente\n"
+        "       • /deluser &lt;user&gt; - Rimuovi utente\n\n"
+        "      <b>Localizzazione e prossimità</b>\n"
+        "       • /gps &lt;lat&gt; &lt;lon&gt; - Invia posizione manuale\n\n"
+        "      <b>Funzioni amministrative</b>\n"
+        "       • /adminstatus - Cruscotto diagnostico\n\n"
 
-        "*Aiuto*\n"
-        "• /help – Mostra questa lista\n"
+        "<b>Aiuto</b>\n"
+        "• /help - Mostra questa lista\n"
     )
-    await update.message.reply_text(text, parse_mode="Markdown")
+    await update.message.reply_text(text, parse_mode="HTML")
 
 
 
@@ -663,53 +667,85 @@ async def adminstatus_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ----------------------- Main Setup ---------------------------
 
-def main():
+def start_bot():
+    """
+    Avvia il bot Telegram. 
+    Può essere chiamata da app.py per avviare il bot in un thread separato.
+    """
+    print("[Telegram Bot] start_bot() chiamata")
+    logger.info("start_bot() chiamata")
+    
     if not BOT_TOKEN:
-        print("ERRORE: manca TELEGRAM_TOKEN in config.json")
+        error_msg = "ERRORE: manca TELEGRAM_TOKEN in config.json"
+        print(f"[Telegram Bot] {error_msg}")
+        logger.error(error_msg)
         return
 
-    app = Application.builder().token(BOT_TOKEN).build()
+    print(f"[Telegram Bot] Token trovato, creo Application...")
+    logger.info("Creazione Application Telegram bot...")
+    
+    try:
+        bot_app = Application.builder().token(BOT_TOKEN).build()
+    except Exception as e:
+        error_msg = f"Errore nella creazione Application: {e}"
+        print(f"[Telegram Bot] {error_msg}")
+        logger.error(error_msg, exc_info=True)
+        return
 
     # Comandi principali
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("help", help_cmd))
+    bot_app.add_handler(CommandHandler("start", start))
+    bot_app.add_handler(CommandHandler("help", help_cmd))
 
-    app.add_handler(CommandHandler("login", login_cmd))
-    app.add_handler(CommandHandler("logout", logout_cmd))
+    bot_app.add_handler(CommandHandler("login", login_cmd))
+    bot_app.add_handler(CommandHandler("logout", logout_cmd))
 
-    app.add_handler(CommandHandler("on", on_cmd))
-    app.add_handler(CommandHandler("off", off_cmd))
-    app.add_handler(CommandHandler("status", status_cmd))
+    bot_app.add_handler(CommandHandler("on", on_cmd))
+    bot_app.add_handler(CommandHandler("off", off_cmd))
+    bot_app.add_handler(CommandHandler("status", status_cmd))
 
     # Gestione utenti
-    app.add_handler(CommandHandler("adduser", add_user_cmd))
-    app.add_handler(CommandHandler("deluser", del_user_cmd))
-    app.add_handler(CommandHandler("listusers", list_users_cmd))
-    app.add_handler(CommandHandler("changepass", changepass_cmd))
+    bot_app.add_handler(CommandHandler("adduser", add_user_cmd))
+    bot_app.add_handler(CommandHandler("deluser", del_user_cmd))
+    bot_app.add_handler(CommandHandler("listusers", list_users_cmd))
+    bot_app.add_handler(CommandHandler("changepass", changepass_cmd))
 
     # GPS manuale
-    app.add_handler(CommandHandler("gps", gps_cmd))
+    bot_app.add_handler(CommandHandler("gps", gps_cmd))
 
     # LIVE LOCATION (edited_message)
-    app.add_handler(MessageHandler(filters.UpdateType.EDITED_MESSAGE, gps_live_location))
+    bot_app.add_handler(MessageHandler(filters.UpdateType.EDITED_MESSAGE, gps_live_location))
 
     # Sensori
-    app.add_handler(CommandHandler("pir", pir_cmd))
-    app.add_handler(CommandHandler("obstacle", obstacle_cmd))
-    app.add_handler(CommandHandler("adminstatus", adminstatus_cmd))
+    bot_app.add_handler(CommandHandler("pir", pir_cmd))
+    bot_app.add_handler(CommandHandler("obstacle", obstacle_cmd))
+    bot_app.add_handler(CommandHandler("adminstatus", adminstatus_cmd))
 
     # Testo normale
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_handler))
+    bot_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_handler))
 
     # LOCATION singola
-    app.add_handler(MessageHandler(filters.LOCATION, gps_location))
+    bot_app.add_handler(MessageHandler(filters.LOCATION, gps_location))
 
     # Comandi sconosciuti
-    app.add_handler(MessageHandler(filters.COMMAND, unknown))
+    bot_app.add_handler(MessageHandler(filters.COMMAND, unknown))
 
-    logger.info("Telegram bot avviato.")
-    app.run_polling()
+    print("[Telegram Bot] Avvio polling...")
+    logger.info("Telegram bot avviato, avvio polling...")
+    try:
+        # Crea un nuovo event loop per questo thread (necessario quando si esegue in un thread separato)
+        # In Python 3.10+, get_event_loop() fallisce se non c'è un loop, quindi dobbiamo crearne uno
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        bot_app.run_polling()
+    except Exception as e:
+        error_msg = f"Errore durante il polling del bot: {e}"
+        print(f"[Telegram Bot] {error_msg}")
+        logger.error(error_msg, exc_info=True)
+        raise
 
+def main():
+    """Funzione main per compatibilità quando si esegue telegram_listener.py direttamente."""
+    start_bot()
 
 if __name__ == "__main__":
     main()

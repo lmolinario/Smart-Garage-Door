@@ -31,12 +31,12 @@ ESP8266WebServer server(80);
 // ---------------- Wi-Fi: lista reti (primary + backup) ----------------
 const char* ssid_list[] = {
   "SOSSU",          // Rete principale
-  "HotspotLello"    // Eventuale hotspot di backup (personalizzala)
+  "iPhone di Matteo"    // Eventuale hotspot di backup (personalizzala)
 };
 
 const char* pass_list[] = {
   "18KMdispiaggi@", // password rete principale
-  "passwordHotspot" // password rete backup
+  "tuzi1234" // password rete backup
 };
 
 const uint8_t WIFI_COUNT = sizeof(ssid_list) / sizeof(ssid_list[0]);

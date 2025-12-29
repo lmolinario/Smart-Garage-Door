@@ -33,6 +33,7 @@ from threading import Lock
 
 from flask import Flask, request, jsonify, abort
 import paho.mqtt.client as mqtt
+import threading
 
 import hashlib
 import time
@@ -532,7 +533,47 @@ def del_user():
 
 # ------------------------- Main -------------------------------
 
+def start_telegram_bot():
+    """Avvia il bot Telegram in un thread separato."""
+    try:
+        # Importa solo quando necessario per evitare problemi di inizializzazione
+        import sys
+        import os
+        
+        # Assicurati che la directory corrente sia nel path
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        if current_dir not in sys.path:
+            sys.path.insert(0, current_dir)
+        
+        # Verifica che il file esista
+        telegram_file = os.path.join(current_dir, "telegram_listener.py")
+        if not os.path.exists(telegram_file):
+            error_msg = f"File telegram_listener.py non trovato in {current_dir}"
+            print(f"ERRORE: {error_msg}")
+            logger.error(error_msg)
+            return
+        
+        print(f"[Telegram Bot] Import da: {current_dir}")
+        from telegram_listener import start_bot
+        print("[Telegram Bot] Import riuscito, avvio bot...")
+        logger.info("Avvio del bot Telegram...")
+        start_bot()
+    except ImportError as e:
+        error_msg = f"Impossibile importare telegram_listener: {e}"
+        print(f"ERRORE: {error_msg}")
+        logger.warning(error_msg, exc_info=True)
+        logger.warning("Il bot Telegram non verrà avviato.")
+    except Exception as e:
+        error_msg = f"Errore nell'avvio del bot Telegram: {e}"
+        print(f"ERRORE: {error_msg}")
+        logger.error(error_msg, exc_info=True)
+
 if __name__ == "__main__":
+    # Avvia il bot Telegram in un thread separato (daemon=True significa che si chiude quando Flask si chiude)
+    telegram_thread = threading.Thread(target=start_telegram_bot, daemon=True)
+    telegram_thread.start()
+    logger.info("Thread bot Telegram avviato in background.")
+
     # Avvia Flask
     host = os.getenv("FLASK_HOST", "0.0.0.0")
     port = int(os.getenv("FLASK_PORT", "5000"))
@@ -545,3 +586,4 @@ if __name__ == "__main__":
         if ENABLE_MQTT:
             mqttc.loop_stop()
             mqttc.disconnect()
+        logger.info("Server Flask terminato.")

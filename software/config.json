@@ -1,6 +1,0 @@
-{
-  "MQTT_BROKER": "test.mosquitto.org",
-  "MQTT_PORT": 1883,
-  "TELEGRAM_TOKEN": "8594959211:AAH-GbdNL_ly68pUtdS9ACvZN5dFIy_Qa5k",
-  "API_KEY": "ABC123456"
-}
