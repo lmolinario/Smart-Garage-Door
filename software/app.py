@@ -18,7 +18,7 @@ home/garage/gps → eventi geofence (dal NodeMCU o dal modulo GPS a Flask)
 
 Logging: file software/server.log (rotazione automatica).
 
-Sicurezza opzionale: se imposti API_KEY in config.json, i comandi /on, /off, /gps richiederanno l’header X-API-Key.
+Autenticazione: i comandi richiedono login tramite username/password (basic auth).
 
 /events: utile per la demo e per il Cap. 5.6–5.8 (puoi mostrare uno snapshot nel report).'''
 
@@ -63,12 +63,10 @@ else:
         "MQTT_BROKER": os.getenv("MQTT_BROKER", "test.mosquitto.org"),
         "MQTT_PORT": int(os.getenv("MQTT_PORT", 1883)),
         "TELEGRAM_TOKEN": os.getenv("TELEGRAM_TOKEN", ""),
-        "API_KEY": os.getenv("API_KEY", ""),  # opzionale
     }
 
 MQTT_BROKER = CFG.get("MQTT_BROKER", "test.mosquitto.org")
 MQTT_PORT = int(CFG.get("MQTT_PORT", 1883))
-API_KEY = CFG.get("API_KEY", "")  # se impostata, serve header X-API-Key
 
 TOPIC_CMD = "home/garage/cmd"
 TOPIC_DOOR = "home/garage/door"
@@ -88,7 +86,7 @@ if os.path.exists(USERS_PATH):
     with open(USERS_PATH, "r", encoding="utf-8") as f:
         USERS = json.load(f)
 else:
-    USERS = {"admin": {"password": "admin123", "role": "admin", "api_key": "ABC123"}}
+    USERS = {"admin": {"password": "admin123", "role": "admin"}}
 
 
 # ----------------------- Logging ------------------------------
@@ -246,18 +244,6 @@ else:
 from functools import wraps
 from flask import request, abort
 
-def require_api_key(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        if API_KEY:  # se definita
-            key = request.headers.get("X-API-Key", "")
-            if key != API_KEY:
-                abort(401, description="Invalid API key")
-        return f(*args, **kwargs)
-    return wrapper
-
-
-
 def publish_cmd(value: int):
     """
     Pubblica un comando apertura/chiusura sul topic MQTT.
@@ -277,19 +263,10 @@ def authenticate_user(username, password):
     return user
 
 
-def require_user_or_api_key():
+def require_user():
     """
-    Autenticazione flessibile:
-    - se header X-API-Key è presente → lo usa;
-    - altrimenti richiede basic auth (username/password).
+    Autenticazione tramite basic auth (username/password).
     """
-    api_key = request.headers.get("X-API-Key")
-    if api_key:
-        for u, v in USERS.items():
-            if v.get("api_key") == api_key:
-                return u
-        abort(401, description="Invalid API key")
-
     auth = request.authorization
     if not auth:
         abort(401, description="Missing credentials")
@@ -312,7 +289,7 @@ def reset_app_state():
 @app.route("/listUsers", methods=["GET"])
 def list_users():
     """Restituisce lista di tutti gli utenti (solo admin)."""
-    user = require_user_or_api_key()
+    user = require_user()
     require_admin(user)
 
     users_short = {name: info.get("role", "user") for name, info in USERS.items()}
@@ -346,26 +323,25 @@ def status():
 
 
 @app.route("/on", methods=["GET", "POST"])
-@require_api_key
 def open_door():
-
+    require_user()
     publish_cmd(1)
     return jsonify({"status": "sent", "cmd": "open"})
 
 @app.route("/off", methods=["GET", "POST"])
-@require_api_key
 def close_door():
+    require_user()
     publish_cmd(0)
     return jsonify({"status": "sent", "cmd": "close"})
 
 @app.route("/gps", methods=["POST"])
-@require_api_key
 def gps_event():
     """
     Endpoint per ricevere aggiornamenti GPS lato server (opzionale).
     Accetta JSON: {"value": 1|0, "lat": <float>, "lon": <float>}
     Re-pubblica su MQTT per uniformità del flusso dati.
     """
+    require_user()
     try:
         data = request.get_json(force=True)
     except Exception:
@@ -403,8 +379,7 @@ def index():
 def change_password():
     """
     Cambio password:
-    - admin_mode=True  → il bot come admin può cambiare la password di chiunque
-                         SENZA vecchia password (ma solo se ha API_KEY valida).
+    - admin_mode=True  → l'admin può cambiare la password di chiunque SENZA vecchia password.
     - admin_mode=False → utente normale: deve fornire old_password corretta.
     """
     data = request.get_json(force=True)
@@ -421,15 +396,14 @@ def change_password():
     if not user:
         abort(404, description="User not found")
 
-    # Controllo API key (tutte le chiamate dal bot passano da qui)
-    api_key = request.headers.get("X-API-Key", "")
+    # Verifica autenticazione
+    current_user = require_user()
+    current_user_info = USERS.get(current_user, {})
 
     if admin_mode:
-        # Modalità admin: solo se l'API_KEY è valida
-        if API_KEY and api_key == API_KEY:
-            pass  # ok, admin via bot
-        else:
-            abort(403, description="Admin mode not allowed without valid API key")
+        # Modalità admin: solo se l'utente corrente è admin
+        if current_user_info.get("role") != "admin":
+            abort(403, description="Admin mode requires admin privileges")
     else:
         # Utente normale: deve fornire la vecchia password corretta
         if not old_pw:
@@ -468,9 +442,8 @@ def get_user_role():
     return jsonify({"role": USERS[username].get("role", "user")})
 
 @app.route("/addUser", methods=["POST"])
-@require_api_key
 def add_user():
-    user = require_user_or_api_key()
+    user = require_user()
     require_admin(user)
 
     data = request.get_json(force=True)
@@ -485,8 +458,7 @@ def add_user():
 
     USERS[name] = {
         "password": hash_pw(password),
-        "role": "user",
-        "api_key": ""
+        "role": "user"
     }
 
     with open(USERS_PATH, "w", encoding="utf-8") as f:
@@ -514,7 +486,7 @@ def check_user():
 
 @app.route("/delUser", methods=["POST"])
 def del_user():
-    user = require_user_or_api_key()
+    user = require_user()
     require_admin(user)
 
     data = request.get_json(force=True)

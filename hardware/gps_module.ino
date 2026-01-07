@@ -4,7 +4,7 @@
  *  File: gps_module.ino
  *  Author: Lello Molinario, Matteo Tuzi
  *  University of Cagliari – IoT & Digital Twins Lab
- *  Version: 1.0 – October 2025
+ *  Version: 1.6 – January 2026
  * ============================================================
  *  Descrizione:
  *  Questo modulo gestisce l'automazione di prossimità (FR5b) tramite
@@ -33,15 +33,11 @@ GND	GND	Massa
 TX	D3	Trasmette dati GPS → ESP8266
 RX	D4	Riceve comandi (opzionale)
 PPS	—	(non usato)
- Integrazione con il progetto
+Integrazione con il progetto
 
 Pubblica eventi MQTT compatibili con controller_nodemcu.ino, topic home/garage/gps.
 
-Puoi usarlo come sketch separato sullo stesso NodeMCU (in un thread dedicato) o come modulo secondario su un ESP8266/ESP32 esterno.
-
-Se vuoi solo simulare la logica, puoi omettere il modulo fisico e lasciare la simulazione già inclusa nel firmware principale (controller_nodemcu.ino).
-
-✅ Requisiti
+Requisiti
 
 Librerie necessarie (Arduino IDE → Library Manager):
 

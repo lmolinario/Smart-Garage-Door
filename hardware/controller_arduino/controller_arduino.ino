@@ -4,7 +4,7 @@
  *  File: controller_arduino.ino
  *  Author: Lello Molinario, Matteo Tuzi
  *  University of Cagliari – IoT & Digital Twins Lab
- *  Version: 1.5 – December 2025
+ *  Version: 1.6 – January 2026
  * ============================================================
  *  Requisiti implementati:
  *   FR4 – Chiusura automatica
@@ -68,7 +68,7 @@ void logTS(String msg) {
 
 // ---------------- Funzioni porta ----------------
 void openDoor() {
-  logTS("➡️ Apertura lenta porta...");
+  logTS("Apertura lenta porta...");
 
   for (int pos = ANGLE_CLOSED; pos <= ANGLE_OPEN; pos++) {
     garageServo.write(pos);
@@ -83,11 +83,11 @@ void openDoor() {
   doorOpen = true;
   tic = millis();
 
-  logTS("🚪 Porta APERTA (slow motion + LED fisso).");
+  logTS("Porta APERTA (slow motion + LED fisso).");
 }
 
 void closeDoor() {
-  logTS("⬅️ Chiusura lenta porta...");
+  logTS("Chiusura lenta porta...");
 
   for (int pos = ANGLE_OPEN; pos >= ANGLE_CLOSED; pos--) {
     garageServo.write(pos);
@@ -101,7 +101,7 @@ void closeDoor() {
   commSerial.write((byte)0x00);
   doorOpen = false;
 
-  logTS("⬛ Porta CHIUSA (slow motion + LED OFF).");
+  logTS("Porta CHIUSA (slow motion + LED OFF).");
 }
 
 // ---------------- Setup ----------------
@@ -151,7 +151,7 @@ void loop() {
   // PIR rileva movimento SOLO se userNearHome == TRUE
   // =======================================================
   if (pirState == HIGH && userNearHome && !doorOpen) {
-    logTS("➡️ [AUTO] Apertura porta (PIR + GPS OK).");
+    logTS("[AUTO] Apertura porta (PIR + GPS OK).");
     openDoor();
     delay(300);
   }
@@ -160,7 +160,7 @@ void loop() {
   // FR7 – Comando manuale
   // =======================================================
   if (buttonState == LOW) {
-    logTS("🟢 [MANUALE] Pulsante premuto: toggle porta.");
+    logTS("[MANUALE] Pulsante premuto: toggle porta.");
     if (doorOpen) closeDoor();
     else openDoor();
     delay(300);
@@ -174,19 +174,19 @@ void loop() {
         // Ignora tutto ciò che non è un comando valido
     if (cmd > 0x03) return;
     if (cmd == 0x01) {  // apertura remota
-      logTS("🌐 [REMOTE] Apertura remota.");
+      logTS("[REMOTE] Apertura remota.");
       openDoor();
       Serial.println("DOOR: OPEN");   // <--- necessario per lo script Python
     } else if (cmd == 0x00) {  // chiusura remota
-      logTS("🌐 [REMOTE] Chiusura remota.");
+      logTS("[REMOTE] Chiusura remota.");
       closeDoor();
       Serial.println("DOOR: CLOSED"); // <--- necessario per lo script Python
     } else if (cmd == 0x02) {  // utente dentro geofence
       userNearHome = true;
-      logTS("🛰️ [GPS] Utente dentro geofence → userNearHome=TRUE");
+      logTS("[GPS] Utente dentro geofence → userNearHome=TRUE");
     } else if (cmd == 0x03) {  // utente fuori geofence
       userNearHome = false;
-      logTS("🛰️ [GPS] Utente fuori geofence → userNearHome=FALSE");
+      logTS("[GPS] Utente fuori geofence → userNearHome=FALSE");
     }
   }
 
@@ -196,10 +196,10 @@ void loop() {
   if (doorOpen && (millis() - tic > AUTO_CLOSE_TIME) && pirState == LOW) {
 
     if (distance < 10) {
-      logTS("🚨 [SAFETY] Ostacolo sotto porta → riapertura.");
+      logTS("[SAFETY] Ostacolo sotto porta → riapertura.");
       openDoor();
     } else {
-      logTS("⏱️ [TIMER] Timeout → chiusura automatica.");
+      logTS("[TIMER] Timeout → chiusura automatica.");
       closeDoor();
     }
   }

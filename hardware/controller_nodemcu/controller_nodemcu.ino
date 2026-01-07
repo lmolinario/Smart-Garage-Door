@@ -3,7 +3,7 @@
  *  Smart Garage Door – Network Layer (Garage Fixed GPS + MQTT + Geofence)
  *  File: controller_nodemcu_final_v1.6.ino
  *  Authors: Lello Molinario, Matteo Tuzi
- *  Version: 1.6 – December 2025
+ *  Version: 1.6 – January 2026
  *
  *  Funzionalità:
  *   - Connessione Wi-Fi con lista di SSID (fallback)
@@ -86,7 +86,7 @@ const float GEOFENCE_RADIUS = 15.0;  // metri (raggio geofence)
 // EEPROM: salvataggio coordinate garage
 // =========================================================
 void saveGarageLocation(float lat, float lon) {
-  Serial.println(F("💾 Salvataggio coordinate garage in EEPROM..."));
+  Serial.println(F("Salvataggio coordinate garage in EEPROM..."));
 
   EEPROM.put(0, lat);
   EEPROM.put(4, lon);
@@ -94,7 +94,7 @@ void saveGarageLocation(float lat, float lon) {
   EEPROM.put(8, valid);
   EEPROM.commit();
 
-  Serial.println(F("✅ Coordinate salvate in EEPROM."));
+  Serial.println(F("Coordinate salvate in EEPROM."));
 }
 
 // =========================================================
@@ -105,14 +105,14 @@ bool loadGarageLocation(float &lat, float &lon) {
   EEPROM.get(8, valid);
 
   if (valid != 1) {
-    Serial.println(F("⚠️ Nessuna coordinata valida in EEPROM."));
+    Serial.println(F("Nessuna coordinata valida in EEPROM."));
     return false;
   }
 
   EEPROM.get(0, lat);
   EEPROM.get(4, lon);
 
-  Serial.println(F("📦 Coordinate garage caricate da EEPROM:"));
+  Serial.println(F("Coordinate garage caricate da EEPROM:"));
   Serial.print(F("   LAT = ")); Serial.println(lat, 6);
   Serial.print(F("   LON = ")); Serial.println(lon, 6);
 
@@ -133,7 +133,7 @@ void publishGarageLocation() {
   size_t len = serializeJson(gpsDoc, buffer);
   mqttClient.publish(topic_gps, buffer, len);
 
-  Serial.println(F("📍 Posizione garage inviata al server MQTT."));
+  Serial.println(F("Posizione garage inviata al server MQTT."));
 }
 
 // =========================================================
@@ -156,17 +156,17 @@ void publishStatus() {
   size_t len = serializeJson(stDoc, buffer);
   mqttClient.publish(topic_status, buffer, len);
 
-  Serial.println(F("📡 Heartbeat stato pubblicato su MQTT."));
+  Serial.println(F("Heartbeat stato pubblicato su MQTT."));
 }
 
 // =========================================================
 // Wi-Fi: connessione con fallback su più reti
 // =========================================================
 void setup_wifi() {
-  Serial.println(F("🌐 Avvio connessione Wi-Fi..."));
+  Serial.println(F("Avvio connessione Wi-Fi..."));
 
   for (uint8_t i = 0; i < WIFI_COUNT; i++) {
-    Serial.print(F("🔗 Tentativo rete: "));
+    Serial.print(F("Tentativo rete: "));
     Serial.println(ssid_list[i]);
 
     WiFi.begin(ssid_list[i], pass_list[i]);
@@ -180,17 +180,17 @@ void setup_wifi() {
     Serial.println();
 
     if (WiFi.status() == WL_CONNECTED) {
-      Serial.print(F("✅ Wi-Fi connesso a: "));
+      Serial.print(F("Wi-Fi connesso a: "));
       Serial.println(ssid_list[i]);
       Serial.print(F("   IP: "));
       Serial.println(WiFi.localIP());
       return;
     }
 
-    Serial.println(F("❌ Connessione fallita, provo la prossima rete..."));
+    Serial.println(F("Connessione fallita, provo la prossima rete..."));
   }
 
-  Serial.println(F("⛔ Nessuna rete Wi-Fi disponibile. Attendo 10 secondi e riavvio..."));
+  Serial.println(F("Nessuna rete Wi-Fi disponibile. Attendo 10 secondi e riavvio..."));
   delay(10000);
   ESP.restart();
 }
@@ -221,26 +221,26 @@ void updateGeofence() {
   lastGeoCheck = millis();
 
   if (userLat == 0.0 && userLon == 0.0) {
-    Serial.println(F("⚠️ Nessuna posizione utente ancora ricevuta."));
+    Serial.println(F("Nessuna posizione utente ancora ricevuta."));
     return;
   }
 
   double dist = haversine(userLat, userLon, garageLat, garageLon);
 
-  Serial.print(F("📍 Distanza utente → garage: "));
+  Serial.print(F("Distanza utente → garage: "));
   Serial.print(dist);
   Serial.println(F(" m"));
 
   // Utente entra nel geofence
   if (!userInside && dist <= GEOFENCE_RADIUS) {
     userInside = true;
-    Serial.println(F("🟢 [GEOFENCE] Utente ENTRATO nel geofence → invio 0x02"));
+    Serial.println(F("[GEOFENCE] Utente ENTRATO nel geofence → invio 0x02"));
     commSerial.write((byte)0x02);  // Arduino: userNearHome = true
   }
   // Utente esce dal geofence (con hysteresis di 20 m)
   else if (userInside && dist > GEOFENCE_RADIUS + 20) {
     userInside = false;
-    Serial.println(F("🔴 [GEOFENCE] Utente USCITO dal geofence → invio 0x03"));
+    Serial.println(F("[GEOFENCE] Utente USCITO dal geofence → invio 0x03"));
     commSerial.write((byte)0x03);  // Arduino: userNearHome = false
   }
 }
@@ -258,7 +258,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     msg += (char)payload[i];
   }
 
-  Serial.print(F("📩 [MQTT RX] "));
+  Serial.print(F("[MQTT RX] "));
   Serial.print(topic);
   Serial.print(F(" → "));
   Serial.println(msg);
@@ -266,7 +266,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   StaticJsonDocument<256> doc;
   DeserializationError err = deserializeJson(doc, msg);
   if (err) {
-    Serial.print(F("⚠️ Errore JSON: "));
+    Serial.print(F("Errore JSON: "));
     Serial.println(err.c_str());
     return;
   }
@@ -275,10 +275,10 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   if (strcmp(topic, topic_cmd) == 0) {
     int value = doc["value"] | -1;
     if (value == 1) {
-      Serial.println(F("🛰️ [MQTT] Apertura porta (cmd=1)"));
+      Serial.println(F("[MQTT] Apertura porta (cmd=1)"));
       commSerial.write((byte)0x01);
     } else if (value == 0) {
-      Serial.println(F("🛰️ [MQTT] Chiusura porta (cmd=0)"));
+      Serial.println(F("[MQTT] Chiusura porta (cmd=0)"));
       commSerial.write((byte)0x00);
     }
   }
@@ -289,11 +289,11 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     float newLon = doc["lon"] | 0.0;
 
     if (newLat == 0.0 && newLon == 0.0) {
-      Serial.println(F("⚠️ Coordinate ricevute non valide (0,0). Ignoro."));
+      Serial.println(F("Coordinate ricevute non valide (0,0). Ignoro."));
       return;
     }
 
-    Serial.println(F("📡 [UPDATE] Nuove coordinate garage ricevute via MQTT."));
+    Serial.println(F("[UPDATE] Nuove coordinate garage ricevute via MQTT."));
     garageLat = newLat;
     garageLon = newLon;
     saveGarageLocation(garageLat, garageLon);
@@ -305,7 +305,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     userLat = doc["lat"] | 0.0;
     userLon = doc["lon"] | 0.0;
 
-    Serial.println(F("📡 [MQTT] Nuova posizione utente ricevuta."));
+    Serial.println(F("[MQTT] Nuova posizione utente ricevuta."));
     Serial.print(F("   LAT=")); Serial.println(userLat, 6);
     Serial.print(F("   LON=")); Serial.println(userLon, 6);
   }
@@ -316,7 +316,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
 // =========================================================
 void reconnect_mqtt() {
   while (!mqttClient.connected()) {
-    Serial.print(F("🔁 Connessione MQTT... "));
+    Serial.print(F("Connessione MQTT... "));
     String clientId = "GarageNode-" + String(ESP.getChipId());
 
     if (mqttClient.connect(clientId.c_str())) {
@@ -330,7 +330,7 @@ void reconnect_mqtt() {
       publishStatus();
       lastMqttActivity = millis();
     } else {
-      Serial.print(F("❌ Fallita (rc="));
+      Serial.print(F("Fallita (rc="));
       Serial.print(mqttClient.state());
       Serial.println(F("). Riprovo tra 5 secondi..."));
       delay(5000);
@@ -356,11 +356,11 @@ void setup() {
   if (!loadGarageLocation(garageLat, garageLon)) {
     garageLat = 40.79550345107391;  // Sorso
     garageLon = 8.57486692260615;
-    Serial.println(F("➡️ Uso coordinate manuali predefinite."));
+    Serial.println(F("Uso coordinate manuali predefinite."));
     saveGarageLocation(garageLat, garageLon);
   }
 
-  Serial.println(F("🔍 DEBUG COORDINATE GARAGE"));
+  Serial.println(F("DEBUG COORDINATE GARAGE"));
   Serial.print(F("LAT_GARAGE = ")); Serial.println(garageLat, 6);
   Serial.print(F("LON_GARAGE = ")); Serial.println(garageLon, 6);
   Serial.println(F("------------------------------------"));
@@ -380,14 +380,14 @@ void setup() {
   server.on("/apri", []() {
     commSerial.write((byte)0x01);  // invio comando ad Arduino
     server.send(200, "text/plain", "OK: door opening");
-    Serial.println(F("🌐 [HTTP] Comando APERTURA ricevuto"));
+    Serial.println(F("[HTTP] Comando APERTURA ricevuto"));
   });
 
   // Chiusura porta (cmd=0)
   server.on("/chiudi", []() {
     commSerial.write((byte)0x00);  // invio comando ad Arduino
     server.send(200, "text/plain", "OK: door closing");
-    Serial.println(F("🌐 [HTTP] Comando CHIUSURA ricevuto"));
+    Serial.println(F("[HTTP] Comando CHIUSURA ricevuto"));
   });
 
   // Stato porta (ritorna JSON)
@@ -407,7 +407,7 @@ void setup() {
 
   // Avvio server HTTP
   server.begin();
-  Serial.println(F("🌐 HTTP server avviato sulla porta 80"));
+  Serial.println(F("HTTP server avviato sulla porta 80"));
 
 }
 
@@ -424,7 +424,7 @@ void loop() {
 
   // Watchdog MQTT: se nessuna attività da troppo → tenta recovery
   if (millis() - lastMqttActivity > MQTT_WATCHDOG_MS) {
-    Serial.println(F("⏱️ MQTT watchdog: nessuna attività da 5 minuti → reconnect."));
+    Serial.println(F("MQTT watchdog: nessuna attività da 5 minuti → reconnect."));
     lastMqttActivity = millis();
     mqttClient.disconnect();
     reconnect_mqtt();
@@ -449,7 +449,7 @@ void loop() {
     size_t len = serializeJson(doc, buffer);
     mqttClient.publish(topic_door, buffer, len);
 
-    Serial.print(F("🚪 Porta: "));
+    Serial.print(F("Porta: "));
     Serial.println(doorOpen ? F("APERTA") : F("CHIUSA"));
   }
 

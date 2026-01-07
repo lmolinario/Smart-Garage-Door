@@ -2,7 +2,7 @@
 # Smart Garage Door - Telegram Bot Interface
 # File: telegram_listener.py
 # Author: Lello Molinario, Matteo Tuzi
-# Version: 1.0 - Oct 2025
+# Version: 1.6 - January 2026
 # ==============================================================
 # Descrizione:
 # Bot Telegram che interagisce con il server Flask del progetto
@@ -26,7 +26,7 @@ Funzione	Descrizione
 periodic_status()	Ogni 60s invia aggiornamento automatico (puoi disattivarlo).
 Sicurezza
 
-Se nel config.json hai impostato "API_KEY": "12345", il bot invierà automaticamente l’header X-API-Key a Flask.
+Il bot utilizza l'autenticazione tramite login per comunicare con Flask.
 
 Tutte le richieste vengono fatte su APP_URL (default http://127.0.0.1:5000).'''
 import time
@@ -52,7 +52,6 @@ if os.path.exists(CFG_PATH):
 else:
     CFG = {}
 
-API_KEY = CFG.get("API_KEY", "")
 BOT_TOKEN = CFG.get("TELEGRAM_TOKEN", "")
 APP_URL = CFG.get("FLASK_URL", "http://127.0.0.1:5000")
 
@@ -66,20 +65,21 @@ def audit(msg: str):
 # ----------------------- Sessioni Admin (in RAM) -----------------------
 
 # Contiene gli ID Telegram degli admin attualmente loggati
-# Admin sessions: { telegram_id: expiry_timestamp }
+# Admin sessions: { telegram_id: {"expiry": timestamp, "username": str, "password": str} }
 ADMIN_SESSIONS = {}
 
 SESSION_LIFETIME = 1800  # 30 minuti
 
 # Sessioni utente normale (non scadono finché non fa logout)
-USER_SESSIONS = set()
+# USER_SESSIONS: { telegram_id: {"username": str, "password": str} }
+USER_SESSIONS = {}
 
 def is_logged_admin(update: Update) -> bool:
     uid = update.effective_user.id
     now = time.time()
 
     if uid in ADMIN_SESSIONS:
-        if ADMIN_SESSIONS[uid] > now:
+        if ADMIN_SESSIONS[uid]["expiry"] > now:
             return True
         else:
             # sessione scaduta → rimuovi
@@ -94,6 +94,23 @@ def is_logged_user(update: Update) -> bool:
         return True
     return is_logged_admin(update)
 
+def get_user_credentials(update: Update):
+    """Restituisce (username, password) dell'utente loggato, o None se non loggato."""
+    uid = update.effective_user.id
+    
+    # Controlla prima admin (ha priorità)
+    if uid in ADMIN_SESSIONS:
+        session = ADMIN_SESSIONS[uid]
+        if session["expiry"] > time.time():
+            return (session["username"], session["password"])
+    
+    # Controlla utente normale
+    if uid in USER_SESSIONS:
+        session = USER_SESSIONS[uid]
+        return (session["username"], session["password"])
+    
+    return None
+
 
 async def require_user_login(update: Update) -> bool:
     """
@@ -107,7 +124,7 @@ async def require_user_login(update: Update) -> bool:
 
 # ----------------------- Geofence (placeholder) -----------------------
 
-# Centro geofence (es. casa tua)
+# Centro geofence
 HOME_LAT = CFG.get("HOME_LAT", 40.795503)   # esempio Sassari
 HOME_LON = CFG.get("HOME_LON", 8.574867)
 
@@ -153,7 +170,7 @@ async def login_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     username, password = context.args
-    res = _post("/checkUser", {"username": username, "password": password})
+    res = _post("/checkUser", {"username": username, "password": password}, update)
 
     if res.get("status") != "ok":
         await update.message.reply_text("Credenziali non valide.")
@@ -161,20 +178,27 @@ async def login_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     uid = update.effective_user.id
 
-    # richiede info ruolo utente
-    role_info = _post("/getUserRole", {"username": username})
+    # richiede info ruolo utente (non richiede autenticazione)
+    role_info = _post("/getUserRole", {"username": username}, None)
     role = role_info.get("role", "user")
 
     if role == "admin":
         expiry = time.time() + SESSION_LIFETIME
-        ADMIN_SESSIONS[uid] = expiry
+        ADMIN_SESSIONS[uid] = {
+            "expiry": expiry,
+            "username": username,
+            "password": password
+        }
         await update.message.reply_text(
             f"Login admin effettuato come *{username}*\n"
             f"Sessione valida per {SESSION_LIFETIME//60} minuti.",
             parse_mode="Markdown"
         )
     else:
-        USER_SESSIONS.add(uid)
+        USER_SESSIONS[uid] = {
+            "username": username,
+            "password": password
+        }
         await update.message.reply_text(
             f"Login utente effettuato come *{username}*\n"
             f"Rimarrai autenticato finché non usi /logout.",
@@ -199,10 +223,16 @@ async def logout_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text("Non risulti loggato.")
 
-def _get(path: str):
+def _get(path: str, update: Update = None):
+    """Effettua una richiesta GET a Flask usando le credenziali dell'utente loggato."""
     try:
-        headers = {"X-API-Key": API_KEY}
-        resp = requests.get(APP_URL + path, headers=headers, timeout=5)
+        auth = None
+        if update:
+            creds = get_user_credentials(update)
+            if creds:
+                auth = creds
+        
+        resp = requests.get(APP_URL + path, auth=auth, timeout=5)
 
         if resp.status_code != 200:
             return {"error": f"HTTP {resp.status_code}: {resp.text}"}
@@ -212,10 +242,16 @@ def _get(path: str):
         return {"error": str(e)}
 
 
-def _post(path: str, data=None):
+def _post(path: str, data=None, update: Update = None):
+    """Effettua una richiesta POST a Flask usando le credenziali dell'utente loggato."""
     try:
-        headers = {"X-API-Key": API_KEY}
-        resp = requests.post(APP_URL + path, json=data or {}, headers=headers, timeout=5)
+        auth = None
+        if update:
+            creds = get_user_credentials(update)
+            if creds:
+                auth = creds
+        
+        resp = requests.post(APP_URL + path, json=data or {}, auth=auth, timeout=5)
 
         if resp.status_code != 200:
             return {"error": f"HTTP {resp.status_code}: {resp.text}"}
@@ -269,7 +305,7 @@ async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def on_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await require_user_login(update): return
-    res = _post("/on")
+    res = _post("/on", None, update)
     if "error" in res:
         await update.message.reply_text(f"Errore apertura: {res['error']}")
     else:
@@ -277,7 +313,7 @@ async def on_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def off_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await require_user_login(update): return
-    res = _post("/off")
+    res = _post("/off", None, update)
     if "error" in res:
         await update.message.reply_text(f"Errore chiusura: {res['error']}")
     else:
@@ -298,7 +334,7 @@ async def changepass_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "username": username,
             "new_password": newpass,
             "admin_mode": True
-        })
+        }, update)
 
         if "error" in res:
             await update.message.reply_text(f"Errore cambio password admin: {res['error']}")
@@ -333,7 +369,7 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "old_password": oldpass,
             "new_password": newpass,
             "admin_mode": False
-        })
+        }, update)
 
         if "error" in res:
             await update.message.reply_text(f"Errore cambio password: {res['error']}")
@@ -344,7 +380,7 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def status_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await require_user_login(update): return
-    res = _get("/status")
+    res = _get("/status", update)
     if "error" in res:
         await update.message.reply_text(f"Errore stato: {res['error']}")
         return
@@ -369,7 +405,7 @@ async def list_users_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Solo admin possono usare questo comando.")
         return
 
-    res = _get("/listUsers")
+    res = _get("/listUsers", update)
     if "error" in res:
         await update.message.reply_text(f"Errore: {res['error']}")
         return
@@ -400,7 +436,7 @@ async def add_user_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     username, password = context.args
-    res = _post("/addUser", {"username": username, "password": password})
+    res = _post("/addUser", {"username": username, "password": password}, update)
 
     if "error" in res:
         await update.message.reply_text(f"Errore: {res['error']}")
@@ -423,7 +459,7 @@ async def del_user_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     username = context.args[0]
-    res = _post("/delUser", {"username": username})
+    res = _post("/delUser", {"username": username}, update)
 
     if "error" in res:
         await update.message.reply_text(f"Errore: {res['error']}")
@@ -439,17 +475,23 @@ async def unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ----------------------- Notifiche periodiche -----------------
 
 async def periodic_status(context: ContextTypes.DEFAULT_TYPE):
-    """Ogni 60s controlla lo stato e notifica eventuali cambiamenti."""
-    res = _get("/status")
-    if "error" in res:
-        return
-    door_state = "aperta" if res.get("door") else "chiusa"
-    gps_inside = "dentro area" if res.get("gps_inside") else "fuori area"
-    msg = f"Aggiornamento automatico:\nPorta {door_state}, veicolo {gps_inside}."
-    try:
-        await context.bot.send_message(chat_id=context.job.chat_id, text=msg)
-    except Exception as e:
-        logger.warning(f"Errore invio notifica: {e}")
+    """
+    Ogni 60s controlla lo stato e notifica eventuali cambiamenti.
+    NOTA: Disabilitato perché richiede autenticazione. 
+    Per riattivarlo, implementare un sistema di token o credenziali di servizio.
+    """
+    # Disabilitato: /status richiede autenticazione e periodic_status non ha accesso a update
+    # res = _get("/status")
+    # if "error" in res:
+    #     return
+    # door_state = "aperta" if res.get("door") else "chiusa"
+    # gps_inside = "dentro area" if res.get("gps_inside") else "fuori area"
+    # msg = f"Aggiornamento automatico:\nPorta {door_state}, veicolo {gps_inside}."
+    # try:
+    #     await context.bot.send_message(chat_id=context.job.chat_id, text=msg)
+    # except Exception as e:
+    #     logger.warning(f"Errore invio notifica: {e}")
+    pass
 
 
 async def gps_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -477,7 +519,7 @@ async def gps_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     val = 1 if inside else 0
 
     payload = {"value": val, "lat": lat, "lon": lon}
-    res = _post("/gps", payload)
+    res = _post("/gps", payload, update)
 
     if "error" in res:
         await update.message.reply_text(f"Errore invio GPS: {res['error']}")
@@ -517,7 +559,7 @@ async def gps_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
     val = 1 if inside else 0
 
     payload = {"value": val, "lat": lat, "lon": lon}
-    res = _post("/gps", payload)
+    res = _post("/gps", payload, update)
 
     if "error" in res:
         await msg.reply_text(f"Errore invio GPS: {res['error']}")
@@ -546,7 +588,7 @@ async def gps_live_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
     val = 1 if inside else 0
 
     payload = {"value": val, "lat": lat, "lon": lon}
-    res = _post("/gps", payload)
+    res = _post("/gps", payload, update)
 
     stato = "DENTRO IL GEOFENCE" if inside else "FUORI DAL GEOFENCE"
 
@@ -563,7 +605,7 @@ async def pir_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await require_user_login(update):
         return
 
-    res = _get("/status")
+    res = _get("/status", update)
     if "error" in res:
         await update.message.reply_text(f"Errore lettura stato PIR: {res['error']}")
         return
@@ -586,7 +628,7 @@ async def obstacle_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await require_user_login(update):
         return
 
-    res = _get("/status")
+    res = _get("/status", update)
     if "error" in res:
         await update.message.reply_text(f"Errore lettura stato ostacolo: {res['error']}")
         return
@@ -630,8 +672,8 @@ async def adminstatus_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_logged_admin(update):
         await update.message.reply_text("Solo admin. Usa /login.")
         return
-    status = _get("/status")
-    events = _get("/events?n=5")
+    status = _get("/status", update)
+    events = _get("/events?n=5", update)
 
     if "error" in status:
         await update.message.reply_text(f"Errore stato: {status['error']}")

@@ -38,7 +38,9 @@ else:
     CFG = {}
 
 APP_URL = CFG.get("FLASK_URL", "http://127.0.0.1:5000")
-API_KEY = CFG.get("API_KEY", "")
+# Credenziali per timer.py (deve avere un utente valido per autenticarsi)
+TIMER_USERNAME = CFG.get("TIMER_USERNAME", "bot")
+TIMER_PASSWORD = CFG.get("TIMER_PASSWORD", "bot123")
 BOT_TOKEN = CFG.get("TELEGRAM_TOKEN", "")
 CHAT_ID = CFG.get("ADMIN_CHAT_ID", "")  # opzionale, se vuoi ricevere alert via Telegram
 
@@ -59,8 +61,7 @@ logger = logging.getLogger("timer")
 def get_status():
     """Effettua una chiamata /status al server Flask."""
     try:
-        headers = {"X-API-Key": API_KEY} if API_KEY else {}
-        resp = requests.get(f"{APP_URL}/status", headers=headers, timeout=5)
+        resp = requests.get(f"{APP_URL}/status", auth=(TIMER_USERNAME, TIMER_PASSWORD), timeout=5)
         if resp.status_code == 200:
             return resp.json()
         return {"error": f"HTTP {resp.status_code}"}

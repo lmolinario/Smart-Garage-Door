@@ -1,12 +1,14 @@
 {
   "admin": {
     "password": "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9",
-    "role": "admin",
-    "api_key": "ABC123456"
+    "role": "admin"
   },
   "lello": {
     "password": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b",
-    "role": "user",
-    "api_key": ""
+    "role": "user"
+  },
+  "bot": {
+    "password": "8f434346648f6b96df89dda901c5176b10a6d83961dd3c1ac88b59b2dc327aa4",
+    "role": "user"
   }
 }
