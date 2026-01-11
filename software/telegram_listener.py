@@ -124,12 +124,25 @@ async def require_user_login(update: Update) -> bool:
 
 # ----------------------- Geofence (placeholder) -----------------------
 
-# Centro geofence
-HOME_LAT = CFG.get("HOME_LAT", 40.795503)   # esempio Sassari
-HOME_LON = CFG.get("HOME_LON", 8.574867)
-
-# Raggio geofence in metri (es. 300m)
-GEOFENCE_RADIUS_M = float(CFG.get("GEOFENCE_RADIUS_M", 300.0))
+def _load_geofence_config():
+    """Ricarica le coordinate del garage da config.json."""
+    # Ricarica sempre da file per avere i valori più aggiornati
+    if os.path.exists(CFG_PATH):
+        try:
+            with open(CFG_PATH, "r", encoding="utf-8") as f:
+                cfg = json.load(f)
+            home_lat = cfg.get("HOME_LAT", 40.795503)
+            home_lon = cfg.get("HOME_LON", 8.574867)
+            radius = float(cfg.get("GEOFENCE_RADIUS_M", 300.0))
+            logger.debug(f"Geofence config loaded: garage=({home_lat}, {home_lon}), radius={radius}m")
+            return (home_lat, home_lon, radius)
+        except Exception as e:
+            logger.error(f"Errore nel caricamento config.json: {e}")
+            # Fallback ai valori di default
+            return (40.795503, 8.574867, 300.0)
+    else:
+        logger.warning(f"config.json non trovato in {CFG_PATH}")
+        return (40.795503, 8.574867, 300.0)
 
 
 def _haversine_m(lat1, lon1, lat2, lon2):
@@ -146,8 +159,11 @@ def _haversine_m(lat1, lon1, lat2, lon2):
 
 def _is_inside_geofence(lat, lon):
     """True se (lat,lon) è all'interno del geofence definito."""
-    d = _haversine_m(HOME_LAT, HOME_LON, lat, lon)
-    return d <= GEOFENCE_RADIUS_M, d
+    # Ricarica sempre le coordinate da config.json per avere i valori aggiornati
+    home_lat, home_lon, radius = _load_geofence_config()
+    d = _haversine_m(home_lat, home_lon, lat, lon)
+    logger.debug(f"Geofence check: user=({lat}, {lon}), garage=({home_lat}, {home_lon}), dist={d:.1f}m, radius={radius}m")
+    return d <= radius, d
 
 
 # ----------------------- Logging ------------------------------
@@ -289,7 +305,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "       • /adduser &lt;user&gt; &lt;pass&gt; - Aggiungi utente\n"
         "       • /deluser &lt;user&gt; - Rimuovi utente\n\n"
         "      <b>Localizzazione e prossimità</b>\n"
-        "       • /gps &lt;lat&gt; &lt;lon&gt; - Invia posizione manuale\n\n"
+        "       • /gps &lt;lat&gt; &lt;lon&gt; - Invia posizione manuale\n"
+        "       • /setgarage &lt;lat&gt; &lt;lon&gt; - Aggiorna coordinate garage (admin)\n\n"
         "      <b>Funzioni amministrative</b>\n"
         "       • /adminstatus - Cruscotto diagnostico\n\n"
 
@@ -526,9 +543,11 @@ async def gps_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     stato = "DENTRO il geofence" if inside else "FUORI dal geofence"
+    home_lat, home_lon, _ = _load_geofence_config()
     await update.message.reply_text(
         f"Posizione inviata:\n"
         f"Lat={lat:.6f}\nLon={lon:.6f}\n"
+        f"Garage: ({home_lat:.6f}, {home_lon:.6f})\n"
         f"Distanza da casa ≈ {dist:.1f} m\n"
         f"Stato: {stato}"
     )
@@ -566,9 +585,11 @@ async def gps_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     stato = "DENTRO il geofence" if inside else "FUORI dal geofence"
+    home_lat, home_lon, _ = _load_geofence_config()
     await msg.reply_text(
         f"Posizione ricevuta:\n"
         f"Lat={lat:.6f}\nLon={lon:.6f}\n"
+        f"Garage: ({home_lat:.6f}, {home_lon:.6f})\n"
         f"Distanza da casa ≈ {dist:.1f} m\n"
         f"Stato: {stato}"
     )
@@ -591,11 +612,13 @@ async def gps_live_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
     res = _post("/gps", payload, update)
 
     stato = "DENTRO IL GEOFENCE" if inside else "FUORI DAL GEOFENCE"
+    home_lat, home_lon, _ = _load_geofence_config()
 
     await edited.reply_text(
         f"[LIVE] Posizione aggiornata:\n"
         f"Lat: {lat:.6f}\n"
         f"Lon: {lon:.6f}\n"
+        f"Garage: ({home_lat:.6f}, {home_lon:.6f})\n"
         f"Distanza ≈ {dist:.1f} m\n"
         f"Stato: {stato}"
     )
@@ -658,6 +681,49 @@ async def obstacle_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"• Ultimo aggiornamento: {ts_fmt}"
     )
     await update.message.reply_text(msg, parse_mode="Markdown")
+
+
+async def setgarage_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Comando admin per aggiornare le coordinate del garage.
+    Uso: /setgarage <lat> <lon>
+    Aggiorna le coordinate nel NodeMCU via MQTT e in config.json.
+    """
+    if not is_logged_admin(update):
+        await update.message.reply_text("Solo admin possono usare questo comando.")
+        return
+    
+    if len(context.args) != 2:
+        await update.message.reply_text("Uso: /setgarage <lat> <lon>\nEsempio: /setgarage 39.221900 9.105843")
+        return
+    
+    try:
+        lat = float(context.args[0])
+        lon = float(context.args[1])
+    except ValueError:
+        await update.message.reply_text("Coordinate non valide. Inserisci numeri decimali.\nEsempio: /setgarage 39.221900 9.105843")
+        return
+    
+    # Valida range coordinate
+    if not (-90 <= lat <= 90) or not (-180 <= lon <= 180):
+        await update.message.reply_text("Coordinate fuori range:\n• Latitudine: -90 a 90\n• Longitudine: -180 a 180")
+        return
+    
+    # Chiama l'endpoint Flask
+    res = _post("/setgarage", {"lat": lat, "lon": lon}, update)
+    
+    if "error" in res:
+        await update.message.reply_text(f"Errore aggiornamento coordinate: {res['error']}")
+        return
+    
+    await update.message.reply_text(
+        f"Coordinate garage aggiornate con successo:\n"
+        f"• Latitudine: {lat:.6f}\n"
+        f"• Longitudine: {lon:.6f}\n\n"
+        f"Le coordinate sono state inviate al NodeMCU via MQTT e salvate in config.json.\n"
+        f"Il NodeMCU aggiornerà l'EEPROM al prossimo ciclo."
+    )
+    audit(f"Admin {update.effective_user.id} ha aggiornato coordinate garage: {lat}, {lon}")
 
 
 async def adminstatus_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -753,6 +819,7 @@ def start_bot():
 
     # GPS manuale
     bot_app.add_handler(CommandHandler("gps", gps_cmd))
+    bot_app.add_handler(CommandHandler("setgarage", setgarage_cmd))
 
     # LIVE LOCATION (edited_message)
     bot_app.add_handler(MessageHandler(filters.UpdateType.EDITED_MESSAGE, gps_live_location))

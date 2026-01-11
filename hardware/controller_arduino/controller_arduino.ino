@@ -195,7 +195,7 @@ void loop() {
   // =======================================================
   if (doorOpen && (millis() - tic > AUTO_CLOSE_TIME) && pirState == LOW) {
 
-    if (distance < 10) {
+    if (distance > 0 && distance < 10) {
       logTS("[SAFETY] Ostacolo sotto porta → riapertura.");
       openDoor();
     } else {

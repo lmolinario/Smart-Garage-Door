@@ -5,14 +5,20 @@ Script per aggiornare le coordinate garage nel NodeMCU via MQTT
 import paho.mqtt.client as mqtt
 import json
 import time
+import os
 
-MQTT_BROKER = "test.mosquitto.org"
-MQTT_PORT = 1883
+# Carica configurazione da config.json
+CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.json")
+with open(CONFIG_PATH, "r") as f:
+    CFG = json.load(f)
+
+MQTT_BROKER = CFG.get("MQTT_BROKER", "test.mosquitto.org")
+MQTT_PORT = CFG.get("MQTT_PORT", 1883)
 TOPIC = "home/garage/update_location"
 
-# Coordinate garage corrette
-GARAGE_LAT = 39.221900
-GARAGE_LON = 9.105843
+# Coordinate garage da config.json
+GARAGE_LAT = CFG.get("HOME_LAT", 39.221900)
+GARAGE_LON = CFG.get("HOME_LON", 9.105843)
 
 def on_connect(client, userdata, flags, rc):
     if rc == 0:

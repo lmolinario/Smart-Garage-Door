@@ -30,6 +30,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 from collections import deque
 from threading import Lock
+from telegram_listener import start_bot
 
 from flask import Flask, request, jsonify, abort
 import paho.mqtt.client as mqtt
@@ -73,6 +74,7 @@ TOPIC_DOOR = "home/garage/door"
 TOPIC_GPS = "home/garage/user_location"
 TOPIC_PIR = "home/garage/pir"
 TOPIC_OBSTACLE = "home/garage/obstacle"
+TOPIC_UPDATE_LOCATION = "home/garage/update_location"
 
 DEVICE_ID = 123
 
@@ -371,6 +373,62 @@ def gps_event():
     return jsonify({"status": "ok"})
 
 
+@app.route("/setgarage", methods=["POST"])
+def set_garage_location():
+    """
+    Endpoint per aggiornare le coordinate del garage nel NodeMCU.
+    Solo admin. Accetta JSON: {"lat": <float>, "lon": <float>}
+    Pubblica su MQTT topic home/garage/update_location per aggiornare l'EEPROM del NodeMCU.
+    """
+    user = require_user()
+    require_admin(user)
+    
+    try:
+        data = request.get_json(force=True)
+    except Exception:
+        abort(400, description="Invalid JSON")
+    
+    lat = data.get("lat")
+    lon = data.get("lon")
+    
+    if lat is None or lon is None:
+        abort(400, description="Missing 'lat' or 'lon' field")
+    
+    try:
+        lat = float(lat)
+        lon = float(lon)
+    except (ValueError, TypeError):
+        abort(400, description="'lat' and 'lon' must be valid numbers")
+    
+    # Valida range coordinate
+    if not (-90 <= lat <= 90) or not (-180 <= lon <= 180):
+        abort(400, description="Invalid coordinate range: lat must be [-90, 90], lon must be [-180, 180]")
+    
+    # Pubblica su MQTT per aggiornare l'EEPROM del NodeMCU
+    payload = {"lat": lat, "lon": lon}
+    mqttc.publish(TOPIC_UPDATE_LOCATION, json.dumps(payload), qos=1, retain=False)
+    
+    # Opzionalmente aggiorna config.json per mantenere coerenza
+    try:
+        CFG["HOME_LAT"] = lat
+        CFG["HOME_LON"] = lon
+        with open(CFG_PATH, "w", encoding="utf-8") as f:
+            json.dump(CFG, f, indent=2)
+        logger.info(f"Config.json aggiornato con nuove coordinate garage: {lat}, {lon}")
+    except Exception as e:
+        logger.warning(f"Impossibile aggiornare config.json: {e}")
+    
+    _push_event("garage_location_update", {"lat": lat, "lon": lon})
+    logger.info(f"Coordinate garage aggiornate via MQTT: lat={lat}, lon={lon}")
+    
+    return jsonify({
+        "status": "ok",
+        "message": "Coordinate garage aggiornate",
+        "lat": lat,
+        "lon": lon
+    })
+
+
 @app.route('/')
 def index():
     return "<h2>Smart Garage Door API</h2><p>Server is running correctly.</p>"
@@ -419,8 +477,6 @@ def change_password():
 
     _push_event("password_changed", {"user": username})
     return jsonify({"status": "ok"})
-
-
 
 
 @app.route("/events")
@@ -526,7 +582,6 @@ def start_telegram_bot():
             return
         
         print(f"[Telegram Bot] Import da: {current_dir}")
-        from telegram_listener import start_bot
         print("[Telegram Bot] Import riuscito, avvio bot...")
         logger.info("Avvio del bot Telegram...")
         start_bot()
