@@ -34,20 +34,41 @@ La Tabella~\ref{tab:fr} riporta l’elenco completo dei requisiti funzionali ide
 \centering
 \caption{Elenco dei requisiti funzionali (FR)}
 \label{tab:fr}
-\begin{tabularx}{\textwidth}{@{}clX@{}}
+\begin{tabularx}{\textwidth}{@{}cX X X@{}}
 \toprule
-\textbf{ID} & \textbf{Nome} & \textbf{Descrizione} \\
+\textbf{FR} & \textbf{Descrizione} & \textbf{Input} & \textbf{Output} \\
 \midrule
-FR1 & Apertura/chiusura remota & Il sistema consente all’utente di aprire o chiudere la porta del garage da remoto tramite Telegram o interfaccia web. \\
-FR2 & Consultazione stato & L’utente può verificare in tempo reale lo stato della porta (aperta, chiusa o in movimento). \\
-FR3 & Notifiche automatiche & Il sistema invia notifiche all’utente ogni volta che si verifica una variazione di stato. \\
-FR4 & Chiusura automatica temporizzata & La porta si richiude automaticamente dopo un periodo di inattività o assenza di movimento. \\
-FR5a & Automazione in uscita & La porta si apre automaticamente quando, dall’interno, viene rilevato un movimento verso la soglia associato a un utente autorizzato. \\
-FR5b & Automazione in ingresso & La porta si apre automaticamente al rilevamento di un utente autorizzato in avvicinamento entro un raggio configurabile (basato su GPS). \\
-FR6 & Gestione multiutenza & Il sistema consente l’aggiunta, la rimozione e la gestione di utenti autorizzati. \\
-FR7 & Comando locale / override & È possibile azionare manualmente la porta tramite pulsante fisico, indipendentemente dalla connessione di rete. \\
-FR8 & Rilevazione ostacolo & In presenza di un ostacolo, il sistema interrompe la chiusura e riapre la porta per motivi di sicurezza. \\
-FR9 & Consultazione log eventi & L’amministratore può accedere all’elenco delle azioni e degli eventi registrati dal sistema. \\
+FR1 & Apertura/chiusura remota della porta & Comando utente remoto & Cambio di stato della porta \\
+
+FR2 & Consultazione dello stato della porta in tempo reale & Richiesta utente & Stato porta (aperta/chiusa/in movimento) \\
+
+FR3 & Notifiche automatiche ai cambi di stato & Evento di variazione & Notifica all’utente \\
+
+FR4 & Chiusura temporizzata automatica & Timer scaduto / nessun movimento rilevato & Comando di chiusura \\
+
+FR5a & Automazione di prossimità in uscita &
+Rilevazione dell’intenzione di uscita dall’interno del garage (porta chiusa e movimento verso la soglia) &
+Apertura automatica della porta solo se viene confermato un effettivo tentativo di uscita \\
+
+FR5b & Automazione di prossimità in ingresso &
+Rilevazione di un utente autorizzato che si avvicina al garage dall’esterno entro un raggio configurabile &
+Apertura automatica della porta subordinata al riconoscimento dell’utente e alla distanza inferiore alla soglia definita \\
+
+FR6 & Gestione multiutenza &
+Richiesta di aggiunta o rimozione di utenti &
+Aggiornamento dell’elenco degli utenti autorizzati \\
+
+FR7 & Comando locale / override &
+Intervento manuale &
+Esecuzione immediata del comando \\
+
+FR8 & Rilevazione ostacolo con riapertura &
+Sensore ostacolo attivo &
+Arresto e riapertura della porta \\
+
+FR9 & Consultazione log essenziale &
+Richiesta amministratore &
+Elenco di eventi e azioni registrate \\
 \bottomrule
 \end{tabularx}
 \end{table}
