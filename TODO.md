@@ -1,9 +1,12 @@
 Cap 5
-
 - Revisioni schermate Bot
 - Screenshot bot (comandi, moch up )
 
 
+
+
+Cap 6
+- da Inserire:
 
 
 

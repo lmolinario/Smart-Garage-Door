@@ -256,29 +256,44 @@ La scelta di adottare un modulo GPS fisico, anziché affidarsi alle coordinate f
     \caption{Esempio di Modulo GPS utilizzato per la geolocalizzazione e la generazione di eventi di prossimità (geofence).}
     \label{fig:gps_module}
 \end{figure}
-
 \subsection*{Funzionamento logico e calcolo della distanza}
-La logica implementativa del modulo GPS è contenuta nel firmware \textit{controller_nodemcu.ino} e utilizza la libreria TinyGPSPlus, una delle soluzioni open source più diffuse per la decodifica dei messaggi NMEA nel dominio embedded. Il nucleo della funzionalità si basa sul calcolo della distanza tra la posizione corrente del veicolo e il punto di riferimento definito come \textit{home location}.
 
-Il metodo \texttt{TinyGPSPlus::distanceBetween()} permette di calcolare in pochi cicli di CPU la distanza geodetica in metri tra due coordinate:
+La logica di funzionamento del modulo GPS è implementata nel firmware
+\textit{controller\_nodemcu.ino} e si basa sull’utilizzo della libreria
+\textit{TinyGPSPlus}, una delle soluzioni open source più diffuse e affidabili
+per la decodifica dei messaggi NMEA in ambito embedded.
+
+Il nucleo della funzionalità consiste nel calcolo della distanza geodetica tra
+la posizione corrente del veicolo e un punto di riferimento statico,
+denominato \textit{home location}, corrispondente alla posizione del garage.
+A tal fine, la libreria mette a disposizione il metodo
+\textit{TinyGPSPlus::distanceBetween()}, che consente di ottenere in modo
+computazionalmente efficiente la distanza in metri tra due coppie di
+coordinate geografiche:
 
 \begin{lstlisting}[language=C++]
 distance = TinyGPSPlus::distanceBetween(latitude, longitude,
                                         homeLatitude, homeLongitude);
 \end{lstlisting}
 
-Una volta calcolata la distanza, il modulo verifica se il veicolo si trova all'interno o all'esterno del geofence, ovvero un raggio compreso tra 15 e 20 metri attorno all'abitazione. Il geofence è definito in modo da bilanciare:
+Una volta determinata la distanza, il firmware verifica se il veicolo si trovi
+all’interno o all’esterno di un’area di \textit{geofencing}, definita come un
+raggio compreso tra 15 e 20 metri attorno all’abitazione. Tale intervallo è
+stato scelto al fine di bilanciare in modo adeguato:
 \begin{itemize}
-    \item la sensibilità del sistema (reazione tempestiva),
-    \item la stabilità del segnale GPS (mitigazione delle oscillazioni),
-    \item la sicurezza operativa (evitare attivazioni premature).
+    \item la sensibilità del sistema, garantendo una reazione tempestiva;
+    \item la stabilità del segnale GPS, mitigando gli effetti delle oscillazioni
+          e dell’imprecisione di misura;
+    \item la sicurezza operativa, evitando attivazioni premature o non
+          intenzionali del sistema.
 \end{itemize}
 
-Il seguente frammento mostra il comportamento implementato:
+Il frammento di codice seguente mostra la logica adottata per la rilevazione
+degli eventi di ingresso e uscita dall’area di geofence:
 
 \begin{lstlisting}[language=C++]
 if (distance < thresholdDistance && !isInside) {
-    mqttPublish(channelID_gps, "field2=1"); // Entrata nel geofence
+    mqttPublish(channelID_gps, "field2=1"); // Ingresso nel geofence
     isInside = true;
 } else if (distance > thresholdDistance && isInside) {
     mqttPublish(channelID_gps, "field2=0"); // Uscita dal geofence
@@ -286,7 +301,11 @@ if (distance < thresholdDistance && !isInside) {
 }
 \end{lstlisting}
 
-Il valore logico pubblicato tramite MQTT ($1=$ dentro l'area, $0=$ fuori) viene poi elaborato dal NodeMCU e inoltrato ad Arduino, dove contribuisce alla logica combinata PIR + GPS per l'automazione in ingresso (FR5b).
+Il valore logico pubblicato tramite il protocollo MQTT ($1$ per la condizione
+di veicolo all’interno dell’area, $0$ per la condizione opposta) viene
+successivamente elaborato dal NodeMCU e inoltrato al microcontrollore Arduino.
+Tale informazione concorre, insieme ai dati provenienti dal sensore PIR, alla
+logica di automazione in ingresso prevista dal requisito funzionale FR5b.
 
 \subsection*{Efficienza e riduzione del traffico dati}
 Una caratteristica fondamentale della progettazione è l'adozione di un modello di comunicazione \textit{event-driven}. Il modulo GPS trasmette un messaggio MQTT solo nel momento in cui avviene una transizione di stato:
