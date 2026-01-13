@@ -1,0 +1,2222 @@
+\chapter{System Design}
+
+
+\section{Introduzione}
+
+La fase di \textit{system design} rappresenta il passaggio intermedio tra l’analisi dei requisiti (Capitolo~3) e l’implementazione del prototipo (Capitolo~5). In questa fase vengono definite le scelte architetturali, tecnologiche e organizzative necessarie a trasformare i requisiti funzionali (FR) e non funzionali (NFR) in un sistema reale, verificabile e coerente con il contesto operativo.
+
+Il progetto \textit{Smart Garage Door} nasce infatti da uno scenario concreto: l’automazione dell’apertura di un portone garage domestico, in un ambiente reale caratterizzato dalla presenza di connettività Wi-Fi non omogenea, vincoli economici, necessità di sicurezza e requisiti di continuità operativa anche in assenza della rete. Per tale motivo, il system design si fonda su un insieme esplicito di assunzioni progettuali, che guidano la scelta delle tecnologie e dei protocolli più adatti all’ambiente di utilizzo.
+
+In questo capitolo viene quindi definita l’architettura complessiva del sistema secondo il modello IoT a tre livelli (Perception, Network, Application), evidenziando:
+\begin{itemize}
+    \item le alternative tecnologiche considerate per ciascun sottosistema (microcontrollore, comunicazione, sensori, interfaccia utente);
+    \item i criteri con cui tali alternative sono state valutate rispetto ai requisiti FR e NFR;
+    \item la motivazione delle scelte finali, basate su compatibilità, affidabilità, costo e semplicità di integrazione.
+\end{itemize}
+
+Il risultato è un’architettura modulare, scalabile e pienamente allineata ai principi dello \textbf{System Development Life Cycle (SDLC)}~\cite{Pressman2019}, nella quale ogni componente — sensore, microcontrollore o modulo software — comunica attraverso interfacce standard e protocolli aperti, riducendo la complessità, aumentando la manutenibilità e garantendo la possibilità di evoluzione futura del sistema.
+
+
+\section{Architettura generale}
+
+L’architettura del sistema \textit{Smart Garage Door} è stata progettata secondo il modello a tre livelli tipico dei sistemi IoT moderni, al fine di garantire modularità, scalabilità e una chiara separazione delle responsabilità funzionali. Questo paradigma identifica tre domini principali: \textbf{Perception}, \textbf{Network} e \textbf{Application}, ciascuno responsabile di una porzione distinta della catena informativa.
+
+\begin{enumerate}
+    \item \textbf{Livello di percezione (Perception Layer)}:
+    Comprende i dispositivi fisici incaricati dell’interazione con l’ambiente: il sensore PIR per la rilevazione del movimento interno, il modulo GPS per la geolocalizzazione e il relè per l’attuazione del motore della porta del garage.  
+    L’elaborazione locale è affidata al microcontrollore \textbf{Arduino UNO}, che garantisce la gestione in tempo reale dei segnali e il funzionamento autonomo anche in assenza di connettività di rete.
+
+    \item \textbf{Livello di rete (Network Layer)}:
+    Ha il compito di collegare i dispositivi locali ai servizi applicativi remoti. Tale funzione è svolta dal modulo \textbf{NodeMCU ESP8266}, che fornisce connettività Wi-Fi e implementa il protocollo \textbf{MQTT}~\cite{MQTTspec} per lo scambio asincrono dei messaggi.  
+    Il broker MQTT (Mosquitto) gestisce il traffico \textit{publish/subscribe} tra i nodi e il server centrale.
+
+    \item \textbf{Livello applicativo (Application Layer)}:
+    Comprende la logica ad alto livello e l’interfaccia con l’utente finale.  
+    Il server \textbf{Flask}~\cite{Flask2024} funge da API gateway e componente di orchestrazione, gestendo comandi, log ed eventi.  
+    L’interfaccia utente è implementata mediante un bot \textbf{Telegram}~\cite{TelegramAPI}.
+\end{enumerate}
+
+In questa architettura, il nodo locale costituito da \textbf{Arduino + ESP8266} funge da unità edge intelligente: Arduino gestisce sensori e attuatori, mentre il NodeMCU agisce da gateway di rete, traducendo i comandi remoti in istruzioni locali e pubblicando lo stato del sistema tramite MQTT.  
+Il server Flask, a sua volta, centralizza la logica applicativa e garantisce una comunicazione coerente tra rete locale, interfaccia utente e piattaforme di monitoraggio, mantenendo la separazione tra livello fisico e livello di controllo.
+
+
+
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    font=\footnotesize,
+    node distance=25mm and 20mm, % distanza verticale raddoppiata
+    box/.style = {draw, thick, rounded corners=2mm, minimum width=30mm, minimum height=15mm, align=center, fill=gray!5},
+    thinbox/.style = {draw, rounded corners=2mm, minimum width=30mm, minimum height=15mm, align=center, fill=gray!2},
+    cloud/.style = {draw, ellipse, minimum width=30mm, minimum height=12mm, align=center, fill=gray!3},
+    line/.style = {-{Latex[length=2.8mm]}, very thick},
+    mqtt/.style = {line, dashed, color=blue!70!black},   % MQTT
+    http/.style = {line, color=green!40!black},          % HTTP/HTTPS
+    wifi/.style = {line, dotted, color=orange!80!black}, % Wi-Fiz
+    serial/.style = {line, dash dot, color=red!70!black},
+    layer/.style = {draw, thick, rounded corners=3mm, inner sep=10mm},   
+    xshift=0cm,
+    yshift=0cm
+]
+\path[use as bounding box] (-7, -11) rectangle (7, 11);
+
+%=== LAYER TITLES ============================================================
+\node[anchor=west] (lt1) at (-7.2, 11.0) {\textbf{Application Layer}};
+\node[anchor=west] (lt2) at (-7.2, 4.0) {\textbf{Network Layer}};
+\node[anchor=west] (lt3) at (-7.2, -1.0) {\textbf{Perception Layer}};
+
+%=== APPLICATION LAYER =======================================================
+\node[box] (telegram) at (-5.5, 9.8) {Telegram\\User Interface\\\cite{TelegramAPI}};
+\node[box] (flask)    at ( 0.0, 9.8) {Flask Server\\(REST API / Logic)\\\cite{Flask2024}};
+
+\node[cloud] (internet) at (0.0, 7.5) {Internet}; % leggermente più in basso
+
+%=== NETWORK LAYER ===========================================================
+\node[box, minimum width=30mm] (broker) at (0.0, 3.0) {MQTT Broker\\(Mosquitto)\\\cite{MQTTspec}};
+\node[thinbox] (wifiap) at (-5.5, 3.0) {Wi-Fi Access Point};
+\node[thinbox] (lan)    at ( 5.5, 3.0) {Local Router / LAN};
+
+
+%=== PERCEPTION LAYER ========================================================
+\node[box] (esp)  at (-2.0, -1.5) {NodeMCU ESP8266\\(Wi-Fi / MQTT)\\\cite{ESP8266}};
+\node[box] (ardu) at ( 2.0, -1.5) {Arduino Uno\\(I/O Controller)\\\cite{ArduinoRef}};
+
+\node[thinbox] (gps)   at (-5.5, -5.8) {GPS \\(User proximity)};
+\node[thinbox] (pir)   at ( 0.0, -5.8) {PIR Sensor\\(Motion detection)};
+\node[thinbox] (relay) at ( 5.5, -5.8) {Relay + Motor\\(Garage door drive)};
+
+%=== LAYER BOUNDARIES ========================================================
+% punti invisibili per allargare il layer Application
+\coordinate (L1west) at (-7.0, 9.8);
+\coordinate (L1east) at (7.0, 9.8);
+
+\node[layer, fit={(telegram) (flask) (internet) (L1west) (L1east)}] (L1) {};
+
+\node[layer, fit={(broker) (wifiap) (lan)}] (L2) {};
+\node[layer, fit={(esp) (ardu) (gps) (pir) (relay)}] (L3) {};
+
+%=== CONNESSIONI APPLICATION ⇄ NETWORK ======================================
+% collegamenti superiori con margini puliti
+\draw[http,->] (telegram.south) |- ([xshift=-15mm,yshift=-6mm]internet.north);
+
+
+\draw[http] (internet.north) -- (flask.south);
+
+
+
+% flusso verticale verso MQTT broker (piccolo offset)
+\draw[mqtt,->]
+  ([xshift=2mm, yshift=-4mm]flask.east) -- ++(5mm,0)
+  |- ([xshift=2mm, yshift=-5mm]broker.east)
+  node[midway, right=2mm, yshift=17mm] {\scriptsize MQTT Publish};
+
+
+
+%=== NETWORK ⇄ PERCEPTION ====================================================
+% collegamento Wi-Fi AP → ESP (partenza leggermente a destra)
+\draw[wifi]
+  ([xshift=12mm]wifiap.south) |- (esp.west)
+  node[midway, left=1mm, yshift=12mm] {\scriptsize Wi-Fi (2.4 GHz)};
+
+
+% --- Collegamento LAN → ESP (curva 90° + discesa di 1.5 cm)
+\draw[wifi] (lan.south) |- ++(0,-1.7) -| (esp.north)
+  node[midway, right=30mm, yshift=2mm] {\scriptsize Wi-Fi / MQTT};
+
+\draw[mqtt] (broker.south) -- ++(0,-0.4) |- (esp.east)
+  node[midway, right=2mm, yshift=12mm] {\scriptsize MQTT Subscribe};
+
+
+
+%=== SENSORS & ACTUATORS ====================================================
+\draw[line, color=gray!70!black] (gps.north) -- (esp.south)
+  node[midway, left] {\scriptsize UART};
+\draw[line, color=gray!70!black] (pir.north) -- (ardu.south)
+  node[midway, right] {\scriptsize GPIO};
+\draw[line, color=gray!70!black] (relay.north) -- (ardu.south)
+  node[midway, left] {\scriptsize GPIO};
+
+%=== LEGEND ================================================================
+\node[anchor=west] at (-7.2, -8.0) {\textbf{Legenda:}};
+\draw[mqtt]  (-7.2, -8.5) -- ++(1.1,0);
+\node[anchor=west] at (-5.9, -8.65) {MQTT (publish/subscribe) \cite{MQTTspec}};
+\draw[http]  (-7.2, -9.1) -- ++(1.1,0);
+\node[anchor=west] at (-5.9, -9.25) {HTTP/HTTPS (Flask API) \cite{Flask2024}};
+\draw[wifi]  (-7.2, -9.7) -- ++(1.1,0);
+\node[anchor=west] at (-5.9, -9.85) {Wi-Fi communication (ESP8266) \cite{ESP8266}};
+\draw[serial] (-7.2, -10.3) -- ++(1.1,0);
+\node[anchor=west] at (-5.9, -10.45) {Serial connection (ESP–Arduino)};
+\end{tikzpicture}
+
+\caption{Architettura del sistema \textit{Smart Garage Door} con spaziatura verticale ampia.  
+Il diagramma evidenzia la netta separazione tra i livelli \textit{Application}, \textit{Network} e \textit{Perception}, 
+facilitando la lettura dei flussi informativi bottom–up e top–down tra sensori, nodi di rete e servizi applicativi 
+\cite{MQTTspec, ESP8266, Flask2024, TelegramAPI, ThingSpeak}.}
+\label{fig:system_architecture_extra}
+\end{figure}
+
+
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{images/tinkercad.png}
+\caption{Prototipo simulato in Tinkercad dell’architettura hardware basata su Arduino UNO.
+Nel circuito sono presenti: un modulo PIR per la rilevazione del movimento, un sensore a ultrasuoni HC-SR04 per la misurazione della distanza, un pulsante per il comando manuale e
+un servomotore impiegato come attuatore meccanico del sistema. Il microcontrollore esegue la
+logica di controllo locale e comunica con l’unità remota (simulata tramite un secondo Arduino
+configurato come fake NodeMCU) per la gestione dei comandi e degli eventi. Il prototipo
+costituisce il modello fisico di riferimento per l’architettura descritta in Figura~\ref{fig:hardware_architecture}.}
+\label{fig:hardware_arduino}
+\end{figure}
+
+
+
+
+
+\subsection{Digital Twin e mappatura delle risorse REST}
+La progettazione dell’\textit{Application Layer} richiede l’associazione esplicita tra gli oggetti fisici presenti nel sistema (\textit{Real Objects}) e le corrispondenti rappresentazioni digitali (\textit{Digital Twins}).  
+Tale mappatura consente di esporre funzionalità e stati tramite risorse REST, in accordo con il paradigma \textbf{Resource-Oriented Architecture (ROA)} e le linee guida sulla progettazione di API per sistemi IoT \cite{Guinard2016}.  
+
+La Tabella~\ref{tab:digital_twins} riporta l’associazione completa tra entità fisiche, risorse digitali, operazioni consentite e path HTTP implementati dal server applicativo basato su \textit{Flask}.
+
+\begin{table}[H]
+\centering
+\caption{Mappatura tra oggetti fisici e risorse digitali (Digital Twin)}
+\label{tab:digital_twins}
+\begin{tabularx}{\textwidth}{@{}p{3cm} l l l X@{}}
+\toprule
+\textbf{Oggetto fisico} & \textbf{Digital Twin} & \textbf{Metodo} & \textbf{Path REST} & \textbf{Descrizione} \\
+\midrule
+
+Porta garage (attuatore) 
+& /door/state 
+& GET 
+& /garage/door/state 
+& Restituisce lo stato corrente della porta (aperta, chiusa, in movimento). \\
+
+Porta garage (comando apertura) 
+& /door/open 
+& POST 
+& /garage/door/open 
+& Invoca l’azione di apertura tramite relè controllato da Arduino. \\
+
+Porta garage (comando chiusura) 
+& /door/close 
+& POST 
+& /garage/door/close 
+& Attiva la procedura di chiusura sicura della porta. \\
+
+Sensore PIR (movimento interno) 
+& /pir/value 
+& GET 
+& /garage/pir 
+& Restituisce il valore del sensore PIR per l’automazione in uscita (FR5a). \\
+
+Sensore ultrasonico HC-SR04 
+& /ultrasonic/distance 
+& GET 
+& /garage/ultrasonic 
+& Fornisce la distanza rilevata per il rilevamento ostacoli (FR8). \\
+
+Sistema GPS (nodo ESP8266) 
+& /gps/status 
+& GET 
+& /garage/gps 
+& Indica se l’utente si trova entro il geofence configurato (FR5b). \\
+
+Log eventi 
+& /logs 
+& GET 
+& /garage/logs 
+& Restituisce gli eventi registrati localmente (aperture, chiusure, notifiche). \\
+
+Comando di emergenza locale (pulsante) 
+& /override 
+& POST 
+& /garage/override 
+& Simula la pressione del pulsante fisico, garantendo il comando locale (FR7). \\
+
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Questa rappresentazione consente di definire un’astrazione chiara e standardizzata tra mondo fisico e digitale, facilitando l’integrazione con servizi esterni (coem ad esempio Telegram Bot, ThingSpeak) e garantendo un’implementazione conforme ai principi REST e alle best practice dei sistemi IoT distribuiti.
+
+
+\subsection{Mappatura tra requisiti funzionali e tecnologie adottate}
+
+La Tabella~\ref{tab:fr_tech} riepiloga l'associazione tra ogni requisito funzionale (FR1--FR9)
+e le tecnologie hardware, software e protocollari selezionate nel progetto.
+La mappatura costituisce un elemento centrale del system design in quanto dimostra
+la coerenza tra obiettivi funzionali, vincoli non funzionali e scelte tecnologiche
+(OS: MQTT, HTTP, UART, PIR, HC-SR04, GPS NEO-6M, Telegram Bot API).
+
+\begin{table}[H]
+\centering
+\caption{Mappatura tra requisiti funzionali e tecnologie utilizzate}
+\label{tab:fr_tech}
+\begin{tabularx}{\textwidth}{@{}l X X@{}}
+\toprule
+\textbf{Requisito} & \textbf{Descrizione} & \textbf{Tecnologie coinvolte} \\
+\midrule
+
+FR1 & Apertura remota della porta &
+API REST (Flask) /garbage/door/open;
+MQTT (publisher NodeMCU);
+UART Arduino--ESP8266;
+Attuatore servo/relè. \\
+
+FR2 & Consultazione stato porta &
+Endpoint REST /garage/door/state;
+Digital Twin (DR/CVO);
+MQTT status sync;
+Arduino sensori di stato. \\
+
+FR3 & Controllo manuale locale &
+Pulsante fisico su Arduino;
+Debounce firmware;
+Servo/Relè;
+Logica locale senza rete. \\
+
+FR4 & Chiusura automatica temporizzata &
+Timer interno Arduino;
+State machine di controllo;
+Feedback da sensori PIR/HC-SR04. \\
+
+FR5a & Automazione uscita (PIR interno) &
+Sensore PIR;
+Soglie software;
+Arduino decision logic;
+UART event forwarding. \\
+
+FR5b & Automazione ingresso basata su GPS &
+Modulo GPS NEO-6M;
+Parsing NMEA su NodeMCU;
+Soglia geofence;
+Messaggi UART 0x02 → Arduino. \\
+
+FR6 & Notifica ostacolo in chiusura &
+HC-SR04;
+Algoritmo distanza < 15 cm;
+Logica Arduino per roll-back apertura;
+Invio evento a Flask. \\
+
+FR7 & Interfaccia utente Telegram &
+Telegram Bot API;
+HTTP Client NodeMCU;
+REST API Flask;
+Digital Twin CVO → VO. \\
+
+FR8 & Logging eventi locali &
+Event Logger Flask;
+Serial Bridge MQTT → Flask;
+Storage JSON locale;
+Endpoint /garage/logs. \\
+
+FR9 & Notifiche eventi in tempo reale &
+Webhook Telegram;
+Publisher MQTT;
+Callback Flask (event dispatcher). \\
+
+\bottomrule
+\end{tabularx}
+\end{table}
+
+
+\section{Modellazione dei dati applicativi: VO, DR e CVO}
+
+
+La definizione di un modello formale dei dati rappresenta un elemento essenziale nel processo di \textit{system design}, in quanto consente di stabilire una chiara separazione tra lo stato interno del sistema, le rappresentazioni esposte all’esterno e i meccanismi di comunicazione tra i diversi livelli dell’architettura.
+
+Nel progetto \textit{Smart Garage Door}, tale modellazione è realizzata attraverso tre astrazioni complementari:
+
+\textbf{Domain Representation (DR)}, \textbf{Canonical View Object (CVO)} e \textbf{View Object (VO)}.
+
+
+Questo approccio, ampiamente utilizzato nelle architetture orientate ai servizi e nei sistemi IoT distribuiti \cite{Guinard2016, Gubbi2013}, garantisce consistenza semantica, riduzione dell’accoppiamento tra componenti e una maggiore facilità di evoluzione del sistema nel tempo.
+
+
+\subsection{Domain Representation (DR)}
+
+
+La \textit{Domain Representation} costituisce il modello dei dati interni al sistema, ovvero la rappresentazione delle informazioni così come vengono mantenute nel livello applicativo (Application Layer).
+
+La DR riflette la struttura logica del dominio fisico (porta del garage, stato dei sensori, connessioni MQTT), mantenendo un’organizzazione ottimizzata per l’elaborazione locale da parte del server Flask.
+
+
+Nel progetto, la DR è rappresentata da un insieme di strutture dati Python che costituiscono lo \texttt{state manager} del sistema:
+
+
+\begin{itemize}
+
+\item \textbf{doorState}: booleano interno che indica se la porta è aperta o chiusa;
+
+\item \textbf{gpsInside}: flag logico che indica se il veicolo si trova all’interno del geofence;
+
+\item \textbf{mqttConnected}: stato di salute della connessione MQTT;
+
+\item \textbf{distance}: ultimo valore fornito dal sensore ultrasonico;
+
+\item \textbf{pirValue}: valore corrente del sensore PIR;
+
+\item \textbf{eventLog}: lista interna di eventi generati da Arduino o da ESP8266.
+
+\end{itemize}
+
+
+La DR non è esposta direttamente all’utente e non dipende dalla forma dei messaggi REST o MQTT: essa rappresenta il \textit{core} dello stato operativo, ottimizzato per affidabilità, atomicità degli aggiornamenti e manutenibilità del codice \cite{Pressman2019}.
+
+
+\subsection{Canonical View Object (CVO)}
+
+
+Il \textit{Canonical View Object} rappresenta il modello dati \textbf{canonico} utilizzato per la comunicazione all’esterno del dominio applicativo.
+
+Si tratta della rappresentazione “stabile” che il server Flask utilizza per:
+
+
+\begin{itemize}
+
+\item rispondere alle richieste REST del bot Telegram;
+
+\item esporre lo stato verso eventuali servizi terzi;
+
+\item mantenere un formato coerente e indipendente dalla struttura interna della DR;
+
+\item serializzare lo stato del sistema in messaggi JSON leggibili e interoperabili.
+
+\end{itemize}
+
+
+Il CVO costituisce quindi una forma standardizzata dei dati, capace di garantire interoperabilità tra componenti eterogenei, come raccomandato nei sistemi IoT distribuiti \cite{Guinard2016}.
+
+
+Esempio di CVO restituito dall’endpoint \texttt{/status}:
+
+
+\begin{lstlisting}[language=json, caption={Esempio di Canonical View Object esposto dal server Flask}]
+
+{
+
+"door": true,
+
+"gps_inside": false,
+
+"mqtt_connected": true,
+
+"distance": 128,
+
+"pir": 0,
+
+"events": [
+
+{"type": "open", "timestamp": "2025-12-11T16:45:21"},
+
+{"type": "gps_update", "value": 1, "timestamp": "2025-12-11T16:47:10"}
+
+]
+
+}
+
+\end{lstlisting}
+
+
+Il CVO non coincide con la DR: esso è un formato pensato per la comunicazione tra livelli (Network → Application) e tra applicativo e utente finale.
+
+
+\subsection{View Object (VO)}
+
+
+Il \textit{View Object} rappresenta l’ultima trasformazione del dato, ovvero la forma pensata per l’utente finale.
+
+Nel progetto, il VO viene generato dalla componente che gestisce il bot Telegram e si presenta come un messaggio testuale formato secondo criteri di chiarezza, sintesi e coerenza conversazionale.
+
+
+Esempio di VO generato dal comando \texttt{/status}:
+
+
+\begin{lstlisting}[caption={Esempio di View Object per l’interfaccia Telegram}]
+
+Porta: APERTA
+
+GPS: veicolo fuori area
+
+MQTT: connesso
+
+Distanza ostacolo: 128 cm
+
+PIR: nessun movimento rilevato
+
+\end{lstlisting}
+
+
+Il VO è quindi una trasformazione del CVO orientata alla comprensione umana.
+
+La separazione VO  - CVO -  DR garantisce:
+
+
+\begin{itemize}
+
+\item indipendenza della logica interna dal formato di visualizzazione;
+
+\item possibilità di evolvere l’interfaccia Telegram senza alterare il back-end;
+
+\item coerenza della comunicazione tra i livelli dell’architettura IoT;
+
+\item rispetto del principio di \textit{loose coupling} richiesto nei sistemi distribuiti \cite{Gubbi2013}.
+
+\end{itemize}
+
+
+\subsection{Relazione tra DR, CVO e VO}
+
+
+La relazione tra \textbf{DR}, \textbf{CVO} e \textbf{VO} può essere espressa come:
+\[
+\text{DR} \longrightarrow \text{CVO} \longrightarrow \text{VO}
+\]
+
+La distinzione si articola come segue:
+\begin{enumerate}
+    \item la \textbf{DR} rappresenta lo stato reale e interno del sistema;
+    \item il \textbf{CVO} è il formato standardizzato utilizzato per comunicare (API REST, MQTT, UART);
+    \item il \textbf{VO} è la vista user-friendly presentata all’utente nell’interfaccia Telegram.
+\end{enumerate}
+
+
+
+\section{Flusso dei dati e comunicazione}
+
+Il flusso dei dati del sistema \textit{Smart Garage Door} è strutturato secondo un modello di comunicazione \textbf{asincrono e bidirezionale}, fondato sul protocollo \textbf{MQTT} \cite{MQTTspec}.
+Questa scelta consente di garantire bassa latenza, ridotto overhead di rete e un’elevata affidabilità nella trasmissione tra nodi embedded e livello applicativo, anche in presenza di connessioni Wi-Fi non ottimali.
+
+Nel sistema proposto, i microcontrollori locali svolgono la funzione di nodi edge:
+\begin{itemize}
+\item \textbf{Arduino UNO} acquisisce i segnali provenienti dai sensori (PIR, modulo ultrasonico, GPS tramite ESP) e controlla l’attuatore (relè);
+\item \textbf{NodeMCU ESP8266} funge da gateway di rete, inoltrando eventi e comandi tramite MQTT.
+\end{itemize}
+
+Parallelamente, il server \textbf{Flask} esegue la logica applicativa, si sottoscrive ai topic MQTT per ricevere aggiornamenti e rende disponibili le API utilizzate dall’interfaccia Telegram.
+
+\subsection*{Fasi principali del flusso informativo}
+
+Il percorso dei dati attraverso i diversi livelli del sistema può essere descritto come segue:
+
+\begin{enumerate}
+\item \textbf{Generazione dell’evento (Perception Layer)}
+Un sensore genera un input:
+\begin{itemize}
+\item il PIR rileva movimento (FR5a);
+\item il modulo GPS rileva ingresso o uscita dal geofence (FR5b);
+\item il sensore ultrasonico rileva ostacoli durante la chiusura (FR8).
+\end{itemize}
+
+\item \textbf{Elaborazione locale (Arduino UNO)}  
+Arduino interpreta l’evento e, in base alla logica implementata, attiva o disattiva il relè, determina un timeout di chiusura (FR4) e aggiorna lo stato locale.
+
+\item \textbf{Trasmissione verso il gateway (ESP8266)}  
+Lo stato viene inviato ad ESP8266 tramite UART.  
+ESP serializza il dato e lo pubblica sul topic MQTT appropriato.
+
+\item \textbf{Routing e gestione dei messaggi (MQTT Broker)}  
+Il broker Mosquitto riceve il messaggio e lo inoltra a tutti i client sottoscritti, tra cui il server Flask.
+
+\item \textbf{Elaborazione applicativa (Flask Server)}  
+Flask aggiorna lo stato interno, registra l’evento e, se configurato, esegue un push dei dati su ThingSpeak per la visualizzazione remota (nel nostro caso pensato per implementazioni future).
+
+\item \textbf{Interazione con l’utente (Telegram Bot)}  
+L’utente può inviare comandi remoti tramite Telegram (/on, /off, /status).  
+Il bot inoltra il comando al server Flask, che lo traduce in un’azione MQTT verso il nodo ESP→Arduino.
+
+
+\end{enumerate}
+
+
+Questo paradigma data-driven, fondato su scambio asincrono e loosely coupling, consente al sistema di rimanere reattivo anche sotto condizioni di latenza variabile o perdita temporanea di pacchetti, garantendo robustezza e scalabilità \cite{Palattella2016, Piyare2013}.
+In particolare, la logica locale su Arduino assicura il funzionamento autonomo anche in caso di assenza di rete (NFR5).
+
+
+
+
+\section{Data
+Exchange Format}
+
+
+
+La definizione dei formati di scambio
+dati rappresenta un elemento centrale nei sistemi IoT distribuiti,
+poiché consente di garantire interoperabilità, coerenza semantica e
+affidabilità lungo l’intera catena applicativa. In Smart Garage
+Door, la progettazione del formato dati non è stata considerata come
+un aspetto meramente implementativo, ma come una componente
+architetturale fondamentale, direttamente collegata ai requisiti
+funzionali (FR1–FR9) e non funzionali (NFR1–NFR10).
+
+
+
+Il
+sistema coinvolge infatti tre domini distinti — Perception, Network
+e Application Layer — che operano mediante protocolli eterogenei e
+con livelli di astrazione differenti. Ciò rende necessario adottare
+un modello di rappresentazione dei dati che sia, al tempo stesso,
+minimale per i microcontrollori a risorse limitate (Arduino UNO),
+espressivo per il nodo di rete (ESP8266) e strutturato per il livello
+applicativo (Flask + Telegram Bot).
+
+
+
+\subsection*{Comunicazione
+Arduino–ESP8266: rappresentazione a byte singolo}
+
+La
+comunicazione locale tra Arduino e NodeMCU avviene tramite
+interfaccia UART e utilizza un formato estremamente compatto, basato
+su codici numerici a singolo byte. Questa scelta è motivata da
+considerazioni di efficienza: il microcontrollore ATmega328P dispone
+di risorse limitate e una codifica minimale evita parsing complessi e
+ritardi non deterministici.
+
+
+
+Ogni messaggio UART
+rappresenta un evento o un comando atomico, come l'apertura della
+porta, la chiusura, l’ingresso nel geofence o la richiesta dello
+stato. L’utilizzo di valori simbolici (0x00, 0x01, 0x02, ...)
+permette di definire un vocabolario operativo semplice,
+immediatamente interpretabile dal firmware e adatto a contesti
+real-time.
+
+
+
+In termini architetturali, tale formato
+realizza un “linguaggio minimo” tra Perception e Network Layer,
+sufficiente a trasportare le informazioni necessarie per soddisfare
+FR1–FR5 e FR8 mantenendo la completa autonomia operativa di Arduino
+(NFR5).
+
+
+
+\subsection*{Messaggistica
+MQTT: rappresentazione semistrutturata in JSON}
+
+A differenza
+della comunicazione UART, la messaggistica MQTT richiede un formato
+più espressivo, poiché gli eventi devono essere condivisi con più
+attori (ESP8266, Flask, timer di monitoraggio e, indirettamente,
+Telegram Bot). Per questa ragione, i payload MQTT sono trasmessi in
+formato JSON minimizzato, che consente di incapsulare gruppi di
+attributi (es. stato porta, distanza, timestamp) conservando
+leggibilità, interoperabilità e compatibilità futura.
+
+
+
+Il
+JSON è particolarmente adatto per il livello Network,
+poiché:
+
+\begin{itemize}
+
+
+   \item
+mantiene
+una sintassi semplice ma estendibile;
+
+    \item
+può
+essere serializzato e deserializzato rapidamente sia su
+microcontrollori che su sistemi Python;
+
+    \item
+consente
+di aggiungere nuove proprietà senza modificare i moduli
+esistenti.
+
+\end{itemize}
+
+
+
+La
+scelta di modellare il flusso MQTT come event-driven riduce
+notevolmente il traffico di rete: il sistema pubblica un messaggio
+solo quando avviene un cambiamento significativo (ad esempio,
+variazione dello stato porta o transizione dentro/fuori geofence),
+soddisfacendo così i requisiti NFR2 (efficienza) e NFR9
+(contenimento dei consumi).
+
+
+
+\subsection*{Formati
+REST: rappresentazione strutturata per interfacce
+applicative}
+
+All’interno dell’Application Layer, il server
+Flask espone un set di endpoint REST basati su JSON. In questo
+contesto, il formato dati deve supportare non solo la
+rappresentazione dello stato, ma anche la tracciabilità, il logging,
+la diagnostica e l’interazione con utenti e sistemi
+esterni.
+
+All’interno dell’Application Layer, il server Flask
+espone un set di endpoint REST basati su JSON. In questo contesto, il
+formato dati deve supportare non solo la rappresentazione dello
+stato, ma anche la tracciabilità, il logging, la diagnostica e
+l’interazione con utenti e sistemi esterni.
+
+
+
+Il formato
+JSON utilizzato dal server Flask è più ricco rispetto a quello
+MQTT, includendo attributi come:
+
+\begin{itemize}
+
+
+   \item
+\texttt{door}
+(booleano);
+
+    \item
+\texttt{mqtt\_connected};
+
+
+   \item
+\texttt{gps\_inside};
+
+
+   \item
+\texttt{distance},
+\texttt{pir};
+
+
+   \item
+liste
+strutturate di eventi.
+
+\end{itemize}
+
+
+
+Questo
+modello supporta pienamente le esigenze dei moduli applicativi,
+come:
+
+\begin{itemize}
+
+
+   \item
+il
+bot Telegram, che necessita di messaggi chiari e completi per
+informare l’utente (FR3, FR9);
+
+    \item
+il
+modulo \texttt{timer.py},
+che richiede informazioni diagnostiche per verificare la salute del
+sistema (NFR8);
+
+    \item
+le
+future estensioni, come dashboard o servizi
+cloud.
+
+\end{itemize}
+
+
+
+\subsection*{Coerenza
+tra livelli e verificabilità}
+
+La coerenza del formato dati
+rispetto al progetto può essere verificata attraverso tre
+indicatori:
+
+\begin{enumerate}
+
+
+   \item
+\textbf{Allineamento
+ai flussi reali}.
+
+          Ogni formato corrisponde ad una
+comunicazione realmente implementata nel sistema (UART, MQTT, REST).
+
+
+         \textit{Verifica
+pratica:} osservare i log UART, MQTT e Flask, confrontandoli con i
+formati dichiarati.
+
+    \item
+\textbf{Tracciabilità
+verso i requisiti}.
+
+          Ogni campo presente nei messaggi è
+funzionale ad almeno un requisito FR/NFR.
+
+
+\textit{Verifica
+pratica:} mappare ogni attributo ai requisiti FR1–FR9.
+
+
+\item
+\textbf{Aderenza
+alla progettazione architetturale}.
+
+          Il formato cresce
+in complessità passando da Perception → Network → Application
+Layer, come previsto dal modello IoT adottato.
+
+
+\textit{Verifica
+pratica:} confrontare la progressione del formato con la Figura
+dell’architettura multilayer nel Capitolo
+4.
+
+\end{enumerate}
+
+
+
+Complessivamente,
+il Data Exchange Format del progetto Smart Garage Door è coerente
+con i principi dei sistemi IoT moderni: minimale nel livello fisico,
+espressivo nel livello applicativo, e interoperabile grazie
+all’impiego di JSON nei livelli superiori. Inoltre, esso garantisce
+estendibilità futura e consente una validazione diretta tramite log
+operativi e strumenti di test come MQTT Explorer e \textit{serial
+monitor}.
+
+
+
+
+
+
+\section{Progettazione del database e struttura dei dati}
+
+La progettazione del sistema informativo del livello applicativo richiede la definizione
+di un modello dei dati coerente con l'architettura IoT descritta nelle sezioni precedenti.
+Nel progetto \textit{Smart Garage Door}, il server Flask svolge il ruolo di
+\textit{Application Layer}, mantenendo lo stato globale del sistema, registrando gli eventi
+provenienti dai livelli inferiori e fornendo informazioni strutturate alle
+interfacce esterne (come il Telegram Bot e API Rest).
+
+A differenza di piattaforme cloud industriali, il prototipo non adotta un
+database relazionale o NoSQL persistente. Tale scelta è motivata da:
+(1) semplicità architetturale,
+(2) riduzione delle dipendenze software,
+(3) vincoli di deploy in ambiente embedded locale.
+Il sistema utilizza invece una \textbf{struttura dati in memoria} (RAM) con
+persistenza leggera su file di log, pienamente sufficiente per soddisfare
+i requisiti FR1–FR9 e gli NFR legati a robustezza, tracciabilità e tracciamento
+degli eventi.
+
+\subsection*{Modello dei dati in memoria (In-memory state model)}
+
+Il server Flask mantiene lo stato del sistema attraverso un dizionario Python
+che funge da \textit{data store} centrale. Tale struttura è progettata per essere:
+
+\begin{itemize}
+    \item \textbf{atomica}: ogni aggiornamento è isolato e immediatamente disponibile;
+    \item \textbf{consistente}: gli stati provengono da fonti verificate (ESP8266, Arduino);
+    \item \textbf{persistibile}: parte delle informazioni è replicata nei log per analisi forense e diagnostica.
+\end{itemize}
+
+La struttura dati principale include:
+
+
+\begin{lstlisting}[language=python]
+
+state={"door": False,# Stato porta (aperta/chiusa)
+    "mqtt_connected": False,    # Stato connessione broker
+    "gps_inside": False,#Prossimita'  utente (FR5b)
+    "distance": None,           # Ultima distanza rilevata (FR8)
+    "pir": None,                # Ultimo valore sensore PIR (FR5a)
+    "events": []                # Storico eventi applicativi
+}
+\end{lstlisting}
+
+Questa rappresentazione minimalista consente tempi di accesso costanti $O(1)$
+per tutte le operazioni critiche, garantendo reattività anche in presenza di più
+richieste parallele da parte del bot Telegram (NFR2).
+
+\subsection*{Registro eventi (Event Log)}
+
+Per garantire tracciabilità e supporto diagnostico (NFR8), il sistema mantiene
+uno \textbf{storico degli eventi} generati da sensori, comandi MQTT e interazioni
+utente. Ogni evento è rappresentato come un oggetto strutturato:
+
+\begin{lstlisting}[language=Python]
+event = {
+    "timestamp": "2025-12-11T14:32:05",
+    "type": "DOOR_OPEN",
+    "source": "Arduino",
+    "details": {"pir": 1, "gps_inside": 1}
+}
+\end{lstlisting}
+
+Gli eventi recenti sono conservati direttamente in memoria, mentre l'intero flusso
+viene replicato anche in file di log locale (\texttt{server.log}) per permettere:
+
+\begin{itemize}
+    \item audit post-operativo;
+    \item analisi forense;
+    \item ricostruzione dei flussi MQTT in caso di errori;
+    \item validazione delle performance temporali durante i test.
+\end{itemize}
+
+\subsection*{Struttura dei dati per le API REST}
+
+L'esposizione delle informazioni tramite API richiede una struttura dati stabile
+e formalizzata. I principali endpoint REST del server (\texttt{/status}, \texttt{/on},
+\texttt{/off}, \texttt{/events}) seguono un formato JSON coerente con il
+\textit{Data Exchange Format} definito nella sezione precedente.
+
+Esempio di risposta dell'endpoint \texttt{/status}:
+
+\begin{lstlisting}[language=JSON]
+{
+    "door": true,
+    "gps_inside": false,
+    "mqtt_connected": true,
+    "pir": 0,
+    "distance": 233,
+    "timestamp": "2025-12-11T16:40:12"
+}
+\end{lstlisting}
+
+Tale formato è progettato per essere:
+
+\begin{itemize}
+    \item \textbf{leggibile} dal bot Telegram;
+    \item \textbf{facilmente estendibile} (nuovi campi aggiungibili senza modificare la struttura);
+    \item \textbf{compatibile} con ThingSpeak e potenziali dashboard future.
+\end{itemize}
+
+\subsection*{Persistenza minima e motivazioni progettuali}
+
+La scelta di non adottare un database tradizionale è giustificata da tre fattori progettuali:
+
+\begin{enumerate}
+    \item \textbf{Statelessness del bot Telegram}
+    L'interfaccia non richiede persistenza storica complessa.
+
+    \item \textbf{Limitato volume di dati}
+    La frequenza degli aggiornamenti sensoriali e il numero degli eventi sono contenuti.
+
+    \item \textbf{Vincolo di semplicità (NFR10)}
+    L'obiettivo accademico prevede un sistema replicabile, leggero e privo di dipendenze invasive.
+\end{enumerate}
+
+Nonostante l'assenza di un database strutturato, l’architettura permette l'integrazione
+futura con sistemi come SQLite, InfluxDB o MongoDB senza modifiche sostanziali al
+modello dei dati, grazie all’adozione di un design modulare e separato per il layer applicativo.
+
+\subsection*{Coerenza con il modello architetturale}
+
+La struttura dati progettata rispecchia fedelmente il modello IoT a tre livelli:
+
+\begin{itemize}
+    \item \textbf{Perception Layer}: genera eventi atomici (PIR, GPS, distanza).
+    \item \textbf{Network Layer}: li trasporta tramite MQTT in formato JSON.
+    \item \textbf{Application Layer}: li normalizza, li registra e li espone come stato globale.
+\end{itemize}
+
+La separazione chiara tra eventi, stato e rappresentazione esterna garantisce
+manutenibilità, estensibilità e verificabilità dell’intero sistema.
+
+
+\section{Architettura software multilayer}
+
+La progettazione del sistema \textit{Smart Garage Door} adotta un’architettura software multilayer,
+che consente di separare in maniera rigorosa le responsabilità funzionali dei diversi componenti,
+ridurre l’accoppiamento e migliorare la manutenibilità complessiva del sistema.
+
+Secondo il paradigma delle architetture IoT distribuite, il sistema è organizzato in tre livelli:
+
+\begin{itemize}
+    \item \textbf{Perception Layer} – responsabile dell’acquisizione dei dati fisici tramite sensori e
+    attuatori, nonché del controllo real-time della porta garage.
+    \item \textbf{Network Layer} – gestisce la comunicazione tra i nodi, l’elaborazione dei messaggi,
+    la traduzione dei protocolli (UART–MQTT–HTTP) e la propagazione dello stato.
+    \item \textbf{Application Layer} – rappresenta lo strato di orchestrazione logica, in cui risiedono
+    la gestione dello stato (DR), la generazione dei CVO, le API REST e l’interfaccia Telegram.
+\end{itemize}
+
+La Figura~\ref{fig:software_layers} mostra la struttura multilayer del sistema, evidenziando il
+flusso informativo verticale (bottom–up) e i comandi top–down verso gli attuatori.
+
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    font=\footnotesize,
+    layer/.style={
+        rectangle, draw, rounded corners,
+        minimum width=11cm,
+        minimum height=12mm,
+        fill=gray!10,
+        align=center
+    },
+    comp/.style={
+        rectangle, draw, rounded corners,
+        minimum width=28mm,
+        minimum height=8mm,
+        fill=gray!5,
+        align=center
+    },
+    arrow/.style={-{Latex[length=2mm]}, thick}
+]
+
+% --- LAYERS ---
+\node[layer] (app) {Application Layer};
+\node[layer, below=15mm of app] (net) {Network Layer};
+\node[layer, below=15mm of net] (perc) {Perception Layer};
+
+% --- COMPONENTS ---
+% Application
+\node[comp, above=4mm of app.north west, anchor=north west, xshift=5mm] (api) {API REST};
+\node[comp, right=4mm of api] (dt) {Digital Twin (DR/CVO)};
+\node[comp, right=4mm of dt] (tg) {Telegram Bot};
+
+% Network
+\node[comp, above=4mm of net.north west, anchor=north west, xshift=5mm] (uart) {UART Bridge};
+\node[comp, right=4mm of uart] (mqtt) {MQTT Client};
+\node[comp, right=4mm of mqtt] (httpc) {HTTP Client};
+
+% Perception
+\node[comp, above=4mm of perc.north west, anchor=north west, xshift=5mm] (pir) {PIR Sensor};
+\node[comp, right=4mm of pir] (ultra) {HC-SR04};
+\node[comp, right=4mm of ultra] (servo) {Servo/Relè};
+
+% --- ARROWS ---
+\draw[arrow] (perc.north) -- ++(0,2mm) -- (net.south)
+    node[midway, right]{Dati sensori};
+
+\draw[arrow] (net.north) -- ++(0,2mm) -- (app.south)
+    node[midway, right]{Messaggi MQTT / HTTP};
+\end {tikzpicture}
+\caption{Architettura software multilayer del sistema \textit{Smart Garage Door}.}
+\label{fig:software_layers}
+\end{figure}
+
+
+\section{Management Algorithm globale del sistema}
+\label{sec:management_algorithm}
+
+Il funzionamento complessivo del sistema \textit{Smart Garage Door} può essere
+descritto come la cooperazione di più cicli concorrenti, ognuno dei quali opera
+su un diverso livello dell’architettura multilayer illustrata nella
+Figura~\ref{fig:software_layers}:
+\begin{itemize}
+  \item \textbf{Perception Layer} (Arduino UNO): acquisizione dei sensori
+        (PIR, HC-SR04), gestione del comando locale, attuazione del servo/relè,
+        rilevazione degli ostacoli e generazione degli eventi di stato;
+  \item \textbf{Network Layer} (NodeMCU ESP8266): instradamento dei comandi
+        tra MQTT, HTTP e UART, gestione della connettività Wi-Fi e mantenimento
+        del funzionamento locale in caso di assenza di Internet;
+  \item \textbf{Application Layer} (Flask + timer + bot Telegram): gestione
+        dello stato applicativo (DR), generazione del CVO, API REST, timer di
+        health-check e interfaccia conversazionale con l’utente.
+\end{itemize}
+
+In questa sezione viene descritto il \textit{management algorithm} globale, che
+integra le principali logiche implementate nei file
+\texttt{controller\_arduino.ino}, \texttt{controller\_nodemcu.ino},
+\texttt{app.py}, \texttt{timer.py} e
+\texttt{telegram\_listener.py}.
+L’obiettivo è fornire una vista unificata del flusso di controllo del sistema,
+in grado di collegare in modo esplicito i requisiti funzionali FR1–FR9 con le
+scelte architetturali e con il comportamento runtime.
+
+\subsection{Descrizione ad alto livello}
+
+A livello astratto, il comportamento del sistema può essere sintetizzato nelle
+seguenti fasi continue:
+\begin{enumerate}
+  \item \textbf{Acquisizione e pre-elaborazione locale (Arduino)}:
+        \begin{itemize}
+          \item lettura periodica dei sensori PIR e HC-SR04;
+          \item applicazione della logica combinata FR5a/FR5b per
+                l’automazione di prossimità;
+          \item verifica delle condizioni di safety (FR8) e gestione di un
+                eventuale blocco/inversione della chiusura;
+          \item generazione di eventi di stato (\textit{door\_open},
+                \textit{door\_close}, \textit{obstacle}, \textit{pir\_motion},
+                ecc.) inviati via UART al NodeMCU.
+        \end{itemize}
+  \item \textbf{Instradamento e bridging (NodeMCU ESP8266)}:
+        \begin{itemize}
+          \item ricezione dei comandi da MQTT/HTTP e inoltro verso Arduino via
+                UART, dopo i controlli di validità;
+          \item ricezione degli eventi seriali da Arduino e pubblicazione su
+                topic MQTT dedicati, oltre all’aggiornamento verso il server
+                Flask;
+          \item mantenimento del funzionamento locale anche in assenza di
+                connettività Internet, garantendo l’esecuzione dei comandi
+                critici (NFR5).
+        \end{itemize}
+  \item \textbf{Gestione dello stato applicativo (Flask)}:
+        \begin{itemize}
+          \item aggiornamento della \textit{Domain Representation} (DR) a
+                partire dagli eventi ricevuti (door state, GPS, MQTT, sensori);
+          \item costruzione del \textit{Canonical View Object} (CVO) in
+                risposta alle richieste \texttt{/status}, \texttt{/logs},
+                \texttt{/gps/update}, ecc.;
+          \item esposizione delle API REST per l’apertura/chiusura remota
+                (FR1–FR2) e per la consultazione dello stato (FR3, FR9).
+        \end{itemize}
+  \item \textbf{Interfaccia utente e notifiche (Telegram + timer)}:
+        \begin{itemize}
+          \item il bot Telegram riceve i comandi dell’utente
+                (\texttt{/open}, \texttt{/close}, \texttt{/status},
+                \texttt{/events}, \texttt{/gps}) e li inoltra al server Flask;
+          \item i messaggi di risposta vengono generati trasformando il CVO in
+                \textit{View Object} (VO) testuale, ottimizzato per la
+                comprensione umana;
+          \item il modulo \texttt{timer.py} esegue periodicamente richieste
+                verso gli endpoint \texttt{/health} e \texttt{/status} per
+                monitorare l’health complessivo del sistema, registrare log
+                aggiuntivi e, se necessario, attivare notifiche automatiche.
+        \end{itemize}
+\end{enumerate}
+
+\subsection{Pseudocodice globale del sistema}
+
+Il seguente pseudocodice riassume il comportamento complessivo del sistema in
+termini di processi concorrenti. Ogni blocco corrisponde a uno dei principali
+componenti implementativi.
+
+\begin{lstlisting}[language=C,caption={Management Algorithm globale del sistema Smart Garage Door},label={lst:management_algorithm}]
+/* Processo 1: Perception Layer - Arduino UNO (FR4, FR5a, FR5b, FR7, FR8) */
+task ArduinoLoop() {
+    init_sensors();          // PIR, HC-SR04, pulsante
+    init_actuator();         // Servo / rele
+    init_serial_uart();      // Link verso NodeMCU
+
+    while (true) {
+        pir      = read_PIR();
+        dist     = read_distance();
+        btn      = read_local_button();
+        userNear = read_flag_from_NodeMCU();   // FR5b: GPS dentro geofence?
+
+        // FR7 - Comando locale manuale con priorita
+        if (btn_pressed(btn)) {
+            toggle_door();
+            send_event_uart("door_toggle_local", pir, dist, userNear);
+        }
+
+        // FR5a/FR5b - Automazione combinata in ingresso/uscita
+        if (pir == MOTION_DETECTED && userNear == true && dist > SAFE_MIN) {
+            open_door();
+            start_auto_close_timer();
+            send_event_uart("auto_open", pir, dist, userNear);
+        }
+
+        // FR4 - Chiusura automatica dopo timeout
+        if (auto_close_timer_expired()) {
+            if (dist < OBSTACLE_THRESHOLD) {
+                stop_door();
+                send_event_uart("obstacle_detected", pir, dist, userNear);
+            } else {
+                close_door();
+                send_event_uart("auto_close", pir, dist, userNear);
+            }
+        }
+
+        // Gestione comandi ricevuti da NodeMCU (FR1, FR2)
+        if (serial_command_available()) {
+            cmd = read_serial_command();
+            if (cmd == "OPEN")  open_door();
+            if (cmd == "CLOSE") close_door();
+            send_event_uart("cmd_exec", pir, dist, userNear);
+        }
+
+        delay(SAMPLING_INTERVAL_MS);
+    }
+}
+
+/* Processo 2: Network Layer - NodeMCU ESP8266 (bridge UART/MQTT/HTTP) */
+task NodeMCULoop() {
+    init_wifi();
+    init_mqtt_client();
+    init_http_client();
+    init_uart_bridge();
+
+    while (true) {
+        // Comandi in ingresso da MQTT / HTTP
+        if (mqtt_command_available() || http_command_available()) {
+            cmd = get_next_command();      // OPEN, CLOSE, STATUS, ...
+            if (is_valid(cmd)) {
+                send_uart(cmd);            // Verso Arduino
+                publish_mqtt("command_accepted", cmd);
+            } else {
+                publish_mqtt("command_rejected", cmd);
+            }
+        }
+
+        // Eventi provenienti da Arduino
+        if (uart_event_available()) {
+            ev = read_uart_event();
+            publish_mqtt("door/events", ev);    // verso broker / Flask
+            cache_last_state(ev);               // fallback locale (NFR5)
+        }
+
+        // NFR5 - Funzionamento offline
+        if (!internet_available()) {
+            // Continua a gestire UART + comandi locali MQTT
+            operate_in_local_mode();
+        }
+
+        delay(NETWORK_POLL_MS);
+    }
+}
+
+/* Processo 3: Application Layer - Flask (DR/CVO, API REST, FR1-FR3, FR9) */
+task FlaskServerLoop() {
+    init_DR();           // doorState, gpsInside, mqttConnected, distance, ...
+    init_rest_api();     // /open, /close, /status, /logs, /gps/update, /health
+    init_mqtt_client();  // sottoscrizione agli eventi da NodeMCU
+
+    // Callback MQTT: aggiornamento DR dagli eventi hardware
+    on_mqtt_message(ev) {
+        update_DR_from_event(ev);
+        append_event_log(ev);
+    }
+
+    // Endpoint /open e /close (FR1, FR2)
+    on_http_request("/open" or "/close") {
+        if (authorize(request.user)) {
+            send_command_to_NodeMCU(request.path);   // OPEN / CLOSE
+            return build_CVO_from_DR();
+        } else {
+            return error_unauthorized();
+        }
+    }
+
+    // Endpoint /status (FR3) e /logs (FR9)
+    on_http_request("/status") {
+        cvo = build_CVO_from_DR();       // Canonical View Object
+        return cvo_as_json(cvo);
+    }
+
+    on_http_request("/logs") {
+        return serialize_event_log();
+    }
+
+    // Endpoint /gps/update (FR5b)
+    on_http_request("/gps/update") {
+        update_DR_gps(request.payload);
+        return ok();
+    }
+
+    run_http_server_blocking();
+}
+
+/* Processo 4: Timer di health-check (monitoraggio NFR) */
+task TimerMonitorLoop() {
+    while (true) {
+        health  = http_get("/health");
+        status  = http_get("/status");
+        log_to_file(health, status);
+
+        if (health_is_critical(health)) {
+            notify_admin_via_telegram(health);
+        }
+
+        sleep(PERIODIC_INTERVAL);
+    }
+}
+
+/* Processo 5: Interfaccia Telegram (VO, comandi utente) */
+task TelegramBotLoop() {
+    init_telegram_bot();
+
+    on_command("/open")  { http_post("/open");  reply_with_status(); }
+    on_command("/close") { http_post("/close"); reply_with_status(); }
+    on_command("/status"){ s = http_get("/status"); reply_with_VO(s); }
+    on_command("/events"){ e = http_get("/logs");   reply_with_VO(e); }
+    on_command("/gps lat lon") {
+        http_post("/gps/update", {lat, lon});
+        reply("Posizione aggiornata.");
+    }
+
+    start_polling_updates();   // long polling / webhook
+}
+
+/* Processo principale: esecuzione concorrente dei componenti */
+task SmartGarageDoorSystem() {
+    parallel {
+        ArduinoLoop();
+        NodeMCULoop();
+        FlaskServerLoop();
+        TimerMonitorLoop();
+        TelegramBotLoop();
+    }
+}
+\end{lstlisting}
+
+
+
+\section{Flowchart dei requisiti funzionali}
+
+In questa sezione vengono presentati i diagrammi di flusso che descrivono la logica
+di controllo associata a ciascun requisito funzionale (FR1–FR9).
+Essi rappresentano la traduzione operativa delle specifiche analizzate nel Capitolo~3
+e costituiscono il riferimento progettuale per l’implementazione descritta nel Capitolo~5.
+
+\subsection{Flowchart FR1 – Apertura remota}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=12mm]
+
+\node[startstop] (start) {Inizio};
+\node[block, below=of start] (cmd) {Ricezione comando\\ \texttt{/open} da Telegram};
+\node[block, below=of cmd] (auth) {Verifica utente autorizzato};
+\node[decision, below=of auth] (authok) {Autorizzato?};
+\node[block, below left=15mm and 20mm of authok] (deny) {Invia notifica:\\ accesso negato};
+\node[block, below right=15mm and 20mm of authok] (send) {Invia comando MQTT\\ \texttt{garage/cmd = OPEN}};
+\node[block, below=of send] (ardu) {Arduino attiva relè\\ apertura porta};
+\node[block, below=of ardu] (status) {Aggiorna stato porta};
+\node[block, below=of status] (notify) {Invia notifica a Telegram};
+\node[startstop, below=of notify] (end) {Fine};
+
+% Edges
+\draw[arrow] (start) -- (cmd);
+\draw[arrow] (cmd) -- (auth);
+\draw[arrow] (auth) -- (authok);
+
+\draw[arrow] (authok.west) -- ++(-45mm,0) |- (deny);
+\draw[arrow] (deny) |- (end);
+
+\draw[arrow] (authok.east) -- ++(55mm,0) |- (send);
+\draw[arrow] (send) -- (ardu);
+\draw[arrow] (ardu) -- (status);
+\draw[arrow] (status) -- (notify);
+\draw[arrow] (notify) -- (end);
+
+\end{tikzpicture}
+\caption{Flowchart relativo al requisito funzionale FR1 – Apertura remota.}
+\end{figure}
+
+
+\subsection{Flowchart FR2 – Chiusura remota}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=12mm]
+
+\node[startstop] (start) {Inizio};
+\node[block, below=of start] (cmd) {Ricezione comando\\ \texttt{/close} da Telegram};
+\node[block, below=of cmd] (auth) {Verifica utente autorizzato};
+\node[decision, below=of auth] (authok) {Autorizzato?};
+
+\node[block, below left=15mm and 20mm of authok] (deny) {Invia notifica:\\ accesso negato};
+
+\node[block, below right=15mm and 20mm of authok] (send) {Invia comando MQTT\\ \texttt{garage/cmd = CLOSE}};
+\node[block, below=of send] (ardu) {Arduino attiva relè\\ chiusura porta};
+\node[block, below=of ardu] (status) {Aggiorna stato porta};
+\node[block, below=of status] (notify) {Invia notifica a Telegram};
+
+\node[startstop, below=of notify] (end) {Fine};
+
+% Edges
+\draw[arrow] (start) -- (cmd);
+\draw[arrow] (cmd) -- (auth);
+\draw[arrow] (auth) -- (authok);
+
+\draw[arrow] (authok.west) -- ++(-45mm,0) |- (deny);
+\draw[arrow] (deny) |- (end);
+
+\draw[arrow] (authok.east) -- ++(55mm,0) |- (send);
+\draw[arrow] (send) -- (ardu);
+\draw[arrow] (ardu) -- (status);
+\draw[arrow] (status) -- (notify);
+\draw[arrow] (notify) -- (end);
+
+\end{tikzpicture}
+\caption{Flowchart relativo al requisito funzionale FR2 – Chiusura remota.}
+\end{figure}
+
+
+\subsection{Flowchart FR3 – Consultazione dello stato della porta}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=12mm]
+
+\node[startstop] (start) {Inizio};
+\node[block, below=of start] (cmd) {Ricezione comando\\ \texttt{/status} da Telegram};
+\node[block, below=of cmd] (req) {Flask invia richiesta\\ stato a ESP8266};
+\node[block, below=of req] (esp) {ESP8266 richiede stato\\ ad Arduino via UART};
+\node[block, below=of esp] (ardu) {Arduino legge sensori:\\ PIR, distanza, stato porta};
+\node[block, below=of ardu] (resp) {Arduino invia risposta\\ a ESP8266};
+\node[block, below=of resp] (format) {Flask formatta risposta\\ in messaggio testuale};
+\node[block, below=of format] (send) {Invia stato porta\\ a Telegram};
+\node[startstop, below=of send] (end) {Fine};
+
+% Edges
+\draw[arrow] (start) -- (cmd);
+\draw[arrow] (cmd) -- (req);
+\draw[arrow] (req) -- (esp);
+\draw[arrow] (esp) -- (ardu);
+\draw[arrow] (ardu) -- (resp);
+\draw[arrow] (resp) -- (format);
+\draw[arrow] (format) -- (send);
+\draw[arrow] (send) -- (end);
+
+\end{tikzpicture}
+\caption{Flowchart relativo al requisito funzionale FR3 – Consultazione dello stato della porta.}
+\end{figure}
+
+
+\subsection{Flowchart FR4 – Chiusura automatica}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=10mm]
+
+\node[startstop] (start) {Inizio};
+\node[block, below=of start] (open) {Porta aperta\\ (evento di apertura)};
+\node[block, below=of open] (timer) {Avvio timer interno};
+\node[decision, below=of timer] (expired) {Timer scaduto?};
+
+\node[block, below left=10mm and 5mm of expired] (wait) {Continua attesa};
+\node[block, below right=10mm and 5mm of expired] (check) {Verifica presenza ostacoli\\ (sensore distanza)};
+
+\node[decision, below=of check] (obstacle) {Ostacolo presente?};
+
+\node[block, below left=15mm and 20mm of obstacle] (abort) {Annulla chiusura\\ e riavvia timer};
+
+\node[block, below right=15mm and -20mm of obstacle] (close) {Attiva relè\\ chiusura porta};
+
+\node[block, below=of close] (status) {Aggiorna stato porta};
+\node[block, below=of status] (notify) {Invia notifica al sistema};
+\node[startstop, below=of notify] (end) {Fine};
+
+
+% Edges
+\draw[arrow] (start) -- (open);
+\draw[arrow] (open) -- (timer);
+\draw[arrow] (timer) -- (expired);
+
+\draw[arrow] (expired.west) -- ++(-30mm,0) |- (wait);
+\draw[arrow] (wait.south) -- ++(0,-10mm) |- ++(-25mm,0) |- (expired.north);
+
+\draw[arrow] (expired.east) -- ++(45mm,0) |- (check);
+\draw[arrow] (check) -- (obstacle);
+
+\draw[arrow] (obstacle.west) -- ++(-45mm,0) |- (abort);
+\draw[arrow] (abort.south) -- ++(0,-10mm) |- ++(-50mm,0)|- (timer);
+
+\draw[arrow] (obstacle.east) -- ++(25mm,0) |- (close);
+\draw[arrow] (close) -- (status);
+\draw[arrow] (status) -- (notify);
+\draw[arrow] (notify) -- (end);
+
+\end{tikzpicture}
+\caption{Flowchart relativo al requisito funzionale FR4 – Chiusura automatica.}
+\end{figure}
+
+
+\subsection{Flowchart FR5a – Automazione in uscita (PIR)}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=8mm]
+
+\node[startstop] (start) {Inizio};
+
+\node[block, below=of start] (pir) {Lettura sensore PIR};
+\node[decision, below=of pir] (pircheck) {Movimento rilevato?};
+
+\node[block, below left=15mm and 20mm of pircheck] (noaction) {Nessuna azione};
+\node[startstop, below=of noaction] (end1) {Fine};
+
+\node[block, below right=15mm and -1mm of pircheck] (dist) {Lettura distanza\\ sensore ultrasuoni};
+\node[decision, below=of dist] (distcheck) {Utente vicino alla porta?\\ (distanza < soglia)};
+
+\node[block, below left=15mm and -1mm of distcheck] (stop2) {Nessuna apertura};
+\node[startstop, below=of stop2] (end2) {Fine};
+
+\node[block, below right=15mm and -25mm of distcheck] (open) {Arduino attiva relè\\ apertura porta};
+\node[block, below=of open] (status) {Aggiornamento stato porta};
+\node[block, below=of status] (notify) {Notifica a sistema / Telegram};
+\node[startstop, below=of notify] (end3) {Fine};
+
+
+% Edges
+\draw[arrow] (start) -- (pir);
+\draw[arrow] (pir) -- (pircheck);
+
+\draw[arrow] (pircheck.west) -- ++(-45mm,0) |- (noaction);
+\draw[arrow] (noaction) -- (end1);
+
+\draw[arrow] (pircheck.east) -- ++(55mm,0) |- (dist);
+\draw[arrow] (dist) -- (distcheck);
+
+\draw[arrow] (distcheck.west) -- ++(-25mm,0) |- (stop2);
+\draw[arrow] (stop2) -- (end2);
+
+\draw[arrow] (distcheck.east) -- ++(25mm,0) |- (open);
+\draw[arrow] (open) -- (status);
+\draw[arrow] (status) -- (notify);
+\draw[arrow] (notify) -- (end3);
+
+\end{tikzpicture}
+\caption{Flowchart relativo al requisito funzionale FR5a – Automazione in uscita (PIR).}
+\end{figure}
+
+
+\subsection{Flowchart FR5b – Automazione in ingresso (GPS)}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=8mm]
+
+\node[startstop] (start) {Inizio};
+
+\node[block, below=of start] (gpsupdate) {Ricezione aggiornamento GPS\\ da ESP8266};
+\node[decision, below=of gpsupdate] (nearhome) {Utente dentro\\ il geofence?};
+
+\node[block, below left=15mm and 10mm of nearhome] (noaction) {userNearHome = false\\ Nessuna automazione};
+\node[startstop, below=of noaction] (end1) {Fine};
+
+\node[block, below right=15mm and -10mm of nearhome] (setflag) {userNearHome = true};
+\node[block, below=of setflag] (dist) {Lettura distanza\\ da sensore ultrasuoni};
+\node[decision, below=of dist] (distcheck) {Utente vicino alla porta?\\ (distanza < soglia)};
+
+\node[block, below left=15mm and 20mm of distcheck] (stop) {Condizione non soddisfatta};
+\node[startstop, below=of stop] (end2) {Fine};
+
+\node[block, below right=15mm and -25mm of distcheck] (open) {Attiva relè\\ apertura porta};
+\node[block, below=of open] (status) {Aggiorna stato porta};
+\node[block, below=of status] (notify) {Invia notifica a Telegram};
+\node[startstop, below=of notify] (end3) {Fine};
+
+
+% Edges
+\draw[arrow] (start) -- (gpsupdate);
+\draw[arrow] (gpsupdate) -- (nearhome);
+
+\draw[arrow] (nearhome.west) -- ++(-45mm,0) |- (noaction);
+\draw[arrow] (noaction) -- (end1);
+
+\draw[arrow] (nearhome.east) -- ++(35mm,0) |- (setflag);
+\draw[arrow] (setflag) -- (dist);
+\draw[arrow] (dist) -- (distcheck);
+
+
+
+\draw[arrow] (distcheck.west) -- ++(-27mm,0)
+    -- ++(0,-10mm)        % SCENDI -> punta verso sud
+    -- (stop.north);      % risali fino al bordo superiore
+
+
+
+\draw[arrow] (stop) -- (end2);
+
+\draw[arrow] (distcheck.east) -- ++(15mm,0) |- (open);
+\draw[arrow] (open) -- (status);
+\draw[arrow] (status) -- (notify);
+\draw[arrow] (notify) -- (end3);
+
+\end{tikzpicture}
+\caption{Flowchart relativo al requisito funzionale FR5b – Automazione in ingresso (GPS).}
+\end{figure}
+
+
+\subsection{Flowchart FR6 – Sicurezza dei comandi}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=12mm]
+
+\node[startstop] (start) {Inizio};
+
+\node[block, below=of start] (cmd) {Ricezione comando\\ da Telegram};
+\node[block, below=of cmd] (extract) {Identificazione utente};
+
+\node[decision, below=of extract] (auth) {Utente autorizzato?};
+
+\node[block, below left=15mm and 10mm of auth] (deny) {Comando rifiutato\\ + notifica accesso negato};
+\node[block, below=of deny] (logdeny) {Log evento di sicurezza};
+\node[startstop, below=of logdeny] (end1) {Fine};
+
+\node[block, below right=15mm and 10mm of auth] (accept) {Autorizzazione concessa};
+\node[block, below=of accept] (forward) {Invia comando a MQTT\\ per NodeMCU / Arduino};
+\node[startstop, below=of forward] (end2) {Fine};
+
+% Edges
+\draw[arrow] (start) -- (cmd);
+\draw[arrow] (cmd) -- (extract);
+\draw[arrow] (extract) -- (auth);
+
+\draw[arrow] (auth.west) -- ++(-45mm,0) |- (deny);
+\draw[arrow] (deny) -- (logdeny);
+\draw[arrow] (logdeny) -- (end1);
+
+\draw[arrow] (auth.east) -- ++(45mm,0) |- (accept);
+\draw[arrow] (accept) -- (forward);
+\draw[arrow] (forward) -- (end2);
+
+\end{tikzpicture}
+\caption{Flowchart relativo al requisito funzionale FR6 – Sicurezza dei comandi.}
+\end{figure}
+
+
+\subsection{Flowchart FR7 – Comando locale manuale}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=12mm]
+
+\node[startstop] (start) {Inizio};
+
+\node[block, below=of start] (press) {Rilevazione pressione\\ pulsante manuale};
+\node[block, below=of press] (debounce) {Debounce ingresso};
+\node[block, below=of debounce] (readstate) {Lettura stato porta};
+
+\node[decision, below=of readstate] (isopen) {Porta aperta?};
+
+\node[block, below left=15mm and 20mm of isopen] (close) {Attiva relè\\ chiusura porta};
+\node[block, below=of close] (updatestateC) {Aggiorna stato porta};
+\node[block, below=of updatestateC] (notifyC) {Invia notifica (se online)};
+\node[startstop, below=of notifyC] (end1) {Fine};
+
+\node[block, below right=15mm and 20mm of isopen] (open) {Attiva relè\\ apertura porta};
+\node[block, below=of open] (updatestateO) {Aggiorna stato porta};
+\node[block, below=of updatestateO] (notifyO) {Invia notifica (se online)};
+\node[startstop, below=of notifyO] (end2) {Fine};
+
+% Edges
+\draw[arrow] (start) -- (press);
+\draw[arrow] (press) -- (debounce);
+\draw[arrow] (debounce) -- (readstate);
+\draw[arrow] (readstate) -- (isopen);
+
+\draw[arrow] (isopen.west) -- ++(-45mm,0) |- (close);
+\draw[arrow] (close) -- (updatestateC);
+\draw[arrow] (updatestateC) -- (notifyC);
+\draw[arrow] (notifyC) -- (end1);
+
+\draw[arrow] (isopen.east) -- ++(55mm,0) |- (open);
+\draw[arrow] (open) -- (updatestateO);
+\draw[arrow] (updatestateO) -- (notifyO);
+\draw[arrow] (notifyO) -- (end2);
+
+\end{tikzpicture}
+\caption{Flowchart relativo al requisito funzionale FR7 – Comando locale manuale.}
+\end{figure}
+
+
+\subsection{Flowchart FR8 – Rilevazione ostacolo}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=12mm]
+
+\node[startstop] (start) {Inizio};
+
+\node[block, below=of start] (moving) {Porta in movimento\\ (fase di chiusura)};
+\node[block, below=of moving] (read) {Lettura distanza\\ sensore ultrasuoni};
+
+\node[decision, below=of read] (obstacle) {Distanza < soglia?\\ (Ostacolo presente)};
+
+% ramo NO (continua)
+\node[block, below right=15mm and 20mm of obstacle] (continue) {Continua chiusura};
+\node[startstop, below=of continue] (end1) {Fine};
+
+% ramo SI (ostacolo)
+\node[block, below left=15mm and 20mm of obstacle] (stop) {Arresto immediato\\ movimento porta};
+\node[block, below=of stop] (invert) {Eventuale inversione\\ movimento (opzionale)};
+\node[block, below=of invert] (update) {Aggiorna stato porta};
+\node[block, below=of update] (notify) {Invia notifica al sistema};
+\node[startstop, below=of notify] (end2) {Fine};
+
+% Edges
+\draw[arrow] (start) -- (moving);
+\draw[arrow] (moving) -- (read);
+\draw[arrow] (read) -- (obstacle);
+
+\draw[arrow] (obstacle.east) -- ++(55mm,0) |- (continue);
+\draw[arrow] (continue) -- (end1);
+
+\draw[arrow] (obstacle.west) -- ++(-45mm,0) |- (stop);
+\draw[arrow] (stop) -- (invert);
+\draw[arrow] (invert) -- (update);
+\draw[arrow] (update) -- (notify);
+\draw[arrow] (notify) -- (end2);
+
+\end{tikzpicture}
+\caption{Flowchart relativo al requisito funzionale FR8 – Rilevazione ostacolo.}
+\end{figure}
+
+
+\subsection{Flowchart FR9 – Notifiche eventi}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=12mm]
+
+\node[startstop] (start) {Inizio};
+
+\node[block, below=of start] (event) {Generazione evento\\ (apertura, chiusura, ostacolo, accesso negato, GPS...)};
+
+\node[block, below=of event] (ardu) {Arduino invia evento\\ via UART a ESP8266};
+
+\node[block, below=of ardu] (esp) {ESP8266 aggiorna stato\\ e inoltra evento a Flask};
+
+\node[block, below=of esp] (log) {Flask registra evento\\ nel registro locale};
+
+\node[block, below=of log] (notif) {Preparazione messaggio\\ di notifica};
+
+\node[block, below=of notif] (send) {Invio notifica a Telegram};
+
+\node[startstop, below=of send] (end) {Fine};
+
+
+% Edges
+\draw[arrow] (start) -- (event);
+\draw[arrow] (event) -- (ardu);
+\draw[arrow] (ardu) -- (esp);
+\draw[arrow] (esp) -- (log);
+\draw[arrow] (log) -- (notif);
+\draw[arrow] (notif) -- (send);
+\draw[arrow] (send) -- (end);
+
+\end{tikzpicture}
+\caption{Flowchart relativo al requisito funzionale FR9 – Notifiche eventi.}
+\end{figure}
+
+\subsection{Flowchart globale del sistema}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=12mm,
+    every node/.style={font=\footnotesize},
+    start/.style={
+        ellipse, draw,
+        minimum width=18mm,
+        minimum height=8mm,
+        fill=gray!10,
+        align=center
+    },
+    block/.style={
+        rectangle, draw, rounded corners,
+        minimum width=32mm,
+        minimum height=10mm,
+        text centered,
+        text width=32mm,
+        align=center,
+        fill=gray!5
+    },
+    decision/.style={
+        diamond, draw,
+        aspect=2,
+        text centered,
+        text width=24mm,
+        inner sep=1pt,
+        align=center,
+        fill=gray!5
+    },
+    line/.style={-{Latex[length=2mm]}, thick}
+]
+
+% --- NODES ---
+
+% Start
+\node[start] (start) {Start};
+
+% Arduino loop
+\node[block, below=of start] (read) {Lettura sensori \\ PIR, Distanza};
+\node[decision, below=of read] (pir) {PIR = HIGH?};
+
+\node[decision, below=of pir, xshift=-22mm] (gps_ok) {GPS attivo? \\ (FR5b)};
+\node[decision, below=of pir, xshift=22mm] (dist_ok) {Distanza < 15 cm? \\ (FR5a)};
+
+\node[decision, below=of gps_ok] (open_cond) {Condizioni \\ soddisfatte?};
+\node[block, below=of open_cond] (open) {Apri porta};
+\node[block, below=of dist_ok] (none) {Mantieni stato attuale};
+
+% Chiusura automatica
+\node[decision, below=of open, yshift=-4mm] (close_timer) {Timer scaduto? \\ (FR4)};
+\node[block, below=of close_timer] (close) {Chiudi porta};
+
+% NodeMCU
+\node[block, right=33mm of pir] (mq) {Ricezione comandi \\ HTTP/MQTT};
+\node[decision, below=of mq] (cmd) {Comando valido?};
+\node[block, below=of cmd] (send_serial) {Invia comando \\ ad Arduino};
+
+% Flask
+\node[block, right=-43mm of mq, yshift=-72mm] (api) {API REST \\ /open, /close, /status};
+\node[decision, below=of api] (update) {Aggiorna \\ stato globale?};
+\node[block, below=of update] (notify) {Pubblica evento \\ MQTT + Telegram};
+
+% --- CONNECTIONS ---
+
+\draw[line] (start) -- (read);
+\draw[line] (read) -- (pir);
+
+\draw[line] (pir) -- node[left]{No} (gps_ok);
+\draw[line] (pir) -- node[right]{Sì} (dist_ok);
+
+\draw[line] (gps_ok) -- node[left]{Sì} (open_cond);
+\draw[line] (dist_ok) -- node[right]{No} (none);
+
+\draw[line] (open_cond) -- node[left]{Sì} (open);
+\draw[line] (open_cond.east) -- ++(2mm,0) |- node[pos=0.1,right]{No} (none);
+
+\draw[line] (open) -- (close_timer);
+\draw[line] (close_timer) -- node[right]{Sì} (close);
+
+% NodeMCU
+\draw[line] (pir.east) -- ++(6mm,0) |- (mq);
+\draw[line] (mq) -- (cmd);
+\draw[line] (cmd) -- node[right]{Sì} (send_serial);
+\draw[line] (cmd.west) -- ++(-16mm,0) |- node[left]{No} (read);
+
+% Flask
+\draw[line] (mq.east) -- ++(6mm,0) |- (api);
+\draw[line] (api) -- (update);
+\draw[line] (update) -- node[right]{Sì} (notify);
+
+\end{tikzpicture}
+
+\caption{Flowchart completo del sistema \textit{Smart Garage Door}. Il diagramma rappresenta l'interazione tra logica sensoriale locale (Arduino), gateway di comunicazione (NodeMCU) e livello applicativo (Flask + Telegram), con riferimento ai requisiti funzionali FR4, FR5a e FR5b.}
+\label{fig:flowchart_sgd}
+\end{figure}
+
+
+\subsection{Descrizione del flusso operativo}
+Il flusso in Figura~\ref{fig:flowchart_sgd} evidenzia le principali fasi del funzionamento integrato del sistema:
+
+\begin{enumerate}
+\item \textbf{Acquisizione sensoriale (Arduino)}
+Il microcontrollore esegue letture periodiche dei sensori PIR e HC-SR04, valutando la presenza dell’utente e la distanza da ostacoli o oggetti in prossimità della porta.
+arduino
+Copia codice
+\item \textbf{Automazione FR5a–FR5b}
+La porta si apre automaticamente solo quando:
+\begin{itemize}
+    \item il PIR rileva movimento (\textit{salita FR5a});
+    \item la distanza è inferiore alla soglia;
+    \item il NodeMCU segnala \texttt{userNearHome = true} tramite messaggio GPS (FR5b).
+\end{itemize}
+Tutte le condizioni devono essere soddisfatte simultaneamente per evitare aperture indesiderate.
+
+\item \textbf{Comandi remoti da NodeMCU}
+L’ESP8266 riceve richieste HTTP/MQTT provenienti dal server Flask e le inoltra ad Arduino tramite seriale, garantendo il funzionamento remoto e l’integrazione con il Digital Twin.
+
+\item \textbf{Gestione API (Flask)}
+Il server espone endpoint REST che permettono all’utente e ai servizi applicativi di:
+\begin{itemize}
+    \item aprire/chiudere la porta,
+    \item interrogare lo stato corrente,
+    \item ricevere notifiche e aggiornamenti in tempo reale.
+\end{itemize}
+
+\item \textbf{Chiusura automatica (FR4)}
+Un timer interno ad Arduino garantisce la chiusura della porta dopo un intervallo configurabile, prevenendo aperture prolungate.
+
+\item \textbf{Notifiche (MQTT + Telegram)}
+Eventi significativi, come l’apertura della porta o il cambio dello stato GPS, vengono inoltrati tramite MQTT e Telegram, offrendo tracciabilità e trasparenza all’utente finale.
+\end{enumerate}
+
+
+\section{Componenti hardware e software}
+
+\subsection{Componenti hardware}
+
+Il prototipo \textit{Smart Garage Door} è stato realizzato utilizzando componenti a basso costo, facilmente reperibili e compatibili con le esigenze di modularità, espandibilità e vincolo economico (NFR10).
+La selezione dell’hardware si è basata sulla disponibilità commerciale, sul supporto della comunità open source e sulla capacità dei moduli di soddisfare i requisiti funzionali FR1–FR8.
+
+I principali elementi hardware impiegati sono:
+
+\begin{itemize}
+\item \textbf{Arduino UNO} – microcontrollore dedicato alla gestione del \textit{Perception Layer}.
+Gestisce sensori, attuatori, temporizzazioni e tutte le logiche locali di sicurezza. Garantisce il funzionamento anche in assenza di rete (NFR5).
+
+\item \textbf{NodeMCU ESP8266} – modulo Wi-Fi incaricato della connettività con il server.  
+Pubblica stati ed eventi tramite MQTT e funge da \textit{gateway} tra microcontrollore locale e Application Layer.
+
+\item \textbf{Modulo GPS NEO-6M} – utilizzato per implementare l’automazione basata sulla prossimità del veicolo (FR5b).  
+Comunica con ESP8266 tramite seriale UART.
+
+\item \textbf{Sensore PIR HC-SR501} – rileva movimento interno per l’automazione locale in uscita (FR5a).
+
+\item \textbf{Relè 5 V} – attuatore che comanda il motorino del garage.  
+È controllato da Arduino tramite un pin digitale dedicato.
+
+\item \textbf{Alimentazione 5 V / 2 A} – fornisce l’energia necessaria a entrambi i microcontrollori e ai moduli esterni.
+
+
+\end{itemize}
+
+L’interoperabilità tra le componenti è garantita dall’uso di interfacce standard (UART, GPIO, Wi-Fi) e da una struttura elettrica semplificata che facilita manutenzione e replicabilità.
+La Figura~\ref{fig:hardware_architecture} illustra la relazione tra i moduli e la loro interconnessione a livello fisico.
+
+
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    font=\footnotesize,
+    box/.style={draw, thick, rounded corners=2mm, minimum width=32mm, minimum height=11mm, align=center, fill=gray!5},
+    sensor/.style={draw, rounded corners=2mm, minimum width=28mm, minimum height=10mm, align=center, fill=gray!2},
+    power/.style={draw, thick, rounded corners=2mm, minimum width=34mm, minimum height=10mm, align=center, fill=gray!10},
+    line/.style={-{Latex[length=2.6mm]}, very thick},
+    serial/.style={line, dash dot, color=red!70!black},
+    wifi/.style={line, dotted, color=orange!80!black},
+    gpio/.style={line, color=gray!60!black}
+]
+
+%=== POSIZIONAMENTO NODI =====================================================
+\node[power] (power) at (0,5.2) {Alimentazione 5 V / 2 A};
+
+\node[box] (arduino) at (-3,0) {Arduino Nano\\(I/O Controller)};
+\node[box] (esp) at (3,0) {NodeMCU ESP8266\\(Wi-Fi / MQTT Bridge)};
+
+\node[sensor] (gps) at (3,3.0) {GPS \\(Posizione)};
+\node[sensor] (pir) at (-3,-3.5) {Sensore PIR\\(Movimento)};
+\node[sensor] (relay) at (3,-3.5) {Relè + Motore\\(Attuatore porta)};
+
+%=== COLLEGAMENTI ============================================================
+
+% Alimentazione
+\draw[line] (power.south) |- ([yshift=6mm]arduino.north)
+  node[midway,left, yshift=3mm]{\scriptsize 5 V / GND};
+\draw[line] (power.south) |- ([yshift=6mm]esp.north)
+  node[midway,right,yshift=3mm]{\scriptsize 5 V / GND};
+
+% Serial link tra ESP e Arduino
+\draw[serial,<->] ([xshift=3mm]arduino.east) -- ([xshift=-3mm]esp.west)
+  node[midway,above]{\scriptsize UART Serial};
+
+% Wi-Fi esterno
+\draw[wifi,->] ([xshift=3mm]esp.east) -- ++(2.2,0)
+  node[midway,above]{\scriptsize Wi-Fi (2.4 GHz)};
+
+% Sensori e attuatori
+\draw[gpio,->] (pir.north) -- ++(0,1.6) -| ([yshift=-4mm]arduino.south)
+  node[midway,left]{\scriptsize GPIO};
+\draw[gpio,->] (relay.north) -- ++(0,1.6) -| ([yshift=-4mm]arduino.south)
+  node[midway,right,yshift=-3mm]{\scriptsize GPIO};
+\draw[serial,->] (gps.south) -- ++(0,-1.5) -| ([yshift=5mm]esp.north)
+  node[midway,right]{\scriptsize UART};
+
+%=== TITOLI DI GRUPPO ========================================================
+\node[anchor=west] at (-6.2,1.2) {\textbf{Microcontrollori}};
+\node[anchor=west] at (-6.2,-2.5) {\textbf{Sensori e Attuatori}};
+\node[anchor=west] at (-6.2,5.2) {\textbf{Alimentazione}};
+
+\end{tikzpicture}
+
+\caption{Architettura hardware del sistema \textit{Smart Garage Door}.  
+I collegamenti tra i moduli sono spaziati per garantire chiarezza visiva:
+l’alimentazione 5 V/2 A fornisce energia a entrambi i microcontrollori,
+mentre l’ESP8266 comunica con l’Arduino tramite interfaccia UART e connessione Wi-Fi.  
+Il modulo GPS, il sensore PIR e il relè/motore sono gestiti tramite linee dedicate (UART e GPIO).}
+\label{fig:hardware_architecture}
+\end{figure}
+
+
+\subsection{Componenti software}
+
+Il livello applicativo del sistema si basa su tecnologie \textbf{open source} che garantiscono modularità, portabilità e semplicità di integrazione tra i diversi sottosistemi.
+Le scelte software sono state effettuate in modo da soddisfare i requisiti di affidabilità, scalabilità e sicurezza (NFR2, NFR3, NFR6) e per mantenere la coerenza con il paradigma IoT a tre livelli.
+
+I principali componenti software impiegati sono:
+
+\begin{itemize}
+\item \textbf{Python 3 + Flask} \cite{Flask2024} – utilizzati per implementare il \textit{Application Layer}.
+Flask funge da server web leggero e da gateway REST, gestendo comandi, logica applicativa, integrazione con il broker MQTT e interfaccia con il bot Telegram.
+
+\item \textbf{MQTT Broker (Mosquitto)} \cite{MQTTspec} – elemento centrale del \textit{Network Layer}, responsabile dello scambio di messaggi tra i nodi embedded (ESP8266, Arduino) e il server.  
+Il modello publish/subscribe garantisce comunicazione asincrona, efficienza e bassa latenza.
+
+\item \textbf{Telegram Bot API} \cite{TelegramAPI} – utilizzata per realizzare l’interfaccia conversazionale del sistema, permettendo all’utente di inviare comandi remoti (/on, /off, /status) e ricevere notifiche in tempo reale.
+
+
+\item \textbf{Arduino IDE 2.3} \cite{ArduinoRef} – ambiente di sviluppo utilizzato per programmare i firmware dei microcontrollori Arduino UNO e NodeMCU ESP8266.
+
+
+\end{itemize}
+
+A supporto di questi strumenti, il progetto utilizza librerie ampiamente diffuse nella comunità IoT:
+
+\begin{itemize}
+\item \textbf{PubSubClient} – per la gestione MQTT sul modulo ESP8266;
+\item \textbf{TinyGPSPlus} – per la decodifica dei messaggi NMEA provenienti dal modulo GPS;
+\item \textbf{python-telegram-bot} – per la gestione asincrona del bot Telegram;
+\item \textbf{requests} – per le comunicazioni HTTP con ThingSpeak e componenti esterni.
+\end{itemize}
+
+L’integrazione tra questi strumenti consente di ottenere un sistema software leggero, modulare e facilmente estendibile.
+L’adozione esclusiva di tecnologie open source favorisce inoltre la replicabilità del progetto, in linea con i requisiti di economicità (NFR10) e con le buone pratiche di progettazione di sistemi IoT distribuiti.
+\section{Interfacce e sicurezza}
+
+L’architettura del sistema \textit{Smart Garage Door} prevede un insieme di interfacce e meccanismi di sicurezza progettati per garantire l’integrità, la disponibilità e la riservatezza delle comunicazioni tra i vari moduli.
+In linea con i requisiti non funzionali (NFR6–NFR8), ogni scambio informativo è regolato da controlli espliciti di autenticazione, validazione dei messaggi e gestione degli accessi.
+
+\subsection*{Interfacce di comunicazione}
+
+Le principali interfacce utilizzate nel sistema sono:
+
+\begin{itemize}
+\item \textbf{UART (Arduino <-> ESP8266)}
+Impiegata per il trasferimento locale di comandi e stati.
+La comunicazione è strutturata su frame a byte singolo per ridurre complessità e garantire determinismo temporale.
+
+\item \textbf{MQTT (ESP8266 <-> Broker  Flask)}  
+Utilizzato come protocollo principale per lo scambio asincrono di eventi.  
+I topic sono organizzati secondo un modello gerarchico (ad es. \texttt{home/garage/cmd}, \texttt{home/garage/status}) che permette di separare funzioni e privilegi.
+
+\item \textbf{HTTP/HTTPS (Telegram <-> Flask)}  
+La Telegram Bot API comunica con il server tramite richieste REST, fornendo un'interfaccia stateless robusta e semplice da estendere.
+
+
+\end{itemize}
+
+Queste interfacce implementano un modello di comunicazione \textit{loosely coupled}, che favorisce scalabilità e indipendenza tra i sottosistemi, riducendo l’impatto di eventuali guasti locali.
+
+\subsection*{Sicurezza dei dati e autenticazione}
+
+Per garantire la protezione delle informazioni e prevenire accessi non autorizzati, sono stati adottati i seguenti meccanismi:
+
+\begin{itemize}
+\item \textbf{Identificazione dell’utente Telegram}
+Ogni comando remoto è associato all’ID univoco dell’utente.
+Solo gli utenti autorizzati (whitelist) possono inviare comandi di apertura o modifica dello stato del sistema.
+
+\item \textbf{Token di sessione e API key}  
+Le richieste verso Flask sono validate tramite una API key generata e conservata lato server, impedendo l’invio di comandi da fonti non autorizzate.
+
+\item \textbf{Integrità dei messaggi MQTT}  
+Prevista l’adozione di TLS per la crittografia del canale MQTT, in accordo con le specifiche OASIS \cite{MQTTspec}, sebbene non attivata nel prototipo per vincoli hardware dell’ESP8266.
+
+\item \textbf{Gestione e anonimizzazione dei log}  
+I log generati dal sistema vengono anonimizzati (rimozione di ID personali), in conformità al requisito NFR7 sulla privacy.
+
+\item \textbf{Fallback locale}  
+In caso di guasto della connettività o indisponibilità del server, la logica autonoma su Arduino garantisce la continuità di servizio, evitando che la porta rimanga in uno stato non sicuro (NFR5, NFR8).
+
+
+\end{itemize}
+
+\subsection*{Robustezza e resilienza}
+
+L’integrazione di controlli locali, autenticazione remota e comunicazioni asincrone attraverso MQTT contribuisce a una maggiore resilienza del sistema.
+L’architettura garantisce infatti che:
+
+\begin{itemize}
+\item la porta possa essere sempre controllata localmente, indipendentemente dalla rete;
+\item eventuali guasti del server Flask non compromettano la sicurezza operativa;
+\item l’interfaccia Telegram rimanga sicura e isolata dal livello fisico dei dispositivi;
+\item le operazioni critiche (apertura/chiusura) siano sempre verificate e confermate tramite messaggi di stato.
+\end{itemize}
+
+Nel complesso, la gestione delle interfacce e dei meccanismi di sicurezza è progettata per rispettare i principi di \textit{security-by-design}, minimizzando i rischi legati ad accessi non autorizzati e garantendo affidabilità operativa anche in condizioni di rete non ottimali.
+
+
+\subsection{Confronto con lo scenario teorico a budget illimitato}
+
+Durante la fase di progettazione è stata condotta un’analisi preliminare basata su uno \textbf{scenario teorico a budget illimitato}, inteso come esercizio di ingegneria dei requisiti volto a identificare la soluzione tecnologicamente ottimale in assenza di vincoli economici, didattici o di complessità implementativa.
+Questa analisi ha avuto un duplice scopo:
+(1) individuare il massimo livello di prestazioni, sicurezza e robustezza raggiungibile dal sistema;
+(2) fornire un riferimento strutturato per giustificare le scelte progettuali adottate nel prototipo reale.
+
+\subsubsection*{Scenario teorico con risorse illimitate}
+
+In tale scenario il sistema sarebbe stato sviluppato impiegando componenti e servizi di livello industriale, con particolare attenzione a \textbf{affidabilità}, \textbf{resilienza} e \textbf{integrazione cloud–edge}.
+Una piattaforma come \textbf{Raspberry Pi 4} o \textbf{ESP32-S3} avrebbe gestito il controllo locale, grazie a CPU multi-core, memoria superiore a 2~GB e connettività dual-band, LTE o 5G per garantire disponibilità continua.
+
+Il sistema di percezione avrebbe integrato un \textbf{sensore GPS ad alta precisione}, un \textbf{accelerometro a tre assi} e un \textbf{sensore ultrasonico} o radar, con un’accuratezza nella rilevazione degli ostacoli inferiore al 2%.
+L’attuazione sarebbe affidata a un \textbf{motore brushless controllato in PWM} con encoder ottico per il feedback di posizione, consentendo aperture graduali, sicure e con rilevazione immediata di condizioni anomale.
+
+Dal punto di vista comunicativo, il sistema si baserebbe su un’infrastruttura \textbf{MQTT cloud-native}, tramite servizi come \textit{AWS IoT Core} o \textit{HiveMQ Cloud}, con supporto QoS elevato e autenticazione tramite certificati X.509.
+La persistenza dei dati sarebbe affidata a un database \textbf{NoSQL scalabile} (InfluxDB, MongoDB Atlas), mentre il back-end applicativo sarebbe distribuito su container \textbf{Docker} orchestrati da \textit{Kubernetes}, garantendo disponibilità 24/7, failover automatico e aggiornamenti OTA (Over-The-Air).
+
+L’interfaccia utente assumerebbe la forma di una \textbf{PWA multi-dispositivo} o di un sistema di controllo tramite assistenti vocali (Amazon Alexa, Google Home), mentre la sicurezza si baserebbe su \textbf{TLS 1.3}, autenticazione multifattoriale e gestione centralizzata delle chiavi tramite \textbf{Hardware Security Module (HSM)}.
+La gestione dei log e dei dati sensibili rispetterebbe le linee guida ISO/IEC~27001 con politiche di \textit{data retention} configurabili.
+
+\subsubsection*{Soluzione reale implementata}
+
+Il prototipo sviluppato nel presente lavoro adotta una strategia improntata a \textbf{semplicità}, \textbf{economicità} e \textbf{replicabilità didattica}, mantenendo tuttavia la stessa struttura logica a tre livelli adottata nello scenario teorico.
+Il sistema si basa su un’architettura locale composta da \textbf{Arduino UNO} (per gestione sensori e attuatori) e \textbf{NodeMCU ESP8266} (per connettività Wi-Fi e MQTT).
+La comunicazione avviene tramite un broker \textbf{Mosquitto} locale, mentre l’interfaccia utente è implementata con \textbf{Flask} e \textbf{Telegram Bot}.
+
+
+Pur operando con risorse limitate, il sistema realizzato soddisfa tutti i requisiti funzionali (FR1–FR8) e non funzionali (in particolare NFR2, NFR5 e NFR10), garantendo continuità operativa, semplicità d’uso e coerenza architetturale.
+
+\subsubsection*{Discussione del confronto}
+
+Dall’analisi comparativa emerge che, nonostante le differenze nei componenti e nelle prestazioni, la \textbf{logica architetturale} del prototipo ricalca fedelmente quella dello scenario teorico:
+l’adozione di protocolli aperti, interfacce standard e componenti modulari permette una naturale evoluzione verso configurazioni più avanzate, qualora il contesto applicativo o le risorse economiche lo consentano.
+
+Lo scenario teorico non rappresenta quindi un’alternativa al prototipo, ma la sua naturale estensione, confermando la solidità delle scelte progettuali e la loro piena adesione ai principi del \textbf{System Development Life Cycle (SDLC)} \cite{Pressman2019}.
+
+
+
+
+\begin{minipage}{0.85\textwidth}
+\renewcommand{\arraystretch}{1.4}
+\setlength{\tabcolsep}{6pt}
+\footnotesize
+\captionof{table}{Confronto tra scenario teorico a budget illimitato e soluzione reale implementata.}
+\begin{tabular}{p{3.2cm} p{5cm} p{5cm}}
+\toprule
+\textbf{Categoria} & \textbf{Scenario teorico (budget illimitato)} & \textbf{Soluzione reale (prototipo implementato)} \\
+\midrule
+
+\textbf{Obiettivo progettuale} &
+Massimizzare prestazioni, affidabilità, sicurezza e scalabilità tramite architettura cloud--edge distribuita. &
+Realizzare un sistema funzionante, economico e replicabile, mantenendo la coerenza con il modello IoT a tre livelli. \\
+
+\textbf{Microcontrollore / elaborazione locale} &
+Raspberry~Pi~4 o ESP32-S3 con CPU multi-core, 2--4~GB RAM, Wi-Fi~5/LTE e capacità edge avanzate. &
+Arduino~UNO + NodeMCU~ESP8266 con interfaccia seriale e Wi-Fi 2.4~GHz. \\
+
+\textbf{Connettività e rete} &
+MQTT su cloud (AWS~IoT~Core, HiveMQ) con QoS 1--2, certificati X.509 e rete ibrida Wi-Fi + 5G/LTE. &
+Broker Mosquitto locale su Wi-Fi domestica; MQTT con QoS~0; nessuna rete cellulare. \\
+
+\textbf{Sensori e attuatori} &
+GPS integrato, accelerometro/giroscopio, sensori ultrasonici e encoder ottici per feedback continuo. &
+GPS NEO-6M, sensore PIR per movimento e relè a 5~V per azionamento motore. \\
+
+\textbf{Back-end e storage dati} &
+Container Docker su cloud, orchestrati da Kubernetes; database NoSQL (MongoDB, InfluxDB). &
+Server Flask su host locale. \\
+
+\textbf{Interfaccia utente} &
+PWA multi-dispositivo o integrazione con assistenti vocali (Alexa, Google Home); autenticazione OAuth2. &
+Bot Telegram con autenticazione tramite ID utente e comandi testuali (/on, /off, /status). \\
+
+\textbf{Sicurezza e autenticazione} &
+TLS~1.3 end-to-end, gestione chiavi in HSM e autenticazione multifattoriale. &
+Autenticazione via token in Flask; hash SHA-256; canali MQTT/HTTPS non cifrati nel prototipo. \\
+
+\textbf{Gestione energetica} &
+Alimentazione intelligente, moduli power-saving e monitoraggio remoto dei consumi. &
+Alimentazione 5~V/2~A; consumo ridotto grazie a microcontrollori low-power. \\
+
+\textbf{Costo stimato complessivo} &
+Superiore a 300~euro (sensori avanzati, infrastruttura cloud, connettività). &
+Inferiore a 150~euro, conforme al requisito NFR10. \\
+
+\textbf{Scalabilità e manutenzione} &
+Espandibile a sistemi multi-garage o smart-home; aggiornamenti OTA e logging continuo. &
+Scalabilità limitata ma compatibile con futuri upgrade hardware/software. \\
+
+\textbf{Robustezza e affidabilità} &
+Disponibilità 24/7 grazie a infrastruttura ridondata con failover automatico. &
+Disponibilità locale garantita, con fallback manuale (FR7). \\
+
+\bottomrule
+\end{tabular}
+\label{tab:theoretical_vs_real}
+\end{minipage}
+
+
+
+
+
+La Tabella~\ref{tab:theoretical_vs_real} evidenzia come la soluzione reale mantenga la stessa logica architetturale del modello teorico, pur adottando componenti più semplici ed economici per soddisfare i vincoli di costo e complessità. La progettazione segue un principio di \textbf{scalabilità progressiva}, che consente al prototipo di evolvere verso configurazioni più avanzate senza modificare la struttura concettuale del sistema.
+
+\section{Pinout e collegamenti elettrici}
+
+La definizione del pinout e dei collegamenti elettrici rappresenta un elemento essenziale nel processo di system design, poiché assicura la corrispondenza tra modello architetturale e implementazione fisica del prototipo.
+Nel progetto \textit{Smart Garage Door}, il wiring è stato progettato seguendo principi di modularità, separazione delle responsabilità e coerenza con l’architettura a tre livelli (Perception–Network–Application).
+La Tabella~\ref{tab:pinouttable} riassume i collegamenti definitivi tra microcontrollori, sensori, attuatori e moduli di comunicazione.
+
+\begin{table}[H]
+\centering
+\caption{Pinout definitivo dei componenti hardware del sistema}
+\label{tab:pinouttable}
+
+
+\begin{tabular}{|p{3.2cm}|p{2cm}|p{2cm}|p{2cm}|p{4cm}|}
+\hline
+\textbf{Componente} & \textbf{Segnale / Pin} & \textbf{Board Pin} & \textbf{Direzione} & \textbf{Descrizione} \\
+\hline
+
+\multicolumn{5}{|c|}{\textbf{Arduino UNO – Perception Layer}} \\ \hline
+PIR Sensor & OUT & D4 & Input & Rilevazione movimento (FR5a). \\ \hline
+Servo Motor & Control & D5 & Output & Movimento apertura/chiusura porta (FR1, FR4). \\ \hline
+HC-SR04 & Trigger & D6 & Output & Invio impulso ultrasuoni (FR8). \\ \hline
+HC-SR04 & Echo & D7 & Input & Ricezione eco ultrasuoni (FR8). \\ \hline
+Pulsante manuale & SIG & D8 & Input & Comando locale override (FR7). \\ \hline
+LED stato porta & Green LED & D9 & Output & Indicatore porta aperta. \\ \hline
+Seriale da ESP8266 & RX\textsubscript{Arduino} & D10 & Input & Ricezione comandi dal NodeMCU. \\ \hline
+Seriale verso ESP8266 & TX\textsubscript{Arduino} & D11 & Output & Invio stato e eventi verso NodeMCU. \\ \hline
+Arduino UNO & 5V & 5V & Power & Alimentazione sensori. \\ \hline
+Arduino UNO & GND & GND & Ground & Massa comune. \\ \hline
+
+\multicolumn{5}{|c|}{\textbf{NodeMCU ESP8266 – Network Layer}} \\ \hline
+ESP8266 UART TX & TX & D1 & Output & Invio comandi ad Arduino. \\ \hline
+ESP8266 UART RX & RX & D2 & Input & Ricezione stato da Arduino. \\ \hline
+ESP8266 Wi-Fi & Antenna & -- & Bidirectional & Connessione a rete locale (NFR1). \\ \hline
+ESP8266 MQTT Client & -- & -- & Bidirectional & Pub/Sub verso broker MQTT. \\ \hline
+NodeMCU & 3V3 & 3V3 & Power & Alimentazione ESP8266. \\ \hline
+NodeMCU & GND & GND & Ground & Massa comune. \\ \hline
+
+\multicolumn{5}{|c|}{\textbf{Modulo GPS – Geofencing (FR5b)}} \\ \hline
+GPS UART TX & TX & D3 (NodeMCU) & Output & Trasmissione coordinate NMEA verso ESP8266. \\ \hline
+GPS UART RX & RX & D4 (NodeMCU) & Input & Ricezione (opzionale). \\ \hline
+GPS & VCC & 3V3 & Power & Alimentazione modulo GPS. \\ \hline
+GPS & GND & GND & Ground & Massa comune. \\ \hline
+
+\multicolumn{5}{|c|}{\textbf{Attuatori e sensori – Perception Layer}} \\ \hline
+Servo Module & IN & D5 (Arduino) & Input & Controllo servo motore. \\ \hline
+Servo Module & VCC & 5V & Power & Alimentazione servo. \\ \hline
+Servo Module & GND & GND & Ground & Massa comune. \\ \hline
+
+PIR Sensor & OUT & D4 (Arduino) & Output & Segnale di rilevazione movimento. \\ \hline
+PIR Sensor & VCC & 5V & Power & Alimentazione PIR. \\ \hline
+PIR Sensor & GND & GND & Ground & Massa comune. \\ \hline
+
+HC-SR04 & TRIG & D6 (Arduino) & Output & Invio impulso ultrasuoni. \\ \hline
+HC-SR04 & ECHO & D7 (Arduino) & Input & Ricezione eco ultrasuoni. \\ \hline
+HC-SR04 & VCC & 5V & Power & Alimentazione sensore. \\ \hline
+HC-SR04 & GND & GND & Ground & Massa comune. \\ \hline
+
+Pulsante manuale & SIG & D8 (Arduino) & Input & Override locale apertura/chiusura. \\ \hline
+Pulsante manuale & VCC & 5V & Power & Alimentazione. \\ \hline
+Pulsante manuale & GND & GND & Ground & Massa comune. \\ \hline
+
+\end{tabular}
+\end{table}
+
+La struttura del pinout garantisce un elevato livello di separazione tra i livelli architetturali:
+\begin{itemize}
+    \item \textbf{Perception Layer}: sensori PIR e distanza, attuatore servo, pulsante locale;
+    \item \textbf{Network Layer}: modulo NodeMCU ESP8266, GPS NEO-6M, UART di collegamento con Arduino;
+    \item \textbf{Application Layer}: backend Flask, MQTT broker e bot Telegram.
+\end{itemize}
+
+Questa organizzazione riflette una progettazione coerente con gli standard IoT moderni e facilita la manutenibilità e la scalabilità del sistema.
+
+
+
+
+\section{Considerazioni di progetto}
+
+La progettazione complessiva del sistema riflette un approccio \textbf{bottom-up}, tipico dei progetti embedded e dei sistemi IoT a bassa complessità.
+Ogni componente hardware e software è stato progettato, verificato e validato individualmente prima di essere integrato all’interno dell’architettura complessiva, riducendo il rischio di errori sistemici e semplificando le attività di debugging.
+
+L’adozione di protocolli aperti (MQTT, HTTP, UART) e di componenti standard ampiamente supportati dalla comunità open source consente di:
+
+\begin{itemize}
+\item garantire la \textbf{replicabilità} in contesti accademici o didattici, facilitando l’estensione del progetto a nuovi studenti o sviluppatori;
+\item mantenere bassi i \textbf{costi di integrazione} e rispettare i vincoli economici previsti dal requisito NFR10;
+\item assicurare \textbf{interoperabilità} tra moduli eterogenei e la possibilità di sostituire o aggiornare singole componenti senza modificare l’architettura complessiva;
+\item supportare una naturale \textbf{scalabilità evolutiva}, permettendo il passaggio a componenti più avanzati (ESP32, Raspberry Pi, sensori intelligenti) senza alterare il modello concettuale a tre livelli.
+\end{itemize}
+
+L’intero processo di progettazione è stato condotto seguendo i principi del \textbf{System Development Life Cycle (SDLC)} \cite{Pressman2019}, mantenendo una chiara tracciabilità tra requisiti funzionali (FR), requisiti non funzionali (NFR), architettura proposta e scelte implementative.
+La Figura~\ref{fig:system_architecture_extra} rappresenta quindi il punto di raccordo tra l’analisi dei requisiti e la fase successiva di implementazione.
+
+Nel complesso, la soluzione progettuale ottenuta risulta coerente con gli obiettivi iniziali: un sistema modulare, affidabile, economicamente sostenibile e costruito secondo le buone pratiche della progettazione di sistemi IoT distribuiti.
+Tale architettura costituisce il riferimento per la fase di \textbf{implementazione effettiva} descritta nel Capitolo~5, in cui vengono presentati il firmware dei microcontrollori, la logica del server Flask e il sistema di comunicazione basato su MQTT.
