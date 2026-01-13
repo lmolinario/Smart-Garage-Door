@@ -1990,8 +1990,8 @@ Per garantire la protezione delle informazioni e prevenire accessi non autorizza
 Ogni comando remoto è associato all’ID univoco dell’utente.
 Solo gli utenti autorizzati (whitelist) possono inviare comandi di apertura o modifica dello stato del sistema.
 
-\item \textbf{Token di sessione e API key}  
-Le richieste verso Flask sono validate tramite una API key generata e conservata lato server, impedendo l’invio di comandi da fonti non autorizzate.
+\item \textbf{Token di sessione e autenticazione HTTP}  
+Le richieste verso Flask sono validate tramite autenticazione HTTP con username e password, la quale genera un token di sessione che viene conservato lato server, impedendo l’invio di comandi da fonti non autorizzate.
 
 \item \textbf{Integrità dei messaggi MQTT}  
 Prevista l’adozione di TLS per la crittografia del canale MQTT, in accordo con le specifiche OASIS \cite{MQTTspec}, sebbene non attivata nel prototipo per vincoli hardware dell’ESP8266.

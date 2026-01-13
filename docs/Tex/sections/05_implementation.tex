@@ -459,7 +459,7 @@ async def periodic_status(context: ContextTypes.DEFAULT_TYPE):
 Questo tipo di notifiche automatiche è una caratteristica tipica dei sistemi \textit{context-aware}, dove l'interfaccia si adatta dinamicamente al contesto informativo dell'utente \cite{Perera2015}.
 
 \subsection*{Sicurezza e autenticazione}
-L'accesso al sistema è protetto mediante API key validate dal backend Flask e trasmesse tramite richieste HTTPS. Telegram garantisce inoltre cifratura end-to-server, autenticazione forte dell'utente e protezione delle sessioni con MTProto \cite{Kuznetsov2018}. Questo insieme di misure soddisfa i requisiti NFR6 e NFR7, relativi a sicurezza, integrità dei dati e protezione da accessi non autorizzati.
+L'accesso al sistema è protetto mediante autenticazione HTTP con username e password validate dal backend Flask e trasmesse tramite richieste HTTPS. Telegram garantisce inoltre cifratura end-to-server, autenticazione forte dell'utente e protezione delle sessioni con MTProto \cite{Kuznetsov2018}. Questo insieme di misure soddisfa i requisiti NFR6 e NFR7, relativi a sicurezza, integrità dei dati e protezione da accessi non autorizzati.
 
 \subsection*{Aspetti di usabilità e progettazione UX}
 Dal punto di vista della \textit{user experience}, l'interfaccia conversazionale:
@@ -528,6 +528,36 @@ i messaggi principali del bot, che illustrano i tre scenari cardine:
     \caption{Mock-up della consultazione dello stato tramite comando \texttt{/status}.}
     \label{fig:mockup_status}
 \end{figure}
+
+Oltre ai comandi principali illustrati nei mock-up, il bot Telegram implementa ulteriori funzionalità:
+
+\textbf{Comandi di autenticazione:}
+\begin{itemize}
+    \item \texttt{/login <username> <password>} --- Autentica l'utente con credenziali username/password
+    \item \texttt{/logout} --- Termina la sessione corrente
+    \item \texttt{/changepass} --- Permette il cambio password per utenti e amministratori
+\end{itemize}
+
+\textbf{Comandi di gestione utenti (solo amministratori):}
+\begin{itemize}
+    \item \texttt{/adduser <username> <password>} --- Aggiunge un nuovo utente al sistema
+    \item \texttt{/deluser <username>} --- Rimuove un utente dal sistema
+    \item \texttt{/listusers} --- Visualizza la lista di tutti gli utenti registrati con i relativi ruoli
+\end{itemize}
+
+\textbf{Comandi di localizzazione e geofence:}
+\begin{itemize}
+    \item \texttt{/gps <lat> <lon>} --- Invia manualmente le coordinate GPS dell'utente per il calcolo del geofence (solo amministratori)
+    \item \texttt{/setgarage <lat> <lon>} --- Aggiorna le coordinate del garage (solo amministratori)
+    \item Invio posizione --- Supporto per l'invio di posizione tramite funzionalità native di Telegram (location sharing)
+\end{itemize}
+
+\textbf{Comandi di monitoraggio sensori:}
+\begin{itemize}
+    \item \texttt{/pir} --- Consulta lo stato del sensore PIR (movimento)
+    \item \texttt{/obstacle} --- Consulta lo stato del sensore ultrasonico HC-SR04 (rilevazione ostacoli)
+    \item \texttt{/adminstatus} --- Dashboard diagnostica completa per amministratori (stato sistema, eventi recenti, MQTT)
+\end{itemize}
 
 Questa rappresentazione grafica consente di valutare con immediatezza
 l’usabilità dell’interfaccia, confermando la coerenza tra il design previsto,

@@ -10,5 +10,9 @@
   "bot": {
     "password": "8f434346648f6b96df89dda901c5176b10a6d83961dd3c1ac88b59b2dc327aa4",
     "role": "user"
+  },
+  "prova": {
+    "password": "6258a5e0eb772911d4f92be5b5db0e14511edbe01d1d0ddd1d5a2cb9db9a56ba",
+    "role": "user"
   }
 }

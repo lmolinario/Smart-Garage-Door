@@ -233,7 +233,7 @@ async def logout_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Logout utente
     if uid in USER_SESSIONS:
-        USER_SESSIONS.remove(uid)
+        del USER_SESSIONS[uid]
         await update.message.reply_text("Logout utente effettuato.")
         return
 
@@ -283,7 +283,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     text = (
         "<b>Benvenuto nel sistema Smart Garage Door!</b>\n"
-        "Questo bot ti permette di controllare e monitorare il prototipo IoT.\n\n"
+        "Questo bot ti permette di controllare e monitorare il tuo garage.\n\n"
 
         "<b>Autenticazione</b>\n"
         "• /login &lt;user&gt; &lt;pass&gt; - Effettua login\n"
@@ -494,21 +494,32 @@ async def unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def periodic_status(context: ContextTypes.DEFAULT_TYPE):
     """
     Ogni 60s controlla lo stato e notifica eventuali cambiamenti.
-    NOTA: Disabilitato perché richiede autenticazione. 
-    Per riattivarlo, implementare un sistema di token o credenziali di servizio.
+    Chiama /status senza autenticazione (endpoint pubblico).
     """
-    # Disabilitato: /status richiede autenticazione e periodic_status non ha accesso a update
-    # res = _get("/status")
-    # if "error" in res:
-    #     return
-    # door_state = "aperta" if res.get("door") else "chiusa"
-    # gps_inside = "dentro area" if res.get("gps_inside") else "fuori area"
-    # msg = f"Aggiornamento automatico:\nPorta {door_state}, veicolo {gps_inside}."
-    # try:
-    #     await context.bot.send_message(chat_id=context.job.chat_id, text=msg)
-    # except Exception as e:
-    #     logger.warning(f"Errore invio notifica: {e}")
-    pass
+    try:
+        # Chiama /status direttamente senza autenticazione (endpoint pubblico)
+        resp = requests.get(f"{APP_URL}/status", timeout=5)
+        if resp.status_code != 200:
+            logger.warning(f"periodic_status: HTTP {resp.status_code} da /status")
+            return
+        
+        res = resp.json()
+        door_state = "aperta" if res.get("door") else "chiusa"
+        gps_inside = "dentro area" if res.get("gps_inside") else "fuori area"
+        mqtt_status = "connesso" if res.get("mqtt_connected") else "disconnesso"
+        
+        msg = f"Aggiornamento automatico:\nPorta {door_state}, veicolo {gps_inside}, MQTT {mqtt_status}."
+        
+        # Invia messaggio al chat_id specificato nel job
+        if hasattr(context.job, "chat_id") and context.job.chat_id:
+            try:
+                await context.bot.send_message(chat_id=context.job.chat_id, text=msg)
+            except Exception as e:
+                logger.warning(f"Errore invio notifica periodic_status: {e}")
+    except requests.exceptions.RequestException as e:
+        logger.warning(f"periodic_status: Errore richiesta /status: {e}")
+    except Exception as e:
+        logger.warning(f"periodic_status: Errore generico: {e}")
 
 
 async def gps_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -690,7 +701,7 @@ async def setgarage_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     Aggiorna le coordinate nel NodeMCU via MQTT e in config.json.
     """
     if not is_logged_admin(update):
-        await update.message.reply_text("Solo admin possono usare questo comando.")
+        await update.message.reply_text("Solo gli utenti admin possono usare questo comando.")
         return
     
     if len(context.args) != 2:
@@ -736,7 +747,7 @@ async def adminstatus_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     Utile per demo al professore e capitolo validazione.
     """
     if not is_logged_admin(update):
-        await update.message.reply_text("Solo admin. Usa /login.")
+        await update.message.reply_text("Solo gli utenti admin possono usare questo comando.")
         return
     status = _get("/status", update)
     events = _get("/events?n=5", update)

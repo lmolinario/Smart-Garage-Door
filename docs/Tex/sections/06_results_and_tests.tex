@@ -162,7 +162,7 @@ La Tabella \ref{tab:nfr_tests} riassume gli esiti delle misurazioni per ciascun 
     NFR3 & Accuratezza del geofence del modulo GPS NEO-6M: 98.9\%; tasso di falsi positivi inferiore all'1\%. & OK \\ \hline
     NFR4 & Stabilità della rilevazione entro un raggio effettivo di 17 m, coerente con soglia progettuale di 15-20 m. & OK \\ \hline
     NFR5 & Continuità operativa in assenza della rete: funzionamento completo della logica locale di Arduino, incluso auto-close. & OK \\ \hline
-    NFR6 & Sicurezza applicativa: autenticazione basata su API key, protezione delle comunicazioni Telegram tramite MTProto \cite{Kuznetsov2018}. & OK \\ \hline
+    NFR6 & Sicurezza applicativa: autenticazione HTTP con username e password, protezione delle comunicazioni Telegram tramite MTProto \cite{Kuznetsov2018}. & OK \\ \hline
     NFR7 & Persistenza e integrità dei log tramite registri locali Flask; retention configurabile. & OK \\ \hline
     NFR8 & Interoperabilità tra protocolli MQTT-HTTP; testata compatibilità con broker Mosquitto e server Flask. & OK \\ \hline
     NFR9 & Consumo energetico misurato: 0.42 W (idle), 0.55 W (attività), conforme alle linee guida per nodi IoT low-power \cite{Gubbi2013}. & OK \\ \hline
@@ -307,7 +307,7 @@ Nel complesso, il sistema si è dimostrato:
     \item \textbf{Robusto}, grazie alla capacità di mantenere la continuità operativa in presenza di errori transitori, fluttuazioni della rete Wi-Fi, ritardi del modulo GPS o malfunzionamenti locali dei sensori; la resilienza osservata è coerente con i modelli di fault tolerance descritti nella letteratura sui sistemi cyber-fisici \cite{Avizienis2004, Chung2020}.
     \item \textbf{Reattivo}, con una latenza media end-to-end inferiore al secondo e un comportamento stabile anche con comandi rapidi in sequenza, grazie all'uso combinato di MQTT e HTTP REST, due protocolli progettati per efficienza e leggerezza in contesti IoT \cite{Amaral2018}.
     \item \textbf{Modulare e scalabile}, poiché ogni componente (Arduino, NodeMCU, GPS, Flask, Telegram) opera come modulo indipendente ma interoperabile, in linea con le architetture IoT loosely coupled raccomandate per garantire manutenibilità ed evolvibilità \cite{Zanella2014}.
-    \item \textbf{Sicuro}, grazie all'autenticazione mediante API key, alla separazione rigorosa tra livello applicativo e livello fisico e alla cifratura fornita dal protocollo MTProto di Telegram \cite{Kuznetsov2018}, in conformità con i requisiti NFR6 e NFR7.
+    \item \textbf{Sicuro}, grazie all'autenticazione HTTP con username e password, alla separazione rigorosa tra livello applicativo e livello fisico e alla cifratura fornita dal protocollo MTProto di Telegram \cite{Kuznetsov2018}, in conformità con i requisiti NFR6 e NFR7.
     \item \textbf{Affidabile}, mostrando un comportamento stabile anche in condizioni di stress test, riconnessione Wi-Fi e uso simultaneo da parte di più utenti, in piena coerenza con il requisito NFR5 relativo alla disponibilità del servizio.
 \end{itemize}
 

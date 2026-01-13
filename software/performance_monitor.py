@@ -40,15 +40,15 @@ def test_connection():
     Testa la connettività HTTP al NodeMCU prima di iniziare i test.
     Ritorna True se connesso, False altrimenti.
     """
-    print(f"\n🔍 Test connessione NodeMCU ({NODEMCU_IP})...")
+    print(f"\nTest connessione NodeMCU ({NODEMCU_IP})...")
     try:
         # Test con endpoint /status che esiste sul NodeMCU
         response = requests.get(f"{NODEMCU_IP}/status", timeout=TIMEOUT_HTTP)
-        print(f"✅ Connessione OK (status: {response.status_code})")
+        print(f"Connessione OK (status: {response.status_code})")
         return True
     except requests.exceptions.ConnectTimeout:
-        print(f"❌ TIMEOUT: Impossibile raggiungere {NODEMCU_IP}")
-        print(f"\n💡 POSSIBILI SOLUZIONI:")
+        print(f"TIMEOUT: Impossibile raggiungere {NODEMCU_IP}")
+        print(f"\nPOSSIBILI SOLUZIONI:")
         print(f"   1. Verifica che il NodeMCU sia acceso e connesso al WiFi")
         print(f"   2. Controlla che l'IP sia corretto (attualmente: {NODEMCU_IP})")
         print(f"   3. Verifica di essere sulla stessa rete WiFi del NodeMCU")
@@ -56,14 +56,14 @@ def test_connection():
         print(f"   5. Assicurati che il NodeMCU esponga un server HTTP (non solo MQTT)")
         return False
     except requests.exceptions.ConnectionError as e:
-        print(f"❌ ERRORE CONNESSIONE: {e}")
-        print(f"\n💡 POSSIBILI SOLUZIONI:")
+        print(f"ERRORE CONNESSIONE: {e}")
+        print(f"\nPOSSIBILI SOLUZIONI:")
         print(f"   1. Verifica che il NodeMCU sia acceso e connesso")
         print(f"   2. Controlla che l'IP {NODEMCU_IP} sia corretto")
         print(f"   3. Verifica di essere sulla stessa rete WiFi")
         return False
     except Exception as e:
-        print(f"❌ ERRORE: {e}")
+        print(f"ERRORE: {e}")
         return False
 
 # ==========================================================
@@ -113,13 +113,13 @@ def measure_command(cmd_url, expected_feedback):
         requests.get(cmd_url, timeout=TIMEOUT_HTTP)
         latency_http = time.time() - start_http
     except requests.exceptions.ConnectTimeout:
-        print(f"⚠️  TIMEOUT HTTP: Impossibile raggiungere {cmd_url}")
+        print(f"TIMEOUT HTTP: Impossibile raggiungere {cmd_url}")
         return None, None
     except requests.exceptions.ConnectionError as e:
-        print(f"⚠️  ERRORE CONNESSIONE HTTP: {e}")
+        print(f"ERRORE CONNESSIONE HTTP: {e}")
         return None, None
     except Exception as e:
-        print(f"⚠️  Errore HTTP: {e}")
+        print(f"Errore HTTP: {e}")
         return None, None
 
     # ----- SERIAL: attesa feedback -----
@@ -148,7 +148,7 @@ print("\nAvvio test prestazioni Smart Garage Door...\n")
 time.sleep(2)
 # Test connessione iniziale
 if not test_connection():
-    print("\n⚠️  ERRORE: Impossibile connettersi al NodeMCU")
+    print("\nERRORE: Impossibile connettersi al NodeMCU")
     print("   Lo script verrà terminato. Risolvi il problema di connettività e riprova.")
     ser.close()
     exit(1)
@@ -199,7 +199,7 @@ ser.close()
 
 # Verifica se ci sono risultati
 if not report:
-    print("\n⚠️  ATTENZIONE: Nessun dato raccolto!")
+    print("\nATTENZIONE: Nessun dato raccolto!")
     print("   Tutte le richieste sono fallite. Verifica:")
     print("   - Connessione NodeMCU")
     print("   - Configurazione IP")
@@ -321,11 +321,11 @@ if latency_report:
 print("\n================ RISULTATI FINALI ================\n")
 print("TEMPO TOTALE (HTTP + movimento servo):")
 for r in report:
-    print(f"▶ {r['command'].upper()} → media: {r['avg']}s | stdev: {r['stdev']} | n={r['count']}")
+    print(f"{r['command'].upper()} -> media: {r['avg']}s | stdev: {r['stdev']} | n={r['count']}")
 
 if latency_report:
     print("\nLATENZA HTTP (solo richiesta/re risposta):")
     for r in latency_report:
-        print(f"▶ {r['command'].upper()} → media: {r['avg']}s | stdev: {r['stdev']} | n={r['count']}")
+        print(f"{r['command'].upper()} -> media: {r['avg']}s | stdev: {r['stdev']} | n={r['count']}")
 
-print("\n✅ Test completato con successo.\n")
+print("\nTest completato con successo.\n")

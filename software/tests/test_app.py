@@ -23,8 +23,7 @@ import app  # noqa: E402  pylint: disable=wrong-import-position
 
 @pytest.fixture(autouse=True)
 def reset_state():
-    """Ripristina stato, API key e file utenti dopo ogni test."""
-    original_api_key = app.API_KEY
+    """Ripristina stato e file utenti dopo ogni test."""
     original_users = copy.deepcopy(app.USERS)
     users_path = app.USERS_PATH
     users_file = None
@@ -35,7 +34,6 @@ def reset_state():
     app.reset_app_state()
     yield
 
-    app.API_KEY = original_api_key
     app.USERS = original_users
     if users_file is not None:
         with open(users_path, "w", encoding="utf-8") as f:
@@ -74,41 +72,11 @@ def test_status_endpoint_reports_current_state(client):
     assert payload["mqtt_connected"] is True
 
 
-@pytest.mark.integration
-def test_on_endpoint_requires_api_key_when_configured(client, monkeypatch):
-    """Gli endpoint protetti devono rifiutare richieste senza API key."""
-    app.API_KEY = "segretissima"
-    recorded = {}
-
-    def fake_publish(topic, message, qos=0, retain=False):  # noqa: D401
-        recorded.update({
-            "topic": topic,
-            "message": message,
-            "qos": qos,
-            "retain": retain,
-        })
-        return None
-
-    monkeypatch.setattr(app, "mqttc", SimpleNamespace(publish=fake_publish))
-
-    unauthorized = client.post("/on")
-    assert unauthorized.status_code == 401
-
-    authorized = client.post("/on", headers={"X-API-Key": "segretissima"})
-    assert authorized.status_code == 200
-    assert json.loads(recorded["message"]) == {
-        "device_id": app.DEVICE_ID,
-        "value": 1,
-    }
-
-    with app._state_lock:  # pylint: disable=protected-access
-        assert app._events[0]["kind"] == "cmd_publish"  # pylint: disable=protected-access
 
 
 @pytest.mark.integration
 def test_gps_event_updates_state_and_publishes(client, monkeypatch):
     """/gps deve accettare il payload e aggiornare lo stato interno."""
-    app.API_KEY = ""  # bypass autenticazione
     published = {}
 
     def fake_publish(topic, message, qos=0, retain=False):
@@ -180,36 +148,36 @@ def test_on_message_updates_motion_and_obstacle():
         assert "pir_update" in kinds and "obstacle_update" in kinds
 
 
-def test_add_and_delete_user_flow_with_api_key(client):
+def test_add_and_delete_user_flow_with_basic_auth(client):
     """Verifica il ciclo completo di aggiunta e rimozione utente in modalità admin."""
-    app.API_KEY = "ABC123456"
+    from requests.auth import HTTPBasicAuth
 
     new_user = {"username": "tester", "password": "pwd123"}
-    headers = {"X-API-Key": app.API_KEY}
+    auth = HTTPBasicAuth("admin", "admin123")
 
-    created = client.post("/addUser", json=new_user, headers=headers)
+    created = client.post("/addUser", json=new_user, auth=auth)
     assert created.status_code == 200
 
-    listed = client.get("/listUsers", headers=headers)
+    listed = client.get("/listUsers", auth=auth)
     assert listed.status_code == 200
     assert listed.get_json()["users"].get("tester") == "user"
 
-    deleted = client.post("/delUser", json={"username": "tester"}, headers=headers)
+    deleted = client.post("/delUser", json={"username": "tester"}, auth=auth)
     assert deleted.status_code == 200
 
 
 def test_change_password_admin_mode_updates_hash(client):
     """La modalità admin deve permettere cambio password e salvataggio su file."""
-    app.API_KEY = "ABC123456"
-    headers = {"X-API-Key": app.API_KEY}
+    from requests.auth import HTTPBasicAuth
 
+    auth = HTTPBasicAuth("admin", "admin123")
     payload = {
         "username": "admin",
         "new_password": "nuova_password",
         "admin_mode": True,
     }
 
-    response = client.post("/changePassword", json=payload, headers=headers)
+    response = client.post("/changePassword", json=payload, auth=auth)
     assert response.status_code == 200
 
     check = client.post(
