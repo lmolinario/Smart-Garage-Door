@@ -89,18 +89,15 @@
 
 % --- Language ---
 \usepackage{siunitx}    % Enable SI units
-\usepackage[italian,british,shorthands=off]{babel}
-\selectlanguage{italian}
-
-   % Defining UK English as language. This will among other things ensure that dates are displayed as 24/03/1997 rather than 03/24/1997 in the bibliography.
+\usepackage[british]{babel}     % Defining UK English as language. This will among other things ensure that dates are displayed as 24/03/1997 rather than 03/24/1997 in the bibliography.
 \addto\extrasbritish{   % Change naming of different functions, e.g. figure references.
-    \renewcommand*\contentsname{Sommario}  % Rename table of contents
-    \renewcommand{\listfigurename}{Lista delle Figure} % Rename list of figures
-    \renewcommand{\listtablename}{Lista delle Tabelle}   % Rename list of tables
+    \renewcommand*\contentsname{Table of Contents}  % Rename table of contents
+    \renewcommand{\listfigurename}{List of Figures} % Rename list of figures
+    \renewcommand{\listtablename}{List of Tables}   % Rename list of tables
     \def\equationautorefname{Equation}              % Autoref-name for equations
-    \def\figureautorefname{Figura}                  % Autoref-name for figures
-    \def\tableautorefname{Tabella}                    % Autoref-name for tables
-    \def\sectionautorefname{Sezione}                % Autoref-name for sections
+    \def\figureautorefname{Figure}                  % Autoref-name for figures
+    \def\tableautorefname{Table}                    % Autoref-name for tables
+    \def\sectionautorefname{Section}                % Autoref-name for sections
     \def\subsectionautorefname{\sectionautorefname} % Autoref-name for subsections
     \def\subsubsectionautorefname{\sectionautorefname} % Autoref-name for subsubsections
 }
@@ -154,50 +151,3 @@
 \renewcommand{\headrulewidth}{0.1ex}
 \renewcommand{\footrulewidth}{0.1ex}
 \fancyfoot[C]{\thepage}
-
-
-% === STILI PER I FLOWCHART (TikZ) ===
-\tikzset{
-    block/.style = {
-        rectangle, draw, rounded corners,
-        minimum width=28mm,
-        minimum height=10mm,
-        align=center,
-        fill=gray!10
-    },
-    decision/.style = {
-        diamond, draw, aspect=2,
-        minimum width=22mm,
-        minimum height=10mm,
-        align=center,
-        fill=gray!10
-    },
-    startstop/.style = {
-        ellipse, draw,
-        minimum width=22mm,
-        minimum height=10mm,
-        align=center,
-        fill=gray!20
-    },
-    arrow/.style = {
-        -{Latex[length=2mm]},
-        thick
-    }
-}
-
-
-\usepackage{listings}
-\usepackage{xcolor}
-
-\lstdefinelanguage{json}{
-    basicstyle=\ttfamily\small,
-    numbers=left,
-    numberstyle=\tiny,
-    stepnumber=1,
-    numbersep=8pt,
-    showstringspaces=false,
-    breaklines=true,
-    string=[s]{"}{"},
-    comment=[l]{\%},
-    morestring=[b]',
-}

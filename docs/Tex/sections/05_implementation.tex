@@ -246,39 +246,54 @@ Il modulo GPS rappresenta l'elemento chiave che consente al sistema di estendere
 Questo paradigma, noto come \textit{location-based automation}, è ampiamente utilizzato nei moderni ecosistemi IoT \cite{Zanella2014}, ed è particolarmente efficace quando integrato con tecniche di geofencing per la definizione di aree virtuali di azione \cite{Perera2015}.
 
 \subsection*{Architettura hardware e motivazioni progettuali}
-Per l'implementazione della componente di geolocalizzazione è stato adottato il modulo satellitare NEO-6M, basato su chipset u-blox, caratterizzato da un'elevata stabilità del segnale, consumo energetico contenuto (circa 45 mA in modalità di tracking continuo) e compatibilità nativa con microcontrollori a 3.3 V. Il dispositivo comunica tramite interfaccia seriale UART sfruttando i pin TX/RX dedicati del NodeMCU ESP8266, ed emette dati NMEA (National Marine Electronics Association), standard ampiamente supportato sia in ambito embedded sia nei sistemi di navigazione commerciale.
+Per l'implementazione della componente di geolocalizzazione è stato adottato il modulo satellitare GPS, basato su chipset u-blox, caratterizzato da un'elevata stabilità del segnale, consumo energetico contenuto (circa 45 mA in modalità di tracking continuo) e compatibilità nativa con microcontrollori a 3.3 V. Il dispositivo comunica tramite interfaccia seriale UART sfruttando i pin TX/RX dedicati del NodeMCU ESP8266, ed emette dati NMEA (National Marine Electronics Association), standard ampiamente supportato sia in ambito embedded sia nei sistemi di navigazione commerciale.
 
 La scelta di adottare un modulo GPS fisico, anziché affidarsi alle coordinate fornite da uno smartphone, risponde alla necessità di mantenere un sistema completamente indipendente da dispositivi esterni, garantendo continuità operativa anche in assenza di rete cellulare, batteria scarica del telefono o applicazioni in esecuzione (NFR5). Inoltre, la modularità dell'architettura consente di installare il modulo GPS su un secondo NodeMCU alimentato a bordo veicolo, abilitando scenari evoluti di comunicazione \textit{vehicle-to-infrastructure} (V2I), come discusso nei recenti studi sulle smart home distribuite \cite{Zanella2014}.
 
 \begin{figure}[h!]
     \centering
     \includegraphics[width=0.5\textwidth]{images/gps_neo6m.png}
-    \caption{Modulo NEO-6M GPS utilizzato per la geolocalizzazione e la generazione di eventi di prossimità (geofence).}
+    \caption{Esempio di Modulo GPS utilizzato per la geolocalizzazione e la generazione di eventi di prossimità (geofence).}
     \label{fig:gps_module}
 \end{figure}
-
 \subsection*{Funzionamento logico e calcolo della distanza}
-La logica implementativa del modulo GPS è contenuta nel firmware \texttt{gps\_module.ino} e utilizza la libreria TinyGPSPlus, una delle soluzioni open source più diffuse per la decodifica dei messaggi NMEA nel dominio embedded. Il nucleo della funzionalità si basa sul calcolo della distanza tra la posizione corrente del veicolo e il punto di riferimento definito come \textit{home location}.
 
-Il metodo \texttt{TinyGPSPlus::distanceBetween()} permette di calcolare in pochi cicli di CPU la distanza geodetica in metri tra due coordinate:
+La logica di funzionamento del modulo GPS è implementata nel firmware
+\textit{controller\_nodemcu.ino} e si basa sull’utilizzo della libreria
+\textit{TinyGPSPlus}, una delle soluzioni open source più diffuse e affidabili
+per la decodifica dei messaggi NMEA in ambito embedded.
+
+Il nucleo della funzionalità consiste nel calcolo della distanza geodetica tra
+la posizione corrente del veicolo e un punto di riferimento statico,
+denominato \textit{home location}, corrispondente alla posizione del garage.
+A tal fine, la libreria mette a disposizione il metodo
+\textit{TinyGPSPlus::distanceBetween()}, che consente di ottenere in modo
+computazionalmente efficiente la distanza in metri tra due coppie di
+coordinate geografiche:
 
 \begin{lstlisting}[language=C++]
 distance = TinyGPSPlus::distanceBetween(latitude, longitude,
                                         homeLatitude, homeLongitude);
 \end{lstlisting}
 
-Una volta calcolata la distanza, il modulo verifica se il veicolo si trova all'interno o all'esterno del geofence, ovvero un raggio compreso tra 15 e 20 metri attorno all'abitazione. Il geofence è definito in modo da bilanciare:
+Una volta determinata la distanza, il firmware verifica se il veicolo si trovi
+all’interno o all’esterno di un’area di \textit{geofencing}, definita come un
+raggio compreso tra 15 e 20 metri attorno all’abitazione. Tale intervallo è
+stato scelto al fine di bilanciare in modo adeguato:
 \begin{itemize}
-    \item la sensibilità del sistema (reazione tempestiva),
-    \item la stabilità del segnale GPS (mitigazione delle oscillazioni),
-    \item la sicurezza operativa (evitare attivazioni premature).
+    \item la sensibilità del sistema, garantendo una reazione tempestiva;
+    \item la stabilità del segnale GPS, mitigando gli effetti delle oscillazioni
+          e dell’imprecisione di misura;
+    \item la sicurezza operativa, evitando attivazioni premature o non
+          intenzionali del sistema.
 \end{itemize}
 
-Il seguente frammento mostra il comportamento implementato:
+Il frammento di codice seguente mostra la logica adottata per la rilevazione
+degli eventi di ingresso e uscita dall’area di geofence:
 
 \begin{lstlisting}[language=C++]
 if (distance < thresholdDistance && !isInside) {
-    mqttPublish(channelID_gps, "field2=1"); // Entrata nel geofence
+    mqttPublish(channelID_gps, "field2=1"); // Ingresso nel geofence
     isInside = true;
 } else if (distance > thresholdDistance && isInside) {
     mqttPublish(channelID_gps, "field2=0"); // Uscita dal geofence
@@ -286,7 +301,11 @@ if (distance < thresholdDistance && !isInside) {
 }
 \end{lstlisting}
 
-Il valore logico pubblicato tramite MQTT ($1=$ dentro l'area, $0=$ fuori) viene poi elaborato dal NodeMCU e inoltrato ad Arduino, dove contribuisce alla logica combinata PIR + GPS per l'automazione in ingresso (FR5b).
+Il valore logico pubblicato tramite il protocollo MQTT ($1$ per la condizione
+di veicolo all’interno dell’area, $0$ per la condizione opposta) viene
+successivamente elaborato dal NodeMCU e inoltrato al microcontrollore Arduino.
+Tale informazione concorre, insieme ai dati provenienti dal sensore PIR, alla
+logica di automazione in ingresso prevista dal requisito funzionale FR5b.
 
 \subsection*{Efficienza e riduzione del traffico dati}
 Una caratteristica fondamentale della progettazione è l'adozione di un modello di comunicazione \textit{event-driven}. Il modulo GPS trasmette un messaggio MQTT solo nel momento in cui avviene una transizione di stato:
@@ -305,7 +324,7 @@ Per sopperire a questa limitazione, è stato implementato un firmware alternativ
 L'approccio rientra nelle metodologie \textit{Software-in-the-Loop} (SIL), raccomandate per la validazione incrementale di sistemi embedded complessi \cite{He2019}, e consente di testare la logica applicativa anche in assenza temporanea del componente fisico.
 
 \subsection*{Prestazioni e accuratezza}
-Le prove sperimentali condotte sul prototipo hanno permesso di valutare con precisione sia l'accuratezza della localizzazione fornita dal modulo NEO-6M sia le prestazioni complessive del flusso di comunicazione GPS-MQTT-server.
+Le prove sperimentali condotte sul prototipo hanno permesso di valutare con precisione sia l'accuratezza della localizzazione fornita dal modulo GPS sia le prestazioni complessive del flusso di comunicazione GPS-MQTT-server.
 In condizioni operative standard, il modulo ha evidenziato un errore medio di localizzazione inferiore all'1\%, valore pienamente in linea con le specifiche dichiarate dal produttore e coerente con quanto riportato in letteratura riguardo alla stabilità dei ricevitori GNSS di fascia embedded \cite{Zanella2014}.
 
 L'intero percorso di propagazione del dato — dal rilevamento della posizione al processamento da parte del server Flask — presenta una latenza media inferiore a 0.8 s. Tale valore comprende:
@@ -334,7 +353,7 @@ Questi risultati soddisfano pienamente i requisiti non funzionali relativi alle 
 ]
 
 % --- NODI ---
-\node[process] (gps) {GPS NEO-6M\\(Rilevamento posizione)};
+\node[process] (gps) {Modulo GPS \\(Rilevamento posizione)};
 \node[process, below=of gps] (esp) {NodeMCU ESP8266\\(Wi-Fi / MQTT Publish)};
 \node[process, below=of esp] (broker) {MQTT Broker\\(Mosquitto Local)};
 \node[process, below=of broker] (flask) {Flask Server\\(Ricezione e logica applicativa)};
@@ -360,7 +379,7 @@ Nel progetto Smart Garage Door, tale funzione è implementata mediante un bot Te
 Questa scelta progettuale sfrutta un'infrastruttura cloud già esistente, riducendo la complessità lato client e assicurando un'elevata disponibilità grazie alla rete distribuita di server Telegram, la quale utilizza il protocollo crittografico MTProto per garantire sicurezza, integrità e resilienza delle comunicazioni \cite{Kuznetsov2018}. L'adozione di un'interfaccia conversazionale consente di mantenere un'interazione leggera e a bassa latenza, significativa soprattutto nei contesti IoT caratterizzati da risorse limitate e da requisiti di risposta rapida (NFR2-NFR7).
 
 \subsection*{Configurazione e pubblicazione del bot}
-Il bot è stato creato tramite l'applicazione ufficiale \texttt{@BotFather}, che costituisce il punto di gestione autorizzato per la creazione dei bot sulla piattaforma Telegram. Durante la fase di configurazione, è stato generato il token di autenticazione, necessario per l'interazione con la Telegram Bot API \cite{TelegramAPI}, e sono stati definiti i comandi principali utilizzati dal sistema (\texttt{/start}, \texttt{/on}, \texttt{/off}, \texttt{/status}, \texttt{/events}, \texttt{/help}).
+Il bot è stato creato tramite l'applicazione ufficiale \texttt{@BotFather}, che costituisce il punto di gestione autorizzato per la creazione dei bot sulla piattaforma Telegram. Durante la fase di configurazione, è stato generato il token di autenticazione, necessario per l'interazione con la Telegram Bot API \cite{TelegramAPI}, e sono stati definiti i principali comandi principali utilizzati dal sistema (\texttt{/start}, \texttt{/on}, \texttt{/off}, \texttt{/status}, \texttt{/events}, \texttt{/help}).
 
 \begin{figure}[h!]
     \centering
@@ -385,7 +404,7 @@ Dal punto di vista architetturale, il bot agisce come \textit{frontend} remoto d
 \begin{figure}[h!]
     \centering
     \includegraphics[width=0.4\textwidth]{images/telegram_bot.png}
-    \caption{Schermata del bot @SmartGarageDoor2026Bot. L'interfaccia mostra comandi, descrizione e stato del sistema, offrendo un'interazione intuitiva e multipiattaforma.}
+    \caption{Schermata del bot Telegram utilizzato. L'interfaccia mostra comandi, descrizione e stato del sistema, offrendo un'interazione intuitiva e multipiattaforma.}
     \label{fig:telegram_screen}
 \end{figure}
 
@@ -585,7 +604,7 @@ Il sistema può essere descritto come una piattaforma distribuita basata su comp
 \begin{itemize}
     \item \textbf{Arduino UNO} implementa la logica locale e il controllo degli attuatori, garantendo funzionamento autonomo offline (NFR5);
     \item \textbf{NodeMCU ESP8266} agisce da gateway di rete e gestore MQTT, traducendo i segnali seriali in messaggi applicativi;
-    \item \textbf{NEO-6M GPS} estende le funzionalità del sistema al dominio della localizzazione e della prossimità (FR5a, FR5b);
+    \item \textbf{Modulo GPS} estende le funzionalità del sistema al dominio della localizzazione e della prossimità (FR5a, FR5b);
     \item il \textbf{server Flask} coordina l'intera logica applicativa e fornisce un'API REST sicura per il controllo remoto;
     \item il \textbf{bot Telegram} costituisce l'interfaccia utente, attraverso un canale asincrono, crittografato e indipendente da software proprietari.
 \end{itemize}

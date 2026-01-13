@@ -98,8 +98,8 @@ Queste funzionalità rispondono a quanto indicato nei principi di progettazione 
 Dal punto di vista tecnico, il sistema \textbf{Smart Garage Door} risulta pienamente realizzabile con componenti hardware e software a basso costo, ampiamente reperibili sul mercato e supportati da una vasta comunità open source.  
 L’impiego della scheda \textbf{NodeMCU ESP8266} \cite{ESP8266} garantisce connettività Wi-Fi integrata e compatibilità nativa con il protocollo \textbf{MQTT} \cite{MQTTspec}, ampiamente adottato nei sistemi IoT per la sua leggerezza, affidabilità e capacità di funzionare in ambienti a risorse limitate.  
 
-L’integrazione con un \textbf{microcontrollore Arduino} \cite{ArduinoRef} consente di gestire le logiche locali e i sensori di movimento (PIR e relè) in modo indipendente dal nodo di rete, aumentando la resilienza del sistema.  
-Il modulo \textbf{GPS} fornisce una localizzazione accurata dell’utente e consente la realizzazione di automazioni di prossimità basate sulla distanza, in linea con le architetture distribuite e cooperanti descritte da Holler et al. \cite{Holler2014}.
+L’integrazione con un \textbf{microcontrollore Arduino} \cite{ArduinoRef} consente di gestire le logiche locali e i sensori di movimento in modo indipendente dal nodo di rete, aumentando la resilienza del sistema.
+Il modulo \textbf{GPS} fornisce una localizzazione accurata e consente la realizzazione di automazioni di prossimità basate sulla distanza, in linea con le architetture distribuite e cooperanti descritte da Holler et al. \cite{Holler2014}.
 
 Sul piano software, l’infrastruttura è stata progettata per garantire interoperabilità, scalabilità e semplicità d’integrazione.  
 Il framework \textbf{Flask} \cite{Flask2024} è stato scelto per la realizzazione del server web e delle API REST, grazie alla sua leggerezza e al supporto nativo per la gestione di richieste asincrone.  
