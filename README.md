@@ -158,6 +158,7 @@ Smart-Garage-Door/
 ├── privacy/
 │   └── privacy.md                     # Privacy disclousure per Telegram Bot
 │
+├── requirements.txt
 │
 ├── images/
 ├── LICENSE

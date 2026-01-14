@@ -40,7 +40,6 @@ Parallelamente, la verifica dei requisiti non funzionali ha riguardato:
 La fase di testing ha previsto sia simulazioni controllate — incluse prove di osservazione controllata del comportamento del modulo GPS \cite{He2019} — sia test in condizioni reali, con valutazioni sull'effetto della latenza di rete, dei disturbi radio, dei ritardi nella sincronizzazione GPS, della congestione del broker MQTT e dell'uso contemporaneo da parte di più utenti (FR6).
 Complessivamente, la validazione ha permesso di osservare la risposta del sistema in scenari realistici, misurando latenza, accuratezza, resilienza, consumo energetico e continuità del funzionamento. I risultati ottenuti confermano la coerenza complessiva del prototipo con i requisiti FR/NFR e con l'architettura IoT progettata nel Capitolo 4.
 
-
 \begin{table}[H]
 \centering
 \caption{Tracciabilità dei requisiti funzionali (FR) e non funzionali (NFR) rispetto ai capitoli progettuali e ai test di validazione}
@@ -62,7 +61,7 @@ FR5a & Automazione in uscita (PIR) & Cap. 4–5 & Test sensore PIR e trigger loc
 \hline
 FR5b & Automazione in ingresso (GPS) & Cap. 4–5 & Test geofence e ricezione coordinate MQTT \\
 \hline
-FR6 & Gestione fallback di rete & Cap. 4 & Test disconnessione Wi-Fi e riconnessione \\
+FR6 & Gestione fallback di rete & Cap. 4–5 & Test disconnessione Wi-Fi e riconnessione \\
 \hline
 FR7 & Comando manuale locale & Cap. 5 & Test pulsante fisico \\
 \hline
@@ -70,20 +69,29 @@ FR8 & Rilevazione ostacoli (safety) & Cap. 5 & Test sensore ultrasonico \\
 \hline
 FR9 & Funzionamento offline & Cap. 4–5 & Test senza connettività Internet \\
 \hline
-NFR1 & Bassa latenza end-to-end & Cap. 6 & Misura tempi di risposta MQTT \\
+NFR1 & Bassa latenza end-to-end & Cap. 6 & Misura tempi di risposta MQTT e HTTP \\
 \hline
-NFR2 & Affidabilità operativa & Cap. 6 & Test ripetuti su più cicli \\
+NFR2 & Affidabilità operativa & Cap. 6 & Test ripetuti su più cicli di apertura/chiusura \\
 \hline
-NFR3 & Scalabilità architetturale & Cap. 4 & Analisi architetturale \\
+NFR3 & Scalabilità architetturale & Cap. 4 & Analisi architettura modulare a livelli IoT \\
 \hline
-NFR4 & Sicurezza delle comunicazioni & Cap. 4–5 & Test autenticazione e isolamento rete \\
+NFR4 & Sicurezza delle comunicazioni & Cap. 4–5 & Test autenticazione utenti e isolamento dei canali \\
 \hline
-NFR5 & Robustezza a fault locali & Cap. 6 & Test guasti sensori e recovery \\
+NFR5 & Robustezza a fault locali & Cap. 6 & Test guasti sensori e meccanismi di recovery \\
 \hline
-NFR6 & Manutenibilità & Cap. 5 & Analisi modularità firmware/software \\
+NFR6 & Manutenibilità & Cap. 5 & Analisi modularità firmware e separazione dei servizi \\
+\hline
+NFR7 & Disponibilità del servizio & Cap. 6 & Monitoraggio periodico dello stato tramite processo timer \\
+\hline
+NFR8 & Osservabilità del sistema & Cap. 6 & Logging eventi, stato e metriche di performance \\
+\hline
+NFR9 & Riproducibilità dell’ambiente & Cap. 5 & Verifica installazione deterministica tramite \texttt{requirements.txt} \\
+\hline
+NFR10 & Usabilità dell’interfaccia utente & Cap. 5–6 & Test interazione utente via Telegram Bot \\
 \hline
 \end{tabular}
 \end{table}
+
 
 La Tabella~\ref{tab:fr_nfr_mapping} fornisce una vista di tracciabilità completa tra i requisiti definiti in fase di analisi, le scelte progettuali e le attività di test svolte, dimostrando la coerenza dell’intero processo di sviluppo secondo un approccio System Development Life Cycle (SDLC).
 

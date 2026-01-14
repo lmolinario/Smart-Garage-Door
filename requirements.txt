@@ -1,0 +1,19 @@
+# Core
+python>=3.11
+
+# MQTT
+paho-mqtt>=1.6
+
+# Web server / API
+Flask>=2.3
+requests>=2.31
+
+# Telegram Bot
+python-telegram-bot>=20.6
+
+# Serial & performance test
+pyserial>=3.5
+matplotlib>=3.8
+
+# Utility
+python-dateutil>=2.9
