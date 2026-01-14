@@ -224,18 +224,3 @@ Distribuito sotto licenza **MIT**.
 ---
 
 *From requirements analysis to system implementation: a complete IoT prototype for smart access control.*
-
-```
-
----
-
-### Valutazione didattica (per te)
-Con questa revisione il README:
-- è **coerente 1:1 con il Capitolo 3**  
-- dimostra **controllo metodologico SDLC**  
-- non è un README “commerciale”, ma **accademico-tecnico**, perfetto per l’esame  
-
-Se vuoi, prossimo step consigliato:
-- **allineare Capitolo 4 (System Design)** usando le stesse sezioni del README  
-- oppure creare una **versione README “ridotta da consegna”** (2 pagine max).
-```

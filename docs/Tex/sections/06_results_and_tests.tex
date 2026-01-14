@@ -40,6 +40,53 @@ Parallelamente, la verifica dei requisiti non funzionali ha riguardato:
 La fase di testing ha previsto sia simulazioni controllate — incluse prove di osservazione controllata del comportamento del modulo GPS \cite{He2019} — sia test in condizioni reali, con valutazioni sull'effetto della latenza di rete, dei disturbi radio, dei ritardi nella sincronizzazione GPS, della congestione del broker MQTT e dell'uso contemporaneo da parte di più utenti (FR6).
 Complessivamente, la validazione ha permesso di osservare la risposta del sistema in scenari realistici, misurando latenza, accuratezza, resilienza, consumo energetico e continuità del funzionamento. I risultati ottenuti confermano la coerenza complessiva del prototipo con i requisiti FR/NFR e con l'architettura IoT progettata nel Capitolo 4.
 
+
+\begin{table}[H]
+\centering
+\caption{Tracciabilità dei requisiti funzionali (FR) e non funzionali (NFR) rispetto ai capitoli progettuali e ai test di validazione}
+\label{tab:fr_nfr_mapping}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{|c|p{4.2cm}|c|p{5.2cm}|}
+\hline
+\textbf{ID} & \textbf{Descrizione requisito} & \textbf{Capitolo} & \textbf{Test di validazione} \\
+\hline
+FR1 & Apertura remota del portone garage & Cap. 4–5 & Test funzionale MQTT/HTTP, verifica comando attuatore \\
+\hline
+FR2 & Chiusura remota controllata & Cap. 4–5 & Test di chiusura manuale e remota \\
+\hline
+FR3 & Notifica stato porta all’utente & Cap. 5 & Test Telegram Bot (event-driven) \\
+\hline
+FR4 & Chiusura automatica temporizzata & Cap. 5 & Test temporale su Arduino (timeout) \\
+\hline
+FR5a & Automazione in uscita (PIR) & Cap. 4–5 & Test sensore PIR e trigger locale \\
+\hline
+FR5b & Automazione in ingresso (GPS) & Cap. 4–5 & Test geofence e ricezione coordinate MQTT \\
+\hline
+FR6 & Gestione fallback di rete & Cap. 4 & Test disconnessione Wi-Fi e riconnessione \\
+\hline
+FR7 & Comando manuale locale & Cap. 5 & Test pulsante fisico \\
+\hline
+FR8 & Rilevazione ostacoli (safety) & Cap. 5 & Test sensore ultrasonico \\
+\hline
+FR9 & Funzionamento offline & Cap. 4–5 & Test senza connettività Internet \\
+\hline
+NFR1 & Bassa latenza end-to-end & Cap. 6 & Misura tempi di risposta MQTT \\
+\hline
+NFR2 & Affidabilità operativa & Cap. 6 & Test ripetuti su più cicli \\
+\hline
+NFR3 & Scalabilità architetturale & Cap. 4 & Analisi architetturale \\
+\hline
+NFR4 & Sicurezza delle comunicazioni & Cap. 4–5 & Test autenticazione e isolamento rete \\
+\hline
+NFR5 & Robustezza a fault locali & Cap. 6 & Test guasti sensori e recovery \\
+\hline
+NFR6 & Manutenibilità & Cap. 5 & Analisi modularità firmware/software \\
+\hline
+\end{tabular}
+\end{table}
+
+La Tabella~\ref{tab:fr_nfr_mapping} fornisce una vista di tracciabilità completa tra i requisiti definiti in fase di analisi, le scelte progettuali e le attività di test svolte, dimostrando la coerenza dell’intero processo di sviluppo secondo un approccio System Development Life Cycle (SDLC).
+
 \section{Metodologia di test}
 La definizione di una strategia di validazione sistematica rappresenta un elemento essenziale nel ciclo SDLC, soprattutto in sistemi IoT caratterizzati da eterogeneità tecnologica, dipendenze di rete e vincoli energetici \cite{Pressman2019, Tang2022}. Nel progetto Smart Garage Door, il piano di test è stato progettato per garantire una copertura completa dei requisiti funzionali (FR1-FR9) e non funzionali (NFR1-NFR10), nonché per assicurare che il comportamento del sistema sia coerente con le assunzioni di scenario introdotte nella fase di analisi.
 
