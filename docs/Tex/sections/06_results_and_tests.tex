@@ -308,6 +308,31 @@ La Tabella \ref{tab:nfr_tests} riassume gli esiti delle misurazioni per ciascun 
 
 I risultati confermano la piena conformità agli obiettivi prestazionali del progetto. La pipeline di comunicazione UART, Wi-Fi, MQTT e HTTP REST ha mantenuto una latenza del sistema di controllo inferiore al secondo anche in condizioni di carico elevato, dimostrando una notevole reattività dell’architettura applicativa. L'accuratezza del modulo GPS e l'efficienza del meccanismo di geofence soddisfano pienamente i requisiti relativi all'automazione di prossimità (FR5a-FR5b) e confermano l'efficacia della strategia event-driven adottata \cite{Sanchez2018}. Il consumo energetico complessivo è risultato compatibile con scenari di alimentazione a batteria (NFR9), mentre il costo ridotto dei componenti conferma la sostenibilità economica dell'implementazione (NFR10), in linea con quanto previsto nelle fasi di planning e design.
 
+
+\newpage
+\subsection*{Prestazioni e valutazione temporale}
+
+Per valutare la reattività e l’efficienza del sistema \textit{Smart Garage Door}, sono stati misurati i principali indicatori prestazionali lungo l’intera catena di controllo, distinguendo tra latenza di comunicazione e tempo complessivo di risposta end-to-end. In particolare, le misure considerano sia la latenza introdotta dallo stack di rete e dal livello applicativo (HTTP/REST, MQTT, Flask), sia il contributo dovuto all’attuazione meccanica del sistema (movimento del servo).
+
+I risultati sperimentali mostrano che la latenza di comunicazione HTTP pura (richiesta/risposta) si mantiene mediamente inferiore a 250~ms, garantendo un’elevata reattività dell’interfaccia utente e piena conformità ai requisiti non funzionali di tempestività e affidabilità della comunicazione (NFR2, NFR3). Il tempo totale percepito dall’utente, comprensivo dell’attuazione fisica della porta, risulta invece dominato dal movimento meccanico del servo, attestandosi intorno a 1.6–1.7~s.
+
+\begin{table}[h!]
+    \centering
+    \caption{Prestazioni temporali del sistema \textit{Smart Garage Door}: latenza di comunicazione e tempo end-to-end.}
+    \label{tab:performance}
+    \begin{tabular}{|p{6.5cm}|c|c|}
+    \hline
+    \textbf{Operazione} & \textbf{Tempo medio (s)} & \textbf{Dev. std (s)} \\ \hline
+    Latenza HTTP -- comando OPEN (request/response) & 0.211 & 0.081 \\ \hline
+    Latenza HTTP -- comando CLOSE (request/response) & 0.225 & 0.067 \\ \hline
+    Tempo totale OPEN (HTTP + attuazione servo) & 1.675 & 0.068 \\ \hline
+    Tempo totale CLOSE (HTTP + attuazione servo) & 1.631 & 0.056 \\ \hline
+    \end{tabular}
+\end{table}
+
+La separazione tra latenza di comunicazione e tempo di risposta complessivo consente di evidenziare come l’infrastruttura software e di rete introduca un overhead minimo, mentre la componente predominante del ritardo percepito sia riconducibile all’attuazione elettromeccanica. L’adozione di protocolli leggeri (MQTT per la comunicazione interna ed HTTP REST per l’interfaccia utente), unitamente all’utilizzo di un server Flask asincrono, risulta pertanto efficace e coerente con i modelli di progettazione per sistemi IoT distribuiti \cite{Yoon2020, Amaral2018}.
+
+
 \section{Test di robustezza e fault tolerance}
 La valutazione della robustezza e della fault tolerance costituisce un elemento centrale nella validazione dei sistemi IoT, poiché tali sistemi operano in ambienti fisicamente variabili, soggetti a interferenze radio, instabilità energetiche e potenziali guasti dei nodi di comunicazione. Per garantire che il prototipo Smart Garage Door fosse in grado di mantenere continuità operativa anche in condizioni avverse, sono state eseguite prove di resilienza basate sui principi della dependability definiti da Avizienis et al. \cite{Avizienis2004} e sulle linee guida per sistemi embedded robusti \cite{Marwedel2021, Chung2020}.
 
