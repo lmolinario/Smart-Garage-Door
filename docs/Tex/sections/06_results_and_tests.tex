@@ -61,7 +61,7 @@ FR5a & Automazione in uscita (PIR) & Cap. 4–5 & Test sensore PIR e trigger loc
 \hline
 FR5b & Automazione in ingresso (GPS) & Cap. 4–5 & Test geofence e ricezione coordinate MQTT \\
 \hline
-FR6 & Gestione fallback di rete & Cap. 4–5 & Test disconnessione Wi-Fi e riconnessione \\
+FR6 & Gestione multiutenza & Cap. 4–5 & Test accesso concorrente e gestione utenti \\
 \hline
 FR7 & Comando manuale locale & Cap. 5 & Test pulsante fisico \\
 \hline
@@ -268,7 +268,7 @@ La verifica dei requisiti FR5a e FR5b è particolarmente rilevante poiché rappr
     \begin{tabular}{|p{4cm}|p{7cm}|c|}
     \hline
     \textbf{Requisito} & \textbf{Descrizione del test dedicato} & \textbf{Esito} \\ \hline
-    FR5a - Automazione in uscita & Simulazione di movimento rilevato dal PIR con porta chiusa; verifica dell'attivazione immediata del relè; misurazione del tasso di falsi positivi in condizioni di luce variabile; test in presenza di interferenze termiche controllate. & Superato \\ \hline
+    FR5a - Automazione in uscita & Simulazione di movimento rilevato dal PIR con porta chiusa; verifica dell'attivazione immediata del relè; misurazione del tasso di falsi positivi in condizioni di luce variabile; test in condizioni ambientali variabili (luce e temperatura). & Superato \\ \hline
     FR5a - Robustezza & Introduzione di rumore artificiale sul pin PIR per simulare malfunzionamenti; verifica della robustezza della logica contestuale basata su stato porta e prossimità GPS, e assenza di aperture spurie. & Superato \\ \hline
     FR5b - Automazione in ingresso (GPS) & Test del geofence a 15 m con transizioni multiple "fuori $\rightarrow$ dentro $\rightarrow$ fuori"; verifica della pubblicazione stabile sul topic MQTT \texttt{home/garage/gps}. & Superato \\ \hline
     FR5b - Stabilità GPS &  Valutazione della stabilità del geofence in presenza di aggiornamenti di posizione irregolari; verifica del comportamento stateful del sistema e assenza di attivazioni spurie durante le transizioni di ingresso/uscita. &  Superato \\ \hline
@@ -294,7 +294,7 @@ La Tabella \ref{tab:nfr_tests} riassume gli esiti delle misurazioni per ciascun 
     \hline
     \textbf{Requisito} & \textbf{Descrizione misurazione} & \textbf{Esito} \\ \hline
     NFR1 & Test di accessibilità continua ai dati tramite MQTT e API REST; riconnessione automatica dell'ESP8266 in caso di perdita del Wi-Fi. & OK \\ \hline
-    NFR2 & Misura della latenza HTTP request/response tra comando utente e backend applicativo (esclusa attuazione fisica): 0.211 s (OPEN), 0.225 s (CLOSE), n=10. & OK \\
+    NFR2 & Misura della latenza HTTP request/response tra comando utente e backend applicativo (esclusa attuazione fisica): 0.211 s (OPEN), 0.225 s (CLOSE), n=10. & OK \\ \hline
     NFR3 & Accuratezza del geofence: errore medio inferiore a 3--5 m e tasso di falsi positivi $<$ 1\% & OK \\ \hline
     NFR4 & Stabilità della rilevazione entro un raggio effettivo di 17 m, coerente con soglia progettuale di 15 m. & OK \\ \hline
     NFR5 & Continuità operativa in assenza della rete: funzionamento completo della logica locale di Arduino, incluso auto-close. & OK \\ \hline
