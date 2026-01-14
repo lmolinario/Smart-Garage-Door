@@ -83,51 +83,59 @@ Ogni componente è indipendente ma interconnesso tramite interfacce chiare e doc
 \begin{figure}[H]
 \centering
 \begin{tikzpicture}[
-  font=\footnotesize\ttfamily,
+  font=\footnotesize,
   level distance=8mm,
   sibling distance=0mm,
   grow=down,
   edge from parent path={(\tikzparentnode.south) -- ++(0,-2pt) -| (\tikzchildnode.west)},
   every node/.style={anchor=west, align=left},
-  box/.style={draw, thick, rounded corners=2mm,
-              minimum width=55mm, inner sep=3pt, fill=gray!3}
+  box/.style={
+    draw,
+    thick,
+    rounded corners=2mm,
+    minimum width=55mm,
+    inner sep=3pt,
+    fill=gray!3
+  }
 ]
 
 % Nodo principale
-\node[box, fill=gray!15, font=\bfseries\ttfamily, minimum width=65mm]
-  {SmartGarageDoor/}
-  % ====================== HARDWARE ======================
-  child { node[box, fill=blue!5!white, minimum width=65mm, yshift=0mm]
-            {hardware/ \hfill \# Firmware Arduino / NodeMCU}
-    child { node[box,yshift=0mm]   {controller\_arduino.ino} }
-    child { node[box,yshift=-5mm]  {controller\_nodemcu.ino} }
-    child { node[box,yshift=-5mm]  {FIRMWARE_GUIDE.md} }
-    child { node[box,yshift=-5mm]  {pinout_table.csv} }
-  }
-  % ====================== SOFTWARE ======================
-  child { node[box, fill=green!5!white, minimum width=65mm, yshift=-40mm]
-            {software/ \hfill \# Server Flask + Telegram Bot}
-    child { node[box,yshift=0mm]   {app.py} }
-    child { node[box,yshift=-5mm]  {telegram\_listener.py} }
-    child { node[box,yshift=-10mm] {timer.py} }
-    child { node[box,yshift=-5mm]  {performance_monitor.py} }
-  }
-  % ====================== DOCS ======================
-  child { node[box, fill=yellow!10!white, minimum width=65mm, yshift=-80mm]
-            {docs/ \hfill \# Documentazione }
-    child { node[box,yshift=0mm]   {Requisiti/} }
-    child { node[box,yshift=-5mm]  {Tex/} }
-    child { node[box,yshift=-10mm] {Materiale in consegna/} }
-  };
+\node[box, fill=gray!15, font=\bfseries, minimum width=65mm]
+  {\texttt{SmartGarageDoor/}}
+
+% ====================== HARDWARE ======================
+child { node[box, fill=blue!5!white, minimum width=65mm]
+          {\texttt{hardware/} \hfill \# Firmware Arduino / NodeMCU}
+  child { node[box] {\texttt{controller\_arduino.ino}} }
+  child { node[box] {\texttt{controller\_nodemcu.ino}} }
+  child { node[box] {\texttt{FIRMWARE\_GUIDE.md}} }
+  child { node[box] {\texttt{pinout\_table.csv}} }
+}
+
+% ====================== SOFTWARE ======================
+child { node[box, fill=green!5!white, minimum width=65mm, yshift=-38mm]
+          {\texttt{software/} \hfill \# Server Flask + Telegram Bot}
+  child { node[box] {\texttt{app.py}} }
+  child { node[box] {\texttt{telegram\_listener.py}} }
+  child { node[box] {\texttt{timer.py}} }
+  child { node[box] {\texttt{performance\_monitor.py}} }
+}
+
+% ====================== DOCS ======================
+child { node[box, fill=yellow!10!white, minimum width=65mm, yshift=-76mm]
+          {\texttt{docs/} \hfill \# Documentazione}
+  child { node[box] {\texttt{Requisiti/}} }
+  child { node[box] {\texttt{Tex/}} }
+  child { node[box] {\texttt{Materiale\_in\_consegna/}} }
+};
 
 \end{tikzpicture}
 
-\caption{Struttura delle directory e dei moduli principali del progetto \textit{Smart Garage Door}.  
-Le tre sottocartelle principali — \texttt{hardware/}, \texttt{software/} e \texttt{docs/} — sono disposte verticalmente in modo proporzionato,  
+\caption{Struttura delle directory e dei moduli principali del progetto \textit{Smart Garage Door}.
+Le tre sottocartelle principali — \texttt{hardware/}, \texttt{software/} e \texttt{docs/} — sono disposte verticalmente in modo proporzionato,
 ciascuna con i propri file allineati sullo stesso asse X per una rappresentazione chiara e leggibile.}
 \label{fig:code_structure}
 \end{figure}
-
 
 
 Principali file:
