@@ -242,7 +242,7 @@ Comando di emergenza locale (pulsante)
 \end{tabularx}
 \end{table}
 
-Questa rappresentazione consente di definire un’astrazione chiara e standardizzata tra mondo fisico e digitale, facilitando l’integrazione con servizi esterni (coem ad esempio Telegram Bot, ThingSpeak) e garantendo un’implementazione conforme ai principi REST e alle best practice dei sistemi IoT distribuiti.
+Questa rappresentazione consente di definire un’astrazione chiara e standardizzata tra mondo fisico e digitale, facilitando l’integrazione con servizi esterni (come ad esempio Telegram Bot, ThingSpeak) e garantendo un’implementazione conforme ai principi REST e alle best practice dei sistemi IoT distribuiti.
 
 
 \subsection{Mappatura tra requisiti funzionali e tecnologie adottate}
@@ -1952,7 +1952,7 @@ A supporto di questi strumenti, il progetto utilizza librerie ampiamente diffuse
 \item \textbf{PubSubClient} – per la gestione MQTT sul modulo ESP8266;
 \item \textbf{TinyGPSPlus} – per la decodifica dei messaggi NMEA provenienti dal modulo GPS;
 \item \textbf{python-telegram-bot} – per la gestione asincrona del bot Telegram;
-\item \textbf{requests} – per le comunicazioni HTTP con ThingSpeak e componenti esterni.
+\item \textbf{requests} – per le comunicazioni HTTP e componenti esterni.
 \end{itemize}
 
 L’integrazione tra questi strumenti consente di ottenere un sistema software leggero, modulare e facilmente estendibile.
@@ -1967,7 +1967,7 @@ In linea con i requisiti non funzionali (NFR6–NFR8), ogni scambio informativo 
 Le principali interfacce utilizzate nel sistema sono:
 
 \begin{itemize}
-\item \textbf{UART (Arduino $$<->$$ ESP8266)}
+\item \textbf{UART (Arduino $<->$ ESP8266)}
 Impiegata per il trasferimento locale di comandi e stati.
 La comunicazione è strutturata su frame a byte singolo per ridurre complessità e garantire determinismo temporale.
 

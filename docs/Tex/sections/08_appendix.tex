@@ -47,7 +47,6 @@ La Tabella~\ref{tab:software} riassume le principali dipendenze software.
 \texttt{Flask 3.0} & Web framework per server locale in Python \\
 \texttt{requests} & Gestione delle comunicazioni HTTP client-server \\
 \texttt{Telebot / python-telegram-bot} & Interfaccia bot Telegram per comandi e notifiche \\
-\texttt{ThingSpeak API} & Piattaforma MQTT per raccolta e visualizzazione dati \\
 \texttt{Matplotlib / Pandas} & Analisi e rappresentazione grafica dei log sperimentali \\
 \bottomrule
 \end{tabularx}
@@ -130,12 +129,11 @@ ciascuna con i propri file allineati sullo stesso asse X per una rappresentazion
 
 
 
-
+Principali file:
 \begin{itemize}
-    \item \texttt{controller\_arduino.txt} – gestione sensori e relè, timer di chiusura automatica;
-    \item \texttt{controller\_nodemcu.txt} – connessione MQTT e bridge seriale con Arduino;
-    \item \texttt{Transmitter with Thingspeak.txt} – gestione GPS e pubblicazione distanza;
-    \item \texttt{app.py} – server Flask, login, API e gestione comandi;
+    \item \texttt{controller\_arduino.ino} – gestione sensori e relè, timer di chiusura automatica;
+    \item \texttt{controller\_nodemcu.ino} – connessione MQTT e bridge seriale con Arduino;
+     \item \texttt{app.py} – server Flask, login, API e gestione comandi;
     \item \texttt{telegram\_listener.py} – interfaccia utente Telegram e notifiche;
     \item \texttt{timer.py} – controllo temporale e reset automatico stato.
 \end{itemize}

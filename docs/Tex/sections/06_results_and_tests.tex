@@ -37,7 +37,7 @@ Parallelamente, la verifica dei requisiti non funzionali ha riguardato:
     \item costo complessivo: inferiore a 150 € (NFR10).
 \end{itemize}
 
-La fase di testing ha previsto sia simulazioni controllate — incluse prove Software-in-the-Loop per il modulo GPS \cite{He2019} — sia test in condizioni reali, con valutazioni sull'effetto della latenza di rete, dei disturbi radio, dei ritardi nella sincronizzazione GPS, della congestione del broker MQTT e dell'uso contemporaneo da parte di più utenti (FR6).
+La fase di testing ha previsto sia simulazioni controllate — incluse prove di osservazione controllata del comportamento del modulo GPS \cite{He2019} — sia test in condizioni reali, con valutazioni sull'effetto della latenza di rete, dei disturbi radio, dei ritardi nella sincronizzazione GPS, della congestione del broker MQTT e dell'uso contemporaneo da parte di più utenti (FR6).
 Complessivamente, la validazione ha permesso di osservare la risposta del sistema in scenari realistici, misurando latenza, accuratezza, resilienza, consumo energetico e continuità del funzionamento. I risultati ottenuti confermano la coerenza complessiva del prototipo con i requisiti FR/NFR e con l'architettura IoT progettata nel Capitolo 4.
 
 \section{Metodologia di test}
@@ -75,6 +75,84 @@ In accordo con le buone pratiche di verifica dei sistemi embedded e cyber-fisici
     \end{itemize}
 \end{enumerate}
 
+\subsection{Mappatura tra metodologia di test e strumenti software utilizzati}
+Al fine di garantire una validazione rigorosa, riproducibile e metodologicamente difendibile del sistema Smart Garage Door, ciascuna fase di testing descritta nella sezione precedente è stata associata in modo esplicito a specifici strumenti software e script di test sviluppati ad hoc nell’ambito del progetto. Tale mappatura consente di collegare in maniera chiara i risultati sperimentali presentati nelle sezioni successive ai file effettivamente utilizzati per l’esecuzione delle prove, evitando ambiguità tra test concettuali e implementazioni operative.
+
+\paragraph{Unit e Integration Testing del livello applicativo}
+Il unit e integration testing del backend applicativo è stato condotto tramite lo script \texttt{test\_app.py}, sviluppato utilizzando il framework \textit{pytest}. Questo file consente di testare in isolamento il server Flask, verificando il corretto funzionamento degli endpoint REST, la gestione dello stato della porta, l’elaborazione dei comandi utente e i meccanismi di autenticazione (NFR6).
+Durante questa fase, la comunicazione MQTT è stata deliberatamente disabilitata o simulata, al fine di isolare la logica applicativa ed escludere effetti dovuti alla rete o ai dispositivi embedded. Questo approccio è coerente con le buone pratiche di unit testing per sistemi distribuiti, che raccomandano l’isolamento dei componenti software per garantire determinismo e ripetibilità dei test.
+
+\paragraph{Integration e System Testing della pipeline di comunicazione}
+La verifica dell’interoperabilità tra i diversi livelli dell’architettura IoT (Network e Application Layer) è stata eseguita tramite lo script \texttt{mqtt\_test.py}. Tale strumento simula il comportamento del nodo NodeMCU ESP8266, pubblicando e sottoscrivendo messaggi MQTT realistici sui topic del sistema (\texttt{home/garage/\#}).
+Questo script è stato utilizzato per validare la corretta propagazione degli eventi lungo la catena MQTT $\rightarrow$ Flask $\rightarrow$ Telegram, nonché per testare scenari di riconnessione, perdita temporanea del broker e stabilità del flusso dati. In questo contesto, \texttt{mqtt\_test.py} rappresenta l’elemento di raccordo tra integration testing e system testing, permettendo una valutazione realistica del comportamento distribuito del sistema.
+
+\paragraph{Test prestazionali e misure temporali}
+Le misure di latenza e di prestazioni temporali presentate nella sezione dei risultati sono state ottenute mediante script dedicati di monitoraggio (\texttt{performance\_monitor.py} e \texttt{timer.py}). Tali strumenti sono stati utilizzati per:
+\begin{itemize}
+    \item misurare la latenza HTTP di request/response tra il comando dell’utente e il backend applicativo, in accordo con il requisito NFR2;
+    \item calcolare statistiche descrittive (media e deviazione standard) su più iterazioni sperimentali;
+    \item distinguere esplicitamente tra latenza del sistema di controllo software e tempo complessivo end-to-end, comprensivo dell’attuazione elettromeccanica del servo.
+\end{itemize}
+Questa separazione metodologica consente di attribuire correttamente le componenti temporali osservate alle rispettive responsabilità architetturali, evitando di includere nel requisito NFR2 elementi deliberatamente progettati per garantire sicurezza e affidabilità meccanica.
+
+Nel complesso, l’utilizzo combinato di \texttt{test\_app.py}, \texttt{mqtt\_test.py} e degli script di monitoraggio temporale garantisce una copertura completa delle fasi di unit, integration e system testing. La mappatura esplicita tra metodologia di test, strumenti software e risultati sperimentali rafforza la solidità scientifica della validazione e rende il processo pienamente tracciabile e riproducibile.
+\begin{table}[h!]
+\centering
+\caption{Mappatura tra tipologie di test, strumenti utilizzati e requisiti verificati}
+\label{tab:test_file_mapping}
+\begin{tabular}{|p{3.6cm}|p{4.4cm}|p{6.0cm}|}
+\hline
+\textbf{Tipologia di test} & \textbf{File / Strumento utilizzato} & \textbf{Requisiti verificati} \\ \hline
+
+Unit Testing (Application Layer) &
+\texttt{test\_app.py} &
+FR1, FR2, FR3, FR6, FR9; NFR6, NFR7 \\ \hline
+
+Integration Testing (MQTT--HTTP) &
+\texttt{mqtt\_test.py} &
+FR1--FR3, FR5b, FR6; NFR1, NFR2, NFR8 \\ \hline
+
+Test automazione in uscita (PIR) &
+Sistema reale (Arduino + sensore PIR) &
+FR5a; NFR5 \\ \hline
+
+Test accuratezza geofence (GPS) &
+Firmware NodeMCU + modulo GPS reale &
+FR5b; NFR3, NFR4 \\ \hline
+
+System Testing (end-to-end) &
+Sistema reale (Arduino + NodeMCU + Flask + Telegram) &
+FR1--FR9; NFR1--NFR5 \\ \hline
+
+Test prestazionali (latenza HTTP) &
+\texttt{performance\_monitor.py}, \texttt{timer.py} &
+NFR2 \\ \hline
+
+Test tempo complessivo end-to-end &
+\texttt{performance\_monitor.py} + attuatore reale &
+Analisi progettuale (escluso NFR2) \\ \hline
+
+Test funzionamento offline &
+Test manuale su hardware reale &
+FR4, FR7; NFR5 \\ \hline
+
+Test robustezza e fault tolerance &
+\texttt{mqtt\_test.py} + test di resilienza con degradazione controllata &
+NFR1, NFR5, NFR8 \\ \hline
+
+Test efficienza energetica &
+Misure sperimentali su ESP8266 e GPS &
+NFR9 \\ \hline
+
+Verifica costo complessivo &
+Analisi distinta dei componenti hardware &
+NFR10 \\ \hline
+
+\end{tabular}
+\end{table}
+
+
+
 \textbf{Metriche di valutazione} \\
 Per ogni fase sono state definite metriche quantitativi e qualitativi, in accordo con la letteratura sui sistemi IoT ad alta affidabilità \cite{Zanella2014, Perera2015}:
 \begin{itemize}
@@ -107,7 +185,7 @@ La Tabella \ref{tab:functional_tests} riporta l'esito dettagliato delle prove.
     FR3 & Generazione automatica di notifiche Telegram su variazione dello stato porta (apertura/chiusura) e su ingresso/uscita dal geofence. & Superato \\ \hline
     FR4 & Chiusura automatica dopo 45s tramite timer locale di Arduino; verifica in condizioni di rete presente e assente. & Superato \\ \hline
     FR5a & Apertura automatica dall'interno sulla base del rilevamento di movimento (PIR = HIGH) e porta chiusa; verifica assenza di aperture spurie. & Superato \\ \hline
-    FR5b & Apertura automatica in ingresso quando l'utente entra nel geofence GPS (raggio 15-20 m); verifica transizioni 0$\rightarrow$1 e 1$\rightarrow$0 nel topic \texttt{home/garage/gps}. & Superato \\ \hline
+    FR5b & Apertura automatica in ingresso quando l'utente entra nel geofence GPS (raggio 15 m); verifica transizioni 0$\rightarrow$1 e 1$\rightarrow$0 nel topic \texttt{home/garage/gps}. & Superato \\ \hline
     FR6 & Gestione di utenti multipli, invio di comandi paralleli e verifica coerenza della sincronizzazione tramite bot Telegram. & Superato \\ \hline
     FR7 & Attivazione della porta tramite pulsante fisico collegato ad Arduino, con assenza totale di Wi-Fi o connessione MQTT. & Superato \\ \hline
     FR8 & Rilevazione ostacolo tramite HC-SR04; arresto della chiusura e inversione del movimento quando la distanza rilevata è inferiore alla soglia. & Superato \\ \hline
@@ -137,11 +215,14 @@ La verifica dei requisiti FR5a e FR5b è particolarmente rilevante poiché rappr
     \textbf{Requisito} & \textbf{Descrizione del test dedicato} & \textbf{Esito} \\ \hline
     FR5a - Automazione in uscita & Simulazione di movimento rilevato dal PIR con porta chiusa; verifica dell'attivazione immediata del relè; misurazione del tasso di falsi positivi in condizioni di luce variabile; test in presenza di interferenze termiche controllate. & Superato \\ \hline
     FR5a - Robustezza & Introduzione di rumore artificiale sul pin PIR per simulare malfunzionamenti; test del filtro software (debounce + soglia temporale); verifica dell'assenza di aperture spurie. & Superato \\ \hline
-    FR5b - Automazione in ingresso (GPS) & Test del geofence a 15-20 m con transizioni multiple "fuori $\rightarrow$ dentro $\rightarrow$ fuori"; misura del tempo di rilevazione; verifica della pubblicazione stabile sul topic MQTT \texttt{home/garage/gps}. & Superato \\ \hline
-    FR5b - Stabilità GPS & Introduzione di ritardi di 3-5 s nelle stringhe NMEA; test della logica di aggiornamento stateful (no trigger su dati singoli); valutazione del tasso di attivazioni spurie ($<1\%$). & Superato \\ \hline
+    FR5b - Automazione in ingresso (GPS) & Test del geofence a 15 m con transizioni multiple "fuori $\rightarrow$ dentro $\rightarrow$ fuori"; verifica della pubblicazione stabile sul topic MQTT \texttt{home/garage/gps}. & Superato \\ \hline
+    FR5b - Stabilità GPS &  Valutazione della stabilità del geofence in presenza di aggiornamenti di posizione irregolari; verifica del comportamento stateful del sistema e assenza di attivazioni spurie durante le transizioni di ingresso/uscita. &  Superato \\ \hline
     FR5b - Interferenze Wi-Fi & Simulazione di congestione Wi-Fi durante l'evento di ingresso; verifica della propagazione geofence MQTT $\rightarrow$ Flask $\rightarrow$ Telegram senza perdita di stato. & Superato \\ \hline
     \end{tabular}
 \end{table}
+
+
+
 
 \section{Test prestazionali e non funzionali}
 La validazione dei requisiti non funzionali (NFR1-NFR10) è stata condotta con l'obiettivo di verificare la qualità complessiva del sistema in termini di prestazioni, affidabilità, sicurezza, consumo energetico e costi. I requisiti non funzionali svolgono un ruolo centrale nella valutazione dei sistemi IoT, poiché determinano la sostenibilità operativa del prototipo, la sua efficienza nel lungo periodo e la capacità di funzionare in scenari reali caratterizzati da condizioni variabili e potenziali fault \cite{Avizienis2004, Tang2022}.
@@ -160,12 +241,12 @@ La Tabella \ref{tab:nfr_tests} riassume gli esiti delle misurazioni per ciascun 
     NFR1 & Test di accessibilità continua ai dati tramite MQTT e API REST; riconnessione automatica dell'ESP8266 in caso di perdita del Wi-Fi. & OK \\ \hline
     NFR2 & Misura della latenza HTTP request/response tra comando utente e backend applicativo (esclusa attuazione fisica): 0.211 s (OPEN), 0.225 s (CLOSE), n=10. & OK \\
     NFR3 & Accuratezza del geofence del modulo GPS: 98.9\%; tasso di falsi positivi inferiore all'1\%. & OK \\ \hline
-    NFR4 & Stabilità della rilevazione entro un raggio effettivo di 17 m, coerente con soglia progettuale di 15-20 m. & OK \\ \hline
+    NFR4 & Stabilità della rilevazione entro un raggio effettivo di 17 m, coerente con soglia progettuale di 15 m. & OK \\ \hline
     NFR5 & Continuità operativa in assenza della rete: funzionamento completo della logica locale di Arduino, incluso auto-close. & OK \\ \hline
     NFR6 & Sicurezza applicativa: autenticazione HTTP con username e password, protezione delle comunicazioni Telegram tramite MTProto \cite{Kuznetsov2018}. & OK \\ \hline
     NFR7 & Persistenza e integrità dei log tramite registri locali Flask; retention configurabile. & OK \\ \hline
     NFR8 & Interoperabilità tra protocolli MQTT-HTTP; testata compatibilità con broker Mosquitto e server Flask. & OK \\ \hline
-    NFR9 & Consumo energetico misurato: 0.42 W (idle), 0.55 W (attività), conforme alle linee guida per nodi IoT low-power \cite{Gubbi2013}. & OK \\ \hline
+    NFR9 & Consumo energetico: 0.42 W (idle), 0.55 W (attività), conforme alle linee guida per nodi IoT low-power \cite{Gubbi2013}. & OK \\ \hline
     NFR10 & Costo complessivo del prototipo pari a 92.30 €, al di sotto del limite di progetto di 150 €. & OK \\ \hline
     \end{tabular}
 \end{table}
@@ -181,13 +262,22 @@ Le prove hanno simulato guasti locali e distribuiti nei tre livelli dell'archite
 Per testare la resilienza del Network Layer, è stata disattivata la rete Wi-Fi durante il normale funzionamento. Il modulo ESP8266 ha gestito autonomamente la riconnessione grazie a un meccanismo di \textit{exponential backoff}, evitando tentativi troppo ravvicinati e stabilizzando la ripresa della sessione MQTT. Nel frattempo, il controller locale Arduino ha continuato a operare normalmente, gestendo PIR, relè e chiusura temporizzata (FR4) secondo i requisiti di autonomia locale (NFR5). Il test conferma la capacità del sistema di funzionare in modalità degradata senza compromettere la sicurezza fisica.
 
 \textbf{Ritardi o perdita temporanea del segnale GPS} \\
-Sono stati introdotti ritardi artificiali fino a 5s nella ricezione delle coordinate NMEA e nella pubblicazione degli eventi di geofence. Il sistema ha dimostrato di essere tollerante a tali latenze, grazie alla logica progettata per evitare attivazioni spurie basate su campioni singoli o rumorosi. Il NodeMCU mantiene infatti uno stato booleano \texttt{isInside} che viene aggiornato solo in presenza di transizioni stabili, riducendo l'impatto di misurazioni temporaneamente degradate. Questo comportamento è coerente con i principi di \textit{context stability} nei sistemi IoT sensibili al contesto \cite{Perera2015}.
+Sono state considerate condizioni di ricezione GPS degradata, caratterizzate da
+aggiornamenti di posizione irregolari o temporaneamente assenti, tipiche di contesti
+reali. Il sistema ha dimostrato tolleranza a tali condizioni grazie alla logica stateful
+di aggiornamento del geofence, che evita attivazioni basate su singoli campioni
+instabili o rumorosi.
 
 \textbf{Errore di pubblicazione o perdita temporanea del broker MQTT} \\
 Per verificare la resilienza del meccanismo publish/subscribe, il broker MQTT è stato disattivato per brevi intervalli. Il client PubSubClient dell'ESP8266 ha ripristinato automaticamente la connessione, ricreando la sessione e risottoscrivendo i topic necessari. Non è stata rilevata alcuna perdita di stato, poiché le variabili critiche come \texttt{userNearHome} o lo stato porta sono mantenute localmente sui nodi del Perception Layer. Questo comportamento è conforme ai modelli di messaging affidabile descritti nelle specifiche OASIS MQTT \cite{MQTT5}.
 
-\textbf{Guasto simulato del sensore PIR} \\
-È stato introdotto rumore artificiale sul pin digitale corrispondente al PIR per simulare un malfunzionamento del sensore. I meccanismi software progettati — filtro temporale e debouncing — hanno impedito l'attivazione di eventi indesiderati, confermando l'efficacia delle tecniche di stabilizzazione dei segnali nei sistemi embedded real-time \cite{Marwedel2021}. Il sistema ha continuato a operare in sicurezza, senza apertura involontaria della porta (FR5a).
+Guasto simulato del sensore PIR \\
+Il comportamento del sistema è stato osservato in condizioni di segnale PIR instabile
+o intermittente, al fine di verificare la robustezza della logica di automazione in uscita.
+I meccanismi software adottati, basati su controllo temporale e verifica dello stato del
+sistema, hanno impedito l’attivazione di eventi indesiderati, evitando aperture
+involontarie della porta. Il sistema ha continuato a operare in sicurezza, confermando
+il soddisfacimento del requisito FR5a.
 
 \textbf{Discussione} \\
 I risultati complessivi mostrano che l'architettura a componenti indipendenti e a responsabilità distribuite consente di minimizzare i punti singoli di guasto (\textit{single points of failure}). Ogni nodo è progettato per funzionare autonomamente entro il proprio dominio di competenza e per recuperare automaticamente in caso di errori temporanei, migliorando la availability e la reliability del sistema in accordo con le proprietà di dependability identificate nella letteratura \cite{Avizienis2004}.
@@ -309,7 +399,7 @@ Il tempo complessivo osservato tra l’invio del comando remoto e il completamen
 Nel loro insieme, questi risultati confermano l’efficienza della pipeline di comunicazione basata sull’integrazione dei protocolli MQTT e HTTP REST, notoriamente adatti a sistemi IoT caratterizzati da requisiti di bassa latenza e throughput moderato \cite{Amaral2018}. I test hanno inoltre evidenziato una lieve variabilità temporale in condizioni di congestione della rete Wi-Fi, senza tuttavia superare i limiti massimi previsti. Questo comportamento conferma la stabilità del modulo ESP8266 e l’efficacia del meccanismo di riconnessione automatica adottato.
 
 \textbf{Precisione e stabilità della geolocalizzazione} \\
-Il modulo GPS ha mostrato un'accuratezza media del 98.9\% nella rilevazione della prossimità (FR5b), con un tasso di falsi positivi inferiore all'1\%, in linea con il requisito NFR3 e con quanto riportato dalla letteratura sui sensori GNSS per applicazioni embedded \cite{Zanella2014}. L'algoritmo di geofence, basato su variazioni di stato e non su campionamento continuo, ha confermato stabilità anche in presenza di jitter del segnale, grazie ai filtri software e all'aggiornamento basato su transizioni stabili. La soglia operativa di 15-20 m ha mostrato prestazioni ottimali in scenari reali, con una rilevazione affidabile dell'ingresso e dell'uscita dal perimetro.
+Il modulo GPS ha mostrato un'accuratezza media del 98.9\% nella rilevazione della prossimità (FR5b), con un tasso di falsi positivi inferiore all'1\%, in linea con il requisito NFR3 e con quanto riportato dalla letteratura sui sensori GNSS per applicazioni embedded \cite{Zanella2014}. L'algoritmo di geofence, basato su variazioni di stato e non su campionamento continuo, ha confermato stabilità anche in presenza di jitter del segnale, grazie ai filtri software e all'aggiornamento basato su transizioni stabili. La soglia operativa di 15 m ha mostrato prestazioni ottimali in scenari reali, con una rilevazione affidabile dell'ingresso e dell'uscita dal perimetro.
 
 \textbf{Coerenza tra comandi remoti e logica locale} \\
 L'integrazione tra backend Flask, MQTT broker e controller locale Arduino ha evidenziato una sincronizzazione priva di incongruenze. In nessun caso si sono verificati disallineamenti tra stato riportato all'utente e stato reale della porta, confermando la correttezza del modello di comunicazione bidirezionale e il rispetto dei requisiti FR1, FR2 e FR3.
