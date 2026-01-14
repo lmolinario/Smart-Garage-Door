@@ -199,7 +199,7 @@ Funzionamento offline & No & Limitato & No & Sì (ESP8266 + Arduino) \\
 Automazioni ingresso & GPS app & BLE & GPS & GPS + sensori locali \\
 Automazioni uscita & No & No & No & GPS + PIR + sensori locali \\
 Privacy & Moderata & Medio-bassa & Bassa & Alta (locale-first) \\
-Costo medio & 200–250\,€ & 150–200\,€ & 120–150\,€ & < 150\,€ \\
+Costo medio & 200–250\,€ & 150–200\,€ & 120–150\,€ & $<$ 150\,€ \\
 Open-source & No & No & No & Sì \\
 \bottomrule
 \end{tabularx}
@@ -223,11 +223,11 @@ L’approccio seguito integra principi di progettazione distribuita, attenzione 
 Le caratteristiche distintive che qualificano il contributo progettuale sono le seguenti:
 
 \begin{itemize}
-    \item \textbf{Architettura ibrida locale–remota}, in cui la logica di controllo primaria risiede nei microcontrollori (Arduino Uno ed ESP8266), garantendo operatività anche in assenza di connettività Internet. Tale proprietà, direttamente collegata al requisito \textbf{NFR5 (sia versione a che versione b)}, consente al sistema di evitare dipendenze critiche da server esterni e di mantenere continuità di servizio in scenari degradati.
+    \item \textbf{Architettura ibrida locale–remota}, in cui la logica di controllo primaria risiede nei microcontrollori (Arduino Uno ed ESP8266), garantendo operatività anche in assenza di connettività Internet. Tale proprietà, direttamente collegata al requisito \textbf{FR5 (sia versione a che versione b)} che approfondiremo nel prossimo Capitolo, consente al sistema di evitare dipendenze critiche da server esterni e di mantenere continuità di servizio in scenari degradati.
 
     \item \textbf{Adozione di componenti open-source e protocolli standard} (\textit{MQTT}, \textit{HTTP/Flask}, \textit{Telegram Bot API}), che favoriscono la piena interoperabilità del sistema e riducono sia i costi sia la complessità di integrazione con futuri moduli o servizi. Tale scelta è coerente con i principi di apertura e riusabilità tipici delle moderne architetture IoT a più livelli.
 
-    \item \textbf{Automazione di prossimità basata su GPS}, implementata tramite il modulo \texttt{controller_nodemcu.ino} del NodeMCU, preferita al BLE per la maggiore stabilità e accuratezza in ambienti outdoor. Questa soluzione permette di ridurre i falsi positivi in fase di rilevamento ingresso-uscita, in accordo con i principi di efficienza delle risorse e affidabilità funzionale.
+    \item \textbf{Automazione di prossimità basata su GPS}, implementata tramite il modulo \texttt{controller\_nodemcu.ino} del NodeMCU, preferita al BLE per la maggiore stabilità e accuratezza in ambienti outdoor. Questa soluzione permette di ridurre i falsi positivi in fase di rilevamento ingresso-uscita, in accordo con i principi di efficienza delle risorse e affidabilità funzionale.
 
     \item \textbf{Interfaccia utente leggera, multi-piattaforma e sicura}, realizzata attraverso le \textbf{Telegram Bot API} \cite{TelegramAPI} e un server \textbf{Flask} \cite{Flask2024}. Ciò consente una gestione intuitiva, multiutente e  facilmente estendibile, in linea con i requisiti di usabilità e di separazione tra livelli architetturali.
 
@@ -235,9 +235,8 @@ Le caratteristiche distintive che qualificano il contributo progettuale sono le 
 \end{itemize}
 
 Il progetto, nel suo insieme, non si limita a riprodurre funzionalità già presenti negli strumenti commerciali, ma propone un modello \textbf{open-source, scalabile e autonomo}, costruito secondo i criteri di modularità, efficienza e interoperabilità propri dell’ingegneria IoT contemporanea.
-L’intero ciclo di sviluppo è stato strutturato secondo il paradigma dello \textbf{System Development Life Cycle (SDLC)} \cite{Pressman2019}, applicato in tutte le sue fasi: analisi dei requisiti, progettazione multilivello, implementazione, test e validazione funzionale.
 
-\vspace{4mm}
+\vspace{8mm}
 
 \section{Conclusioni della revisione dello stato dell’arte}
 

@@ -1004,29 +1004,61 @@ flusso informativo verticale (bottom–up) e i comandi top–down verso gli attu
 \label{sec:management_algorithm}
 
 Il funzionamento complessivo del sistema \textit{Smart Garage Door} può essere
-descritto come la cooperazione di più cicli concorrenti, ognuno dei quali opera
-su un diverso livello dell’architettura multilayer illustrata nella
-Figura~\ref{fig:software_layers}:
-\begin{itemize}
-  \item \textbf{Perception Layer} (Arduino UNO): acquisizione dei sensori
-        (PIR, HC-SR04), gestione del comando locale, attuazione del servo/relè,
-        rilevazione degli ostacoli e generazione degli eventi di stato;
-  \item \textbf{Network Layer} (NodeMCU ESP8266): instradamento dei comandi
-        tra MQTT, HTTP e UART, gestione della connettività Wi-Fi e mantenimento
-        del funzionamento locale in caso di assenza di Internet;
-  \item \textbf{Application Layer} (Flask + timer + bot Telegram): gestione
-        dello stato applicativo (DR), generazione del CVO, API REST, timer di
-        health-check e interfaccia conversazionale con l’utente.
-\end{itemize}
+interpretato come il risultato della cooperazione coordinata di più cicli di
+esecuzione concorrenti, ciascuno dei quali opera in maniera autonoma ma
+sinergica all’interno di uno specifico livello dell’architettura software
+multilayer illustrata in Figura~\ref{fig:software_layers}. Tale impostazione è
+coerente con i principi delle architetture IoT distribuite, nelle quali la
+separazione delle responsabilità e la decomposizione funzionale consentono di
+gestire in modo efficace la complessità del sistema e di garantire un
+comportamento deterministico e verificabile in fase di esecuzione.
 
-In questa sezione viene descritto il \textit{management algorithm} globale, che
-integra le principali logiche implementate nei file
+Il \textit{Perception Layer}, implementato sul microcontrollore Arduino UNO,
+costituisce il livello di interazione diretta con il mondo fisico. In questo
+strato risiedono le funzionalità di acquisizione continua dei dati provenienti
+dai sensori di presenza (PIR) e di distanza (HC-SR04), la gestione del comando
+locale manuale, l’attuazione del servo o del relè associato al movimento della
+porta e la rilevazione di condizioni di sicurezza, quali la presenza di
+ostacoli lungo il percorso di chiusura. Il Perception Layer è inoltre
+responsabile della generazione degli eventi di stato, che rappresentano la
+prima forma strutturata di informazione sul comportamento del sistema e
+costituiscono l’input per i livelli superiori dell’architettura.
+
+Il \textit{Network Layer}, realizzato mediante il modulo NodeMCU ESP8266,
+svolge il ruolo di elemento di mediazione tra il dominio fisico e quello
+applicativo. Questo livello è responsabile dell’instradamento dei comandi e
+degli eventi attraverso protocolli eterogenei quali UART, MQTT e HTTP,
+garantendo la traduzione e il bridging tra interfacce di comunicazione
+differenti. Il Network Layer gestisce inoltre la connettività Wi-Fi e implementa
+meccanismi di funzionamento locale che consentono al sistema di preservare le
+funzionalità critiche anche in condizioni di assenza di connettività Internet,
+in accordo con i requisiti di resilienza e autonomia operativa definiti in fase
+di analisi.
+
+L’\textit{Application Layer}, basato su un server Flask e affiancato da moduli
+di temporizzazione e da un bot Telegram, rappresenta il livello di
+orchestrazione logica del sistema. In questo strato viene mantenuto lo stato
+applicativo mediante la \textit{Domain Representation} (DR), a partire dal quale
+viene costruito il \textit{Canonical View Object} (CVO), utilizzato come
+rappresentazione canonica e consistente dello stato del sistema. L’Application
+Layer espone le API REST per il controllo remoto della porta, implementa i
+meccanismi di \textit{health-check} periodico e fornisce l’interfaccia
+conversazionale verso l’utente finale tramite il bot Telegram, consentendo una
+fruizione intuitiva e asincrona delle funzionalità del sistema.
+
+All’interno di questo contesto, la presente sezione descrive il
+\textit{management algorithm} globale del sistema, che integra e coordina le
+principali logiche implementate nei file
 \texttt{controller\_arduino.ino}, \texttt{controller\_nodemcu.ino},
-\texttt{app.py}, \texttt{timer.py} e
-\texttt{telegram\_listener.py}.
-L’obiettivo è fornire una vista unificata del flusso di controllo del sistema,
-in grado di collegare in modo esplicito i requisiti funzionali FR1–FR9 con le
-scelte architetturali e con il comportamento runtime.
+\texttt{app.py}, \texttt{timer.py} e \texttt{telegram\_listener.py}. L’obiettivo
+è fornire una vista unificata del flusso di controllo del sistema, capace di
+mettere in relazione in modo esplicito i requisiti funzionali FR1--FR9 con le
+scelte architetturali adottate e con il comportamento osservabile del sistema in
+fase di esecuzione. Tale descrizione costituisce il collegamento concettuale tra
+il modello progettuale definito in fase di design e la sua concreta
+realizzazione operativa, facilitando le successive attività di analisi,
+validazione e manutenzione del sistema.
+
 
 \subsection{Descrizione ad alto livello}
 
@@ -1792,72 +1824,132 @@ e costituiscono il riferimento progettuale per l’implementazione descritta nel
 \end{figure}
 
 \subsection{Descrizione del flusso operativo}
-Il flusso in Figura~\ref{fig:flowchart_sgd} evidenzia le principali fasi del funzionamento integrato del sistema:
 
-\begin{enumerate}
-\item \textbf{Acquisizione sensoriale (Arduino)}
-Il microcontrollore esegue letture periodiche dei sensori PIR e HC-SR04, valutando la presenza dell’utente e la distanza da ostacoli o oggetti in prossimità della porta.
-arduino
-Copia codice
-\item \textbf{Automazione FR5a–FR5b}
-La porta si apre automaticamente solo quando:
-\begin{itemize}
-    \item il PIR rileva movimento (\textit{salita FR5a});
-    \item la distanza è inferiore alla soglia;
-    \item il NodeMCU segnala \texttt{userNearHome = true} tramite messaggio GPS (FR5b).
-\end{itemize}
-Tutte le condizioni devono essere soddisfatte simultaneamente per evitare aperture indesiderate.
+Il flusso operativo illustrato in Figura~\ref{fig:flowchart_sgd} descrive in modo
+sequenziale e integrato le principali fasi di funzionamento del sistema
+\textit{Smart Garage Door}, mettendo in evidenza l’interazione tra i diversi
+livelli dell’architettura multilayer e il ruolo svolto da ciascun componente nel
+raggiungimento dei requisiti funzionali definiti in fase di analisi.
 
-\item \textbf{Comandi remoti da NodeMCU}
-L’ESP8266 riceve richieste HTTP/MQTT provenienti dal server Flask e le inoltra ad Arduino tramite seriale, garantendo il funzionamento remoto e l’integrazione con il Digital Twin.
+In una prima fase, il \textit{Perception Layer}, implementato sul
+microcontrollore Arduino, esegue l’acquisizione periodica dei dati provenienti
+dai sensori PIR e HC-SR04. Tali misurazioni consentono di valutare
+continuamente la presenza dell’utente nelle immediate vicinanze del garage e
+di stimare la distanza da eventuali ostacoli o oggetti posizionati lungo il
+percorso di apertura e chiusura della porta. Questa attività di monitoraggio
+costituisce la base informativa per tutte le successive decisioni di controllo
+e automazione.
 
-\item \textbf{Gestione API (Flask)}
-Il server espone endpoint REST che permettono all’utente e ai servizi applicativi di:
-\begin{itemize}
-    \item aprire/chiudere la porta,
-    \item interrogare lo stato corrente,
-    \item ricevere notifiche e aggiornamenti in tempo reale.
-\end{itemize}
+Sulla base dei dati acquisiti, viene attivata la logica di automazione
+associata ai requisiti FR5a e FR5b. In particolare, l’apertura automatica della
+porta è consentita esclusivamente quando risultano soddisfatte
+contemporaneamente tre condizioni: la rilevazione di movimento da parte del
+sensore PIR, la verifica che la distanza misurata rientri nelle soglie di
+sicurezza definite e la ricezione, da parte del NodeMCU, dell’indicazione
+\texttt{userNearHome = true}, derivante dall’elaborazione delle informazioni di
+posizionamento GPS. L’adozione di una logica congiuntiva garantisce che il
+sistema eviti aperture indesiderate o spurie, migliorando l’affidabilità
+complessiva del comportamento automatico.
 
-\item \textbf{Chiusura automatica (FR4)}
-Un timer interno ad Arduino garantisce la chiusura della porta dopo un intervallo configurabile, prevenendo aperture prolungate.
+Parallelamente ai meccanismi di automazione locale, il sistema supporta
+l’invio di comandi remoti tramite il \textit{Network Layer}. Il modulo NodeMCU
+ESP8266 riceve richieste di controllo provenienti dal server applicativo,
+trasmesse mediante protocolli HTTP o MQTT, e le inoltra al microcontrollore
+Arduino attraverso il canale seriale. Questo meccanismo di bridging consente di
+integrare il controllo remoto della porta con il \textit{Digital Twin}
+applicativo, preservando al contempo la separazione tra il dominio fisico e
+quello logico.
 
-\item \textbf{Notifiche (MQTT + Telegram)}
-Eventi significativi, come l’apertura della porta o il cambio dello stato GPS, vengono inoltrati tramite MQTT e Telegram, offrendo tracciabilità e trasparenza all’utente finale.
-\end{enumerate}
+La gestione delle interazioni ad alto livello è affidata al \textit{Application
+Layer}, nel quale il server Flask espone un insieme di endpoint REST che
+permettono sia all’utente finale sia ai servizi applicativi di interagire con il
+sistema. Attraverso tali interfacce è possibile impartire comandi di
+apertura e chiusura, interrogare lo stato corrente della porta e accedere a
+informazioni di monitoraggio e logging. Le API REST rappresentano pertanto il
+punto di accesso unificato alle funzionalità del sistema e costituiscono la
+base per l’integrazione con interfacce utente eterogenee.
+
+Un ulteriore elemento del flusso operativo è rappresentato dalla gestione
+della chiusura automatica della porta, in accordo con il requisito FR4. Un
+timer interno al microcontrollore Arduino viene attivato in seguito
+all’apertura e garantisce la chiusura della porta dopo un intervallo di tempo
+configurabile, prevenendo situazioni di apertura prolungata e contribuendo al
+miglioramento della sicurezza e dell’efficienza operativa del sistema.
+
+Infine, il sistema implementa un meccanismo di notifica e tracciabilità degli
+eventi basato sull’integrazione tra MQTT e Telegram. Gli eventi rilevanti, quali
+l’apertura o la chiusura della porta e le variazioni dello stato di prossimità
+derivate dal GPS, vengono propagati attraverso il broker MQTT e inoltrati
+all’utente finale tramite il bot Telegram. Questo approccio consente di
+garantire una visibilità completa sul comportamento del sistema e di fornire
+all’utente un riscontro tempestivo e trasparente delle operazioni eseguite.
 
 
 \section{Componenti hardware e software}
 
 \subsection{Componenti hardware}
 
-Il prototipo \textit{Smart Garage Door} è stato realizzato utilizzando componenti a basso costo, facilmente reperibili e compatibili con le esigenze di modularità, espandibilità e vincolo economico (NFR10).
-La selezione dell’hardware si è basata sulla disponibilità commerciale, sul supporto della comunità open source e sulla capacità dei moduli di soddisfare i requisiti funzionali FR1–FR8.
+Il prototipo \textit{Smart Garage Door} è stato realizzato mediante l’impiego di
+componenti hardware a basso costo, facilmente reperibili sul mercato e
+ampiamente supportati dalla comunità open source. La selezione dell’hardware è
+stata guidata da criteri di modularità, semplicità di integrazione ed
+espandibilità, nonché dal rispetto del vincolo economico definito dal requisito
+non funzionale NFR10. Parallelamente, particolare attenzione è stata posta alla
+capacità dei singoli moduli di soddisfare in modo coerente i requisiti
+funzionali FR1–FR8 e di garantire un comportamento affidabile in condizioni
+operative realistiche.
 
-I principali elementi hardware impiegati sono:
+Il cuore del \textit{Perception Layer} è rappresentato dal microcontrollore
+\textbf{Arduino UNO}, incaricato della gestione diretta dei sensori e degli
+attuatori. Questo dispositivo esegue le logiche di controllo locale, le
+temporizzazioni e le verifiche di sicurezza, inclusa la rilevazione di ostacoli
+e la gestione del comando manuale. Grazie alla sua autonomia operativa, Arduino
+UNO garantisce il corretto funzionamento delle funzionalità critiche anche in
+assenza di connettività di rete, soddisfacendo il requisito di funzionamento
+offline (NFR5).
 
-\begin{itemize}
-\item \textbf{Arduino UNO} – microcontrollore dedicato alla gestione del \textit{Perception Layer}.
-Gestisce sensori, attuatori, temporizzazioni e tutte le logiche locali di sicurezza. Garantisce il funzionamento anche in assenza di rete (NFR5).
+La connettività verso il dominio applicativo è affidata al modulo
+\textbf{NodeMCU ESP8266}, che svolge il ruolo di interfaccia di rete e di
+\textit{gateway} tra il microcontrollore locale e l’Application Layer. Questo
+modulo è responsabile della gestione della connessione Wi-Fi, della
+pubblicazione degli stati e degli eventi tramite protocollo MQTT e
+dell’inoltro dei comandi remoti ricevuti dal server applicativo. L’adozione
+dell’ESP8266 consente di disaccoppiare le funzionalità di rete dalle logiche di
+controllo real-time, migliorando la robustezza complessiva del sistema.
 
-\item \textbf{NodeMCU ESP8266} – modulo Wi-Fi incaricato della connettività con il server.  
-Pubblica stati ed eventi tramite MQTT e funge da \textit{gateway} tra microcontrollore locale e Application Layer.
+Per l’implementazione dell’automazione basata sulla prossimità dell’utente,
+associata al requisito FR5b, è stato integrato un \textbf{modulo GPS}. Tale
+componente fornisce le informazioni di posizionamento necessarie a determinare
+la presenza del veicolo nelle vicinanze del garage e comunica con il NodeMCU
+ESP8266 mediante un’interfaccia seriale UART. L’utilizzo del GPS consente di
+arricchire il sistema con una dimensione contestuale, aumentando il livello di
+automazione e personalizzazione del comportamento.
 
-\item \textbf{Modulo GPS} – utilizzato per implementare l’automazione basata sulla prossimità del veicolo (FR5b).  
-Comunica con ESP8266 tramite seriale UART.
+La rilevazione del movimento locale è demandata al \textbf{sensore PIR
+HC-SR501}, utilizzato per implementare l’automazione in uscita prevista dal
+requisito FR5a. Il sensore consente di individuare la presenza dell’utente
+all’interno del garage e di attivare le logiche di apertura automatica in modo
+tempestivo e affidabile.
 
-\item \textbf{Sensore PIR HC-SR501} – rileva movimento interno per l’automazione locale in uscita (FR5a).
+L’attuazione del movimento della porta del garage è realizzata mediante un
+\textbf{relè a 5~V}, che comanda il motorino della porta. Il relè è pilotato da
+Arduino attraverso un pin digitale dedicato e costituisce l’elemento di
+interfaccia tra il sistema di controllo a bassa potenza e il carico elettrico
+associato al motore del garage, garantendo isolamento e sicurezza operativa.
 
-\item \textbf{Relè 5 V} – attuatore che comanda il motorino del garage.  
-È controllato da Arduino tramite un pin digitale dedicato.
+L’intero sistema è alimentato tramite un’\textbf{alimentazione a 5~V / 2~A},
+dimensionata per fornire energia sufficiente sia ai microcontrollori sia ai
+moduli periferici collegati. Questa soluzione consente di semplificare
+l’architettura elettrica e di ridurre la complessità dell’infrastruttura di
+alimentazione.
 
-\item \textbf{Alimentazione 5 V / 2 A} – fornisce l’energia necessaria a entrambi i microcontrollori e ai moduli esterni.
-
-
-\end{itemize}
-
-L’interoperabilità tra le componenti è garantita dall’uso di interfacce standard (UART, GPIO, Wi-Fi) e da una struttura elettrica semplificata che facilita manutenzione e replicabilità.
-La Figura~\ref{fig:hardware_architecture} illustra la relazione tra i moduli e la loro interconnessione a livello fisico.
+L’interoperabilità tra le diverse componenti hardware è garantita
+dall’adozione di interfacce standard, quali UART, GPIO e Wi-Fi, e da una
+struttura elettrica intenzionalmente semplificata. Tale approccio facilita le
+operazioni di manutenzione, favorisce la replicabilità del prototipo e rende il
+sistema facilmente estendibile con moduli aggiuntivi. La
+Figura~\ref{fig:hardware_architecture} illustra la relazione tra i diversi
+moduli hardware e la loro interconnessione a livello fisico.
 
 
 
@@ -1926,86 +2018,153 @@ Il modulo GPS, il sensore PIR e il relè/motore sono gestiti tramite linee dedic
 
 \subsection{Componenti software}
 
-Il livello applicativo del sistema si basa su tecnologie \textbf{open source} che garantiscono modularità, portabilità e semplicità di integrazione tra i diversi sottosistemi.
-Le scelte software sono state effettuate in modo da soddisfare i requisiti di affidabilità, scalabilità e sicurezza (NFR2, NFR3, NFR6) e per mantenere la coerenza con il paradigma IoT a tre livelli.
+Il livello software del sistema \textit{Smart Garage Door} è stato progettato
+adottando esclusivamente tecnologie \textbf{open source}, al fine di garantire
+modularità, portabilità e semplicità di integrazione tra i diversi sottosistemi.
+Le scelte software sono state guidate dalla necessità di soddisfare i requisiti
+di affidabilità, scalabilità e sicurezza (NFR2, NFR3, NFR6), mantenendo al
+contempo la coerenza con il paradigma IoT a tre livelli adottato per l’intera
+architettura del sistema.
 
-I principali componenti software impiegati sono:
+Il fulcro dell’\textit{Application Layer} è rappresentato dall’utilizzo di
+\textbf{Python~3} in combinazione con il framework \textbf{Flask}
+\cite{Flask2024}. Flask è impiegato come server web leggero e come
+\textit{gateway} REST, fornendo un’infrastruttura flessibile per la gestione dei
+comandi remoti, dell’elaborazione della logica applicativa e dell’esposizione
+delle API REST. Inoltre, il server Flask si occupa dell’integrazione con il
+broker MQTT per la ricezione degli eventi provenienti dai nodi embedded e della
+comunicazione con il bot Telegram, fungendo da punto di coordinamento centrale
+dell’intero sistema software.
 
-\begin{itemize}
-\item \textbf{Python 3 + Flask} \cite{Flask2024} – utilizzati per implementare il \textit{Application Layer}.
-Flask funge da server web leggero e da gateway REST, gestendo comandi, logica applicativa, integrazione con il broker MQTT e interfaccia con il bot Telegram.
+La comunicazione asincrona tra i componenti distribuiti del sistema è affidata a
+un \textbf{broker MQTT}, nello specifico Mosquitto \cite{MQTTspec}, che
+costituisce un elemento chiave del \textit{Network Layer}. Il modello
+\textit{publish/subscribe} adottato da MQTT consente un disaccoppiamento
+efficace tra produttori e consumatori di messaggi, migliorando la scalabilità e
+la reattività del sistema e garantendo al contempo un utilizzo efficiente delle
+risorse di rete e una bassa latenza nella propagazione degli eventi.
 
-\item \textbf{MQTT Broker (Mosquitto)} \cite{MQTTspec} – elemento centrale del \textit{Network Layer}, responsabile dello scambio di messaggi tra i nodi embedded (ESP8266, Arduino) e il server.  
-Il modello publish/subscribe garantisce comunicazione asincrona, efficienza e bassa latenza.
+Per l’interazione diretta con l’utente finale è stata adottata la
+\textbf{Telegram Bot API} \cite{TelegramAPI}, utilizzata per realizzare
+un’interfaccia conversazionale semplice e immediata. Attraverso il bot
+Telegram, l’utente può inviare comandi remoti quali \texttt{/on}, \texttt{/off}
+e \texttt{/status}, nonché ricevere notifiche in tempo reale relative agli eventi
+significativi del sistema. Questa soluzione consente di evitare la necessità di
+sviluppare un’interfaccia grafica dedicata, riducendo la complessità complessiva
+e migliorando l’accessibilità del sistema.
 
-\item \textbf{Telegram Bot API} \cite{TelegramAPI} – utilizzata per realizzare l’interfaccia conversazionale del sistema, permettendo all’utente di inviare comandi remoti (/on, /off, /status) e ricevere notifiche in tempo reale.
+Lo sviluppo dei firmware per i microcontrollori Arduino UNO e NodeMCU ESP8266 è
+stato effettuato utilizzando l’\textbf{Arduino IDE~2.3} \cite{ArduinoRef}, che
+fornisce un ambiente di sviluppo integrato ampiamente diffuso e supportato. La
+scelta di tale strumento facilita la programmazione, il debugging e la
+manutenzione del codice embedded, oltre a garantire un’elevata compatibilità
+con le librerie hardware impiegate.
+
+A supporto dei principali componenti software, il progetto fa uso di un insieme
+di librerie ampiamente consolidate nella comunità IoT. In particolare, la
+libreria \textbf{PubSubClient} è utilizzata per la gestione delle comunicazioni
+MQTT sul modulo ESP8266, mentre \textbf{TinyGPSPlus} consente la decodifica dei
+messaggi NMEA provenienti dal modulo GPS. Sul lato applicativo, la libreria
+\textbf{python-telegram-bot} è impiegata per la gestione asincrona delle
+interazioni con il bot Telegram, mentre il pacchetto \textbf{requests} viene
+utilizzato per l’invio di richieste HTTP verso servizi e componenti esterni.
+
+L’integrazione coordinata di questi strumenti consente di realizzare un sistema
+software leggero, modulare e facilmente estendibile. L’adozione esclusiva di
+tecnologie open source favorisce inoltre la replicabilità del progetto e il
+contenimento dei costi, in linea con il requisito di economicità (NFR10) e con
+le buone pratiche di progettazione di sistemi IoT distribuiti.
 
 
-\item \textbf{Arduino IDE 2.3} \cite{ArduinoRef} – ambiente di sviluppo utilizzato per programmare i firmware dei microcontrollori Arduino UNO e NodeMCU ESP8266.
-
-
-\end{itemize}
-
-A supporto di questi strumenti, il progetto utilizza librerie ampiamente diffuse nella comunità IoT:
-
-\begin{itemize}
-\item \textbf{PubSubClient} – per la gestione MQTT sul modulo ESP8266;
-\item \textbf{TinyGPSPlus} – per la decodifica dei messaggi NMEA provenienti dal modulo GPS;
-\item \textbf{python-telegram-bot} – per la gestione asincrona del bot Telegram;
-\item \textbf{requests} – per le comunicazioni HTTP e componenti esterni.
-\end{itemize}
-
-L’integrazione tra questi strumenti consente di ottenere un sistema software leggero, modulare e facilmente estendibile.
-L’adozione esclusiva di tecnologie open source favorisce inoltre la replicabilità del progetto, in linea con i requisiti di economicità (NFR10) e con le buone pratiche di progettazione di sistemi IoT distribuiti.
 \section{Interfacce e sicurezza}
 
-L’architettura del sistema \textit{Smart Garage Door} prevede un insieme di interfacce e meccanismi di sicurezza progettati per garantire l’integrità, la disponibilità e la riservatezza delle comunicazioni tra i vari moduli.
-In linea con i requisiti non funzionali (NFR6–NFR8), ogni scambio informativo è regolato da controlli espliciti di autenticazione, validazione dei messaggi e gestione degli accessi.
+L’architettura del sistema \textit{Smart Garage Door} include un insieme
+strutturato di interfacce di comunicazione e di meccanismi di sicurezza,
+progettati con l’obiettivo di garantire l’integrità, la disponibilità e la
+riservatezza delle informazioni scambiate tra i diversi moduli hardware e
+software. In coerenza con i requisiti non funzionali NFR6–NFR8, ogni flusso
+informativo è regolato da controlli espliciti di autenticazione, validazione dei
+messaggi e gestione degli accessi, adottando un approccio \textit{security by
+design} compatibile con i vincoli tipici dei sistemi IoT.
 
 \subsection*{Interfacce di comunicazione}
 
-Le principali interfacce utilizzate nel sistema sono:
+Il sistema utilizza differenti interfacce di comunicazione, ciascuna scelta in
+funzione delle caratteristiche del livello architetturale coinvolto e dei
+requisiti di affidabilità e semplicità implementativa.
 
-\begin{itemize}
-\item \textbf{UART (Arduino $<->$ ESP8266)}
-Impiegata per il trasferimento locale di comandi e stati.
-La comunicazione è strutturata su frame a byte singolo per ridurre complessità e garantire determinismo temporale.
+La comunicazione tra Arduino UNO ed ESP8266 avviene tramite interfaccia
+\textbf{UART}, impiegata per il trasferimento locale di comandi e stati. Tale
+canale è utilizzato per lo scambio diretto di informazioni critiche tra il
+Perception Layer e il Network Layer e adotta una struttura di messaggi semplice,
+basata su frame a byte singolo o sequenze a lunghezza fissa. Questa scelta
+riduce la complessità di parsing, garantisce un comportamento deterministico dal
+punto di vista temporale e risulta particolarmente adatta a contesti embedded
+con risorse limitate.
 
-\item \textbf{MQTT (ESP8266 $<->$ Broker  Flask)}  
-Utilizzato come protocollo principale per lo scambio asincrono di eventi.  
-I topic sono organizzati secondo un modello gerarchico (ad es. \texttt{home/garage/cmd}, \texttt{home/garage/status}) che permette di separare funzioni e privilegi.
+Per la comunicazione asincrona tra i nodi embedded e il server applicativo viene
+utilizzato il protocollo \textbf{MQTT}, che costituisce il principale meccanismo
+di scambio eventi del sistema. In particolare, l’ESP8266 pubblica e sottoscrive
+messaggi verso un broker MQTT, al quale si collega anche il server Flask.
+L’organizzazione dei topic segue una struttura gerarchica (ad esempio
+\texttt{home/garage/cmd}, \texttt{home/garage/status}), che consente di separare
+le diverse funzionalità del sistema, facilitare la gestione dei privilegi e
+migliorare la scalabilità dell’architettura.
 
-\item \textbf{HTTP/HTTPS (Telegram $<->$ Flask)}  
-La Telegram Bot API comunica con il server tramite richieste REST, fornendo un'interfaccia stateless robusta e semplice da estendere.
+L’interazione tra l’utente finale e il sistema applicativo è invece realizzata
+tramite protocollo \textbf{HTTP/HTTPS}, utilizzato dalla Telegram Bot API per
+comunicare con il server Flask mediante richieste REST. Questo approccio
+stateless consente di semplificare la gestione delle sessioni, migliorare la
+robustezza del sistema e facilitare l’estensione futura delle funzionalità,
+oltre a garantire un’elevata interoperabilità con servizi esterni.
 
-
-\end{itemize}
-
-Queste interfacce implementano un modello di comunicazione \textit{loosely coupled}, che favorisce scalabilità e indipendenza tra i sottosistemi, riducendo l’impatto di eventuali guasti locali.
+Nel loro insieme, tali interfacce implementano un modello di comunicazione
+\textit{loosely coupled}, nel quale i sottosistemi risultano debolmente
+accoppiati e interagiscono attraverso interfacce ben definite. Questo approccio
+riduce l’impatto di eventuali guasti locali, favorisce la scalabilità e migliora
+la manutenibilità complessiva del sistema.
 
 \subsection*{Sicurezza dei dati e autenticazione}
 
-Per garantire la protezione delle informazioni e prevenire accessi non autorizzati, sono stati adottati i seguenti meccanismi:
+Per garantire la protezione delle informazioni e prevenire accessi non
+autorizzati, il sistema integra diversi meccanismi di sicurezza, calibrati sul
+contesto applicativo e sui limiti computazionali delle piattaforme embedded
+utilizzate.
 
-\begin{itemize}
-\item \textbf{Identificazione dell’utente Telegram}
-Ogni comando remoto è associato all’ID univoco dell’utente.
-Solo gli utenti autorizzati (whitelist) possono inviare comandi di apertura o modifica dello stato del sistema.
+L’accesso remoto tramite interfaccia Telegram è regolato da un meccanismo di
+\textbf{identificazione dell’utente} basato sull’ID univoco associato a ciascun
+account Telegram. Ogni comando ricevuto dal bot viene validato confrontando
+l’ID dell’utente con una whitelist predefinita, consentendo l’esecuzione delle
+operazioni di apertura, chiusura o modifica dello stato esclusivamente agli
+utenti autorizzati.
 
-\item \textbf{Token di sessione e autenticazione HTTP}  
-Le richieste verso Flask sono validate tramite autenticazione HTTP con username e password, la quale genera un token di sessione che viene conservato lato server, impedendo l’invio di comandi da fonti non autorizzate.
+Le comunicazioni HTTP verso il server Flask sono ulteriormente protette tramite
+\textbf{autenticazione HTTP} basata su credenziali. A seguito di una
+autenticazione valida, il server genera un token di sessione che viene
+mantenuto lato applicativo e utilizzato per validare le richieste successive,
+impedendo l’invio di comandi da fonti non autorizzate o non riconosciute.
 
-\item \textbf{Integrità dei messaggi MQTT}  
-Prevista l’adozione di TLS per la crittografia del canale MQTT, in accordo con le specifiche OASIS \cite{MQTTspec}, sebbene non attivata nel prototipo per vincoli hardware dell’ESP8266.
+Per quanto riguarda lo scambio di messaggi MQTT, è prevista l’adozione della
+\textbf{crittografia TLS} sul canale di comunicazione, in accordo con le
+specifiche definite da OASIS \cite{MQTTspec}. Nel prototipo realizzato, tale
+funzionalità non è stata attivata a causa dei vincoli hardware e di memoria del
+modulo ESP8266; tuttavia, la progettazione dell’architettura rimane compatibile
+con una futura estensione in tal senso.
 
-\item \textbf{Gestione e anonimizzazione dei log}  
-I log generati dal sistema vengono anonimizzati (rimozione di ID personali), in conformità al requisito NFR7 sulla privacy.
+La gestione dei dati persistenti e dei log di sistema è effettuata adottando
+politiche di \textbf{anonimizzazione delle informazioni sensibili}, mediante la
+rimozione o l’oscuramento di identificativi personali. Questa scelta risponde al
+requisito NFR7 relativo alla tutela della privacy e riduce il rischio di
+esposizione di dati sensibili in caso di accesso non autorizzato ai log.
 
-\item \textbf{Fallback locale}  
-In caso di guasto della connettività o indisponibilità del server, la logica autonoma su Arduino garantisce la continuità di servizio, evitando che la porta rimanga in uno stato non sicuro (NFR5, NFR8).
+Infine, il sistema implementa un meccanismo di \textbf{fallback locale} che
+assicura la continuità di servizio anche in condizioni di guasto della rete o
+di indisponibilità del server applicativo. In tali scenari, la logica autonoma
+eseguita sul microcontrollore Arduino garantisce che la porta del garage non
+rimanga in uno stato non sicuro, soddisfacendo i requisiti NFR5 e NFR8 e
+rafforzando la resilienza complessiva del sistema.
 
 
-\end{itemize}
 
 \subsection*{Robustezza e resilienza}
 
@@ -2050,7 +2209,7 @@ Il sistema si basa su un’architettura locale composta da \textbf{Arduino UNO} 
 La comunicazione avviene tramite un broker \textbf{Mosquitto} locale, mentre l’interfaccia utente è implementata con \textbf{Flask} e \textbf{Telegram Bot}.
 
 
-Pur operando con risorse limitate, il sistema realizzato soddisfa tutti i requisiti funzionali (FR1–FR8) e non funzionali (in particolare NFR2, NFR5 e NFR10), garantendo continuità operativa, semplicità d’uso e coerenza architetturale.
+Pur operando con risorse limitate, il sistema realizzato soddisfa tutti i requisiti funzionali (FR1–FR9) e non funzionali (in particolare NFR2, NFR5 e NFR10), garantendo continuità operativa, semplicità d’uso e coerenza architetturale.
 
 \subsubsection*{Discussione del confronto}
 
