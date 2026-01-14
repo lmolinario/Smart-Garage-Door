@@ -1,7 +1,7 @@
 \chapter{Appendice}
 
 \section{Componenti hardware utilizzati}
-Il sistema \textit{Smart Garage Door} è stato realizzato utilizzando esclusivamente componenti open source e a basso costo.  
+Il sistema \textit{Smart Garage Door} è stato realizzato utilizzando esclusivamente componenti open source e a basso costo.
 La Tabella~\ref{tab:hardware} elenca i principali elementi hardware con le relative funzioni e stime di costo.
 
 \begin{table}[h!]
@@ -29,7 +29,7 @@ Materiali vari (case, connettori, staffe) & Supporti meccanici e alloggiamento &
 Il costo complessivo rimane ampiamente entro il limite imposto dal requisito NFR10 (\textit{costo inferiore 150 €}), lasciando margine per futuri upgrade o sensori aggiuntivi.
 
 \section{Software e librerie impiegate}
-Tutti i software e le librerie utilizzate sono open source e compatibili con piattaforme multipiattaforma.  
+Tutti i software e le librerie utilizzate sono open source e compatibili con piattaforme multipiattaforma.
 La Tabella~\ref{tab:software} riassume le principali dipendenze software.
 
 \begin{table}[h!]
@@ -75,7 +75,7 @@ Lo schema mostra le interfacce principali:
 \end{itemize}
 
 \section{Struttura del codice sorgente}
-Il codice del progetto è stato organizzato secondo la logica modulare mostrata in Figura~\ref{fig:code_structure}.  
+Il codice del progetto è stato organizzato secondo la logica modulare mostrata in Figura~\ref{fig:code_structure}.
 Ogni componente è indipendente ma interconnesso tramite interfacce chiare e documentate.
 
 
@@ -83,51 +83,42 @@ Ogni componente è indipendente ma interconnesso tramite interfacce chiare e doc
 \begin{figure}[H]
 \centering
 \begin{tikzpicture}[
-  font=\footnotesize,
+  font=\footnotesize\ttfamily,
   level distance=8mm,
   sibling distance=0mm,
   grow=down,
   edge from parent path={(\tikzparentnode.south) -- ++(0,-2pt) -| (\tikzchildnode.west)},
   every node/.style={anchor=west, align=left},
-  box/.style={
-    draw,
-    thick,
-    rounded corners=2mm,
-    minimum width=55mm,
-    inner sep=3pt,
-    fill=gray!3
-  }
+  box/.style={draw, thick, rounded corners=2mm,
+              minimum width=55mm, inner sep=3pt, fill=gray!3}
 ]
 
 % Nodo principale
-\node[box, fill=gray!15, font=\bfseries, minimum width=65mm]
-  {\texttt{SmartGarageDoor/}}
-
-% ====================== HARDWARE ======================
-child { node[box, fill=blue!5!white, minimum width=65mm]
-          {\texttt{hardware/} \hfill \# Firmware Arduino / NodeMCU}
-  child { node[box] {\texttt{controller\_arduino.ino}} }
-  child { node[box] {\texttt{controller\_nodemcu.ino}} }
-  child { node[box] {\texttt{FIRMWARE\_GUIDE.md}} }
-  child { node[box] {\texttt{pinout\_table.csv}} }
-}
-
-% ====================== SOFTWARE ======================
-child { node[box, fill=green!5!white, minimum width=65mm, yshift=-38mm]
-          {\texttt{software/} \hfill \# Server Flask + Telegram Bot}
-  child { node[box] {\texttt{app.py}} }
-  child { node[box] {\texttt{telegram\_listener.py}} }
-  child { node[box] {\texttt{timer.py}} }
-  child { node[box] {\texttt{performance\_monitor.py}} }
-}
-
-% ====================== DOCS ======================
-child { node[box, fill=yellow!10!white, minimum width=65mm, yshift=-76mm]
-          {\texttt{docs/} \hfill \# Documentazione}
-  child { node[box] {\texttt{Requisiti/}} }
-  child { node[box] {\texttt{Tex/}} }
-  child { node[box] {\texttt{Materiale\_in\_consegna/}} }
-};
+\node[box, fill=gray!15, font=\bfseries\ttfamily, minimum width=65mm]
+  {SmartGarageDoor/}
+  % ====================== HARDWARE ======================
+  child { node[box, fill=blue!5!white, minimum width=65mm, yshift=0mm]
+            {hardware/ \hfill \# Firmware Arduino / NodeMCU}
+    child { node[box,yshift=0mm]   {controller\_arduino.ino} }
+    child { node[box,yshift=-5mm]  {controller\_nodemcu.ino} }
+    child { node[box,yshift=-10mm]  {FIRMWARE\_GUIDE.md} }
+    child { node[box,yshift=-15mm]  {pinout\_table.csv} }
+  }
+  % ====================== SOFTWARE ======================
+  child { node[box, fill=green!5!white, minimum width=65mm, yshift=-40mm]
+            {software/ \hfill \# Server Flask + Telegram Bot}
+    child { node[box,yshift=0mm]   {app.py} }
+    child { node[box,yshift=-5mm]  {telegram\_listener.py} }
+    child { node[box,yshift=-10mm] {timer.py} }
+    child { node[box,yshift=-5mm]  {performance\_monitor.py} }
+  }
+  % ====================== DOCS ======================
+  child { node[box, fill=yellow!10!white, minimum width=65mm, yshift=-80mm]
+            {docs/ \hfill \# Documentazione }
+    child { node[box,yshift=0mm]   {Requisiti/} }
+    child { node[box,yshift=-5mm]  {Tex/} }
+    child { node[box,yshift=-10mm] {Materiale in consegna/} }
+  };
 
 \end{tikzpicture}
 
@@ -136,6 +127,7 @@ Le tre sottocartelle principali — \texttt{hardware/}, \texttt{software/} e \te
 ciascuna con i propri file allineati sullo stesso asse X per una rappresentazione chiara e leggibile.}
 \label{fig:code_structure}
 \end{figure}
+
 
 
 Principali file:
@@ -148,7 +140,7 @@ Principali file:
 \end{itemize}
 
 \section{Esempi di log e output}
-Durante i test sperimentali, i messaggi di stato generati dai vari moduli hanno confermato la coerenza tra eventi e comandi.  
+Durante i test sperimentali, i messaggi di stato generati dai vari moduli hanno confermato la coerenza tra eventi e comandi.
 Un estratto di log tipico è mostrato di seguito:
 
 \begin{verbatim}
@@ -163,13 +155,13 @@ Un estratto di log tipico è mostrato di seguito:
 Questa sequenza evidenzia la corretta sincronizzazione tra i moduli e la gestione autonoma degli eventi.
 
 \section{Repository e riferimenti digitali}
-L’intero progetto, inclusi codice sorgente, script di test e documentazione, è disponibile in formato open source.  
-L’architettura è stata pensata per garantire riproducibilità e riuso in contesti accademici o didattici.  
+L’intero progetto, inclusi codice sorgente, script di test e documentazione, è disponibile in formato open source.
+L’architettura è stata pensata per garantire riproducibilità e riuso in contesti accademici o didattici.
 
 \begin{itemize}
-    \item \textbf{Repository GitHub:} \texttt{https://github.com/lmolinario/Smart-Garage-Door}  
-    \item \textbf{Formato di consegna:} PDF + codici sorgente (.ino, .py, .txt)  
-    \item \textbf{Licenza:} MIT License  
+    \item \textbf{Repository GitHub:} \texttt{https://github.com/lmolinario/Smart-Garage-Door}
+    \item \textbf{Formato di consegna:} PDF + codici sorgente (.ino, .py, .txt)
+    \item \textbf{Licenza:} MIT License
 \end{itemize}
 
 Per facilitare l’accesso al codice e alla documentazione, un QR code può essere inserito nel frontespizio della relazione (Figura~\ref{fig:qrcode}).
@@ -182,5 +174,5 @@ Per facilitare l’accesso al codice e alla documentazione, un QR code può esse
 \end{figure}
 
 \section{Conclusioni}
-L’appendice raccoglie tutti gli elementi tecnici utili alla riproduzione del progetto \textit{Smart Garage Door}, mettendo in evidenza la coerenza tra componenti hardware, codice e risultati sperimentali.  
+L’appendice raccoglie tutti gli elementi tecnici utili alla riproduzione del progetto \textit{Smart Garage Door}, mettendo in evidenza la coerenza tra componenti hardware, codice e risultati sperimentali.
 La struttura modulare del sistema e la disponibilità del codice sorgente garantiscono trasparenza, replicabilità e potenziale riutilizzo in contesti di ricerca, formazione e prototipazione IoT avanzata.
