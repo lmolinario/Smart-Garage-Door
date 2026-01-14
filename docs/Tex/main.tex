@@ -2,7 +2,11 @@
 
 \documentclass{report}
 
-\usepackage[italian,shorthands=off]{babel}
+\usepackage[italian,shorthands=off]{babel}% lingua principale
+\selectlanguage{italian}
+
+
+
 \usepackage{packages}
 \usepackage{fancyhdr}
 \usepackage{graphicx}
@@ -13,6 +17,37 @@
 \usepackage{xcolor}
 \usepackage{smartdiagram}
 \usesmartdiagramlibrary{additions}
+
+
+% === STILI PER I FLOWCHART (TikZ) ===
+\tikzset{
+    block/.style = {
+        rectangle, draw, rounded corners,
+        minimum width=28mm,
+        minimum height=10mm,
+        align=center,
+        fill=gray!10
+    },
+    decision/.style = {
+        diamond, draw, aspect=2,
+        minimum width=22mm,
+        minimum height=10mm,
+        align=center,
+        fill=gray!10
+    },
+    startstop/.style = {
+        ellipse, draw,
+        minimum width=22mm,
+        minimum height=10mm,
+        align=center,
+        fill=gray!20
+    },
+    arrow/.style = {
+        -{Latex[length=2mm]},
+        thick
+    }
+}
+
 
 \usetikzlibrary{arrows.meta, positioning, fit, shapes.misc}
 

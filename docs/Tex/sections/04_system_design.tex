@@ -251,7 +251,7 @@ La Tabella~\ref{tab:fr_tech} riepiloga l'associazione tra ogni requisito funzion
 e le tecnologie hardware, software e protocollari selezionate nel progetto.
 La mappatura costituisce un elemento centrale del system design in quanto dimostra
 la coerenza tra obiettivi funzionali, vincoli non funzionali e scelte tecnologiche
-(OS: MQTT, HTTP, UART, PIR, HC-SR04, GPS NEO-6M, Telegram Bot API).
+(OS: MQTT, HTTP, UART, PIR, HC-SR04,Modulo GPS, Telegram Bot API).
 
 \begin{table}[H]
 \centering
@@ -292,7 +292,7 @@ Arduino decision logic;
 UART event forwarding. \\
 
 FR5b & Automazione ingresso basata su GPS &
-Modulo GPS NEO-6M;
+Modulo GPS;
 Parsing NMEA su NodeMCU;
 Soglia geofence;
 Messaggi UART 0x02 → Arduino. \\
@@ -1256,7 +1256,7 @@ task SmartGarageDoorSystem() {
 \end{lstlisting}
 
 
-
+\clearpage
 \section{Flowchart dei requisiti funzionali}
 
 In questa sezione vengono presentati i diagrammi di flusso che descrivono la logica
@@ -1286,10 +1286,10 @@ e costituiscono il riferimento progettuale per l’implementazione descritta nel
 \draw[arrow] (cmd) -- (auth);
 \draw[arrow] (auth) -- (authok);
 
-\draw[arrow] (authok.west) -- ++(-45mm,0) |- (deny);
+\draw[arrow] (authok.west) -- ++(-55mm,0) |- (deny);
 \draw[arrow] (deny) |- (end);
 
-\draw[arrow] (authok.east) -- ++(55mm,0) |- (send);
+\draw[arrow] (authok.east) -- ++(65mm,0) |- (send);
 \draw[arrow] (send) -- (ardu);
 \draw[arrow] (ardu) -- (status);
 \draw[arrow] (status) -- (notify);
@@ -1325,10 +1325,10 @@ e costituiscono il riferimento progettuale per l’implementazione descritta nel
 \draw[arrow] (cmd) -- (auth);
 \draw[arrow] (auth) -- (authok);
 
-\draw[arrow] (authok.west) -- ++(-45mm,0) |- (deny);
+\draw[arrow] (authok.west) -- ++(-55mm,0) |- (deny);
 \draw[arrow] (deny) |- (end);
 
-\draw[arrow] (authok.east) -- ++(55mm,0) |- (send);
+\draw[arrow] (authok.east) -- ++(65mm,0) |- (send);
 \draw[arrow] (send) -- (ardu);
 \draw[arrow] (ardu) -- (status);
 \draw[arrow] (status) -- (notify);
@@ -1400,13 +1400,13 @@ e costituiscono il riferimento progettuale per l’implementazione descritta nel
 \draw[arrow] (open) -- (timer);
 \draw[arrow] (timer) -- (expired);
 
-\draw[arrow] (expired.west) -- ++(-30mm,0) |- (wait);
+\draw[arrow] (expired.west) -- ++(-40mm,0) |- (wait);
 \draw[arrow] (wait.south) -- ++(0,-10mm) |- ++(-25mm,0) |- (expired.north);
 
-\draw[arrow] (expired.east) -- ++(45mm,0) |- (check);
+\draw[arrow] (expired.east) -- ++(55mm,0) |- (check);
 \draw[arrow] (check) -- (obstacle);
 
-\draw[arrow] (obstacle.west) -- ++(-45mm,0) |- (abort);
+\draw[arrow] (obstacle.west) -- ++(-55mm,0) |- (abort);
 \draw[arrow] (abort.south) -- ++(0,-10mm) |- ++(-50mm,0)|- (timer);
 
 \draw[arrow] (obstacle.east) -- ++(25mm,0) |- (close);
@@ -1434,7 +1434,7 @@ e costituiscono il riferimento progettuale per l’implementazione descritta nel
 \node[startstop, below=of noaction] (end1) {Fine};
 
 \node[block, below right=15mm and -1mm of pircheck] (dist) {Lettura distanza\\ sensore ultrasuoni};
-\node[decision, below=of dist] (distcheck) {Utente vicino alla porta?\\ (distanza < soglia)};
+\node[decision, below=of dist] (distcheck) {Utente vicino alla porta?\\ (distanza $<$ soglia)};
 
 \node[block, below left=15mm and -1mm of distcheck] (stop2) {Nessuna apertura};
 \node[startstop, below=of stop2] (end2) {Fine};
@@ -1449,13 +1449,13 @@ e costituiscono il riferimento progettuale per l’implementazione descritta nel
 \draw[arrow] (start) -- (pir);
 \draw[arrow] (pir) -- (pircheck);
 
-\draw[arrow] (pircheck.west) -- ++(-45mm,0) |- (noaction);
+\draw[arrow] (pircheck.west) -- ++(-55mm,0) |- (noaction);
 \draw[arrow] (noaction) -- (end1);
 
 \draw[arrow] (pircheck.east) -- ++(55mm,0) |- (dist);
 \draw[arrow] (dist) -- (distcheck);
 
-\draw[arrow] (distcheck.west) -- ++(-25mm,0) |- (stop2);
+\draw[arrow] (distcheck.west) -- ++(-35mm,0) |- (stop2);
 \draw[arrow] (stop2) -- (end2);
 
 \draw[arrow] (distcheck.east) -- ++(25mm,0) |- (open);
@@ -1484,7 +1484,7 @@ e costituiscono il riferimento progettuale per l’implementazione descritta nel
 
 \node[block, below right=15mm and -10mm of nearhome] (setflag) {userNearHome = true};
 \node[block, below=of setflag] (dist) {Lettura distanza\\ da sensore ultrasuoni};
-\node[decision, below=of dist] (distcheck) {Utente vicino alla porta?\\ (distanza < soglia)};
+\node[decision, below=of dist] (distcheck) {Utente vicino alla porta?\\ (distanza $<$ soglia)};
 
 \node[block, below left=15mm and 20mm of distcheck] (stop) {Condizione non soddisfatta};
 \node[startstop, below=of stop] (end2) {Fine};
@@ -1499,7 +1499,7 @@ e costituiscono il riferimento progettuale per l’implementazione descritta nel
 \draw[arrow] (start) -- (gpsupdate);
 \draw[arrow] (gpsupdate) -- (nearhome);
 
-\draw[arrow] (nearhome.west) -- ++(-45mm,0) |- (noaction);
+\draw[arrow] (nearhome.west) -- ++(-55mm,0) |- (noaction);
 \draw[arrow] (noaction) -- (end1);
 
 \draw[arrow] (nearhome.east) -- ++(35mm,0) |- (setflag);
@@ -1508,7 +1508,7 @@ e costituiscono il riferimento progettuale per l’implementazione descritta nel
 
 
 
-\draw[arrow] (distcheck.west) -- ++(-27mm,0)
+\draw[arrow] (distcheck.west) -- ++(-42mm,0)
     -- ++(0,-10mm)        % SCENDI -> punta verso sud
     -- (stop.north);      % risali fino al bordo superiore
 
@@ -1552,11 +1552,11 @@ e costituiscono il riferimento progettuale per l’implementazione descritta nel
 \draw[arrow] (cmd) -- (extract);
 \draw[arrow] (extract) -- (auth);
 
-\draw[arrow] (auth.west) -- ++(-45mm,0) |- (deny);
+\draw[arrow] (auth.west) -- ++(-55mm,0) |- (deny);
 \draw[arrow] (deny) -- (logdeny);
 \draw[arrow] (logdeny) -- (end1);
 
-\draw[arrow] (auth.east) -- ++(45mm,0) |- (accept);
+\draw[arrow] (auth.east) -- ++(55mm,0) |- (accept);
 \draw[arrow] (accept) -- (forward);
 \draw[arrow] (forward) -- (end2);
 
@@ -1595,7 +1595,7 @@ e costituiscono il riferimento progettuale per l’implementazione descritta nel
 \draw[arrow] (debounce) -- (readstate);
 \draw[arrow] (readstate) -- (isopen);
 
-\draw[arrow] (isopen.west) -- ++(-45mm,0) |- (close);
+\draw[arrow] (isopen.west) -- ++(-55mm,0) |- (close);
 \draw[arrow] (close) -- (updatestateC);
 \draw[arrow] (updatestateC) -- (notifyC);
 \draw[arrow] (notifyC) -- (end1);
@@ -1642,7 +1642,7 @@ e costituiscono il riferimento progettuale per l’implementazione descritta nel
 \draw[arrow] (obstacle.east) -- ++(55mm,0) |- (continue);
 \draw[arrow] (continue) -- (end1);
 
-\draw[arrow] (obstacle.west) -- ++(-45mm,0) |- (stop);
+\draw[arrow] (obstacle.west) -- ++(-55mm,0) |- (stop);
 \draw[arrow] (stop) -- (invert);
 \draw[arrow] (invert) -- (update);
 \draw[arrow] (update) -- (notify);
@@ -1688,6 +1688,9 @@ e costituiscono il riferimento progettuale per l’implementazione descritta nel
 \end{tikzpicture}
 \caption{Flowchart relativo al requisito funzionale FR9 – Notifiche eventi.}
 \end{figure}
+
+
+
 
 \subsection{Flowchart globale del sistema}
 
@@ -1775,7 +1778,7 @@ e costituiscono il riferimento progettuale per l’implementazione descritta nel
 \draw[line] (pir.east) -- ++(6mm,0) |- (mq);
 \draw[line] (mq) -- (cmd);
 \draw[line] (cmd) -- node[right]{Sì} (send_serial);
-\draw[line] (cmd.west) -- ++(-16mm,0) |- node[left]{No} (read);
+\draw[line] (cmd.west) -- ++(-10mm,0) |- node[left]{No} (read);
 
 % Flask
 \draw[line] (mq.east) -- ++(6mm,0) |- (api);
@@ -1787,7 +1790,6 @@ e costituiscono il riferimento progettuale per l’implementazione descritta nel
 \caption{Flowchart completo del sistema \textit{Smart Garage Door}. Il diagramma rappresenta l'interazione tra logica sensoriale locale (Arduino), gateway di comunicazione (NodeMCU) e livello applicativo (Flask + Telegram), con riferimento ai requisiti funzionali FR4, FR5a e FR5b.}
 \label{fig:flowchart_sgd}
 \end{figure}
-
 
 \subsection{Descrizione del flusso operativo}
 Il flusso in Figura~\ref{fig:flowchart_sgd} evidenzia le principali fasi del funzionamento integrato del sistema:
@@ -1841,7 +1843,7 @@ Gestisce sensori, attuatori, temporizzazioni e tutte le logiche locali di sicure
 \item \textbf{NodeMCU ESP8266} – modulo Wi-Fi incaricato della connettività con il server.  
 Pubblica stati ed eventi tramite MQTT e funge da \textit{gateway} tra microcontrollore locale e Application Layer.
 
-\item \textbf{Modulo GPS NEO-6M} – utilizzato per implementare l’automazione basata sulla prossimità del veicolo (FR5b).  
+\item \textbf{Modulo GPS} – utilizzato per implementare l’automazione basata sulla prossimità del veicolo (FR5b).  
 Comunica con ESP8266 tramite seriale UART.
 
 \item \textbf{Sensore PIR HC-SR501} – rileva movimento interno per l’automazione locale in uscita (FR5a).
@@ -2084,7 +2086,7 @@ Broker Mosquitto locale su Wi-Fi domestica; MQTT con QoS~0; nessuna rete cellula
 
 \textbf{Sensori e attuatori} &
 GPS integrato, accelerometro/giroscopio, sensori ultrasonici e encoder ottici per feedback continuo. &
-GPS NEO-6M, sensore PIR per movimento e relè a 5~V per azionamento motore. \\
+Modulo GPS, sensore PIR per movimento e relè a 5~V per azionamento motore. \\
 
 \textbf{Back-end e storage dati} &
 Container Docker su cloud, orchestrati da Kubernetes; database NoSQL (MongoDB, InfluxDB). &
