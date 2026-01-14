@@ -295,7 +295,7 @@ La Tabella \ref{tab:nfr_tests} riassume gli esiti delle misurazioni per ciascun 
     \textbf{Requisito} & \textbf{Descrizione misurazione} & \textbf{Esito} \\ \hline
     NFR1 & Test di accessibilità continua ai dati tramite MQTT e API REST; riconnessione automatica dell'ESP8266 in caso di perdita del Wi-Fi. & OK \\ \hline
     NFR2 & Misura della latenza HTTP request/response tra comando utente e backend applicativo (esclusa attuazione fisica): 0.211 s (OPEN), 0.225 s (CLOSE), n=10. & OK \\
-    NFR3 & Accuratezza del geofence del modulo GPS: 98.9\%; tasso di falsi positivi inferiore all'1\%. & OK \\ \hline
+    NFR3 & AccAccuratezza del geofence: errore medio inferiore a 3--5 m e tasso di falsi positivi $<$ 1\% & OK \\ \hline
     NFR4 & Stabilità della rilevazione entro un raggio effettivo di 17 m, coerente con soglia progettuale di 15 m. & OK \\ \hline
     NFR5 & Continuità operativa in assenza della rete: funzionamento completo della logica locale di Arduino, incluso auto-close. & OK \\ \hline
     NFR6 & Sicurezza applicativa: autenticazione HTTP con username e password, protezione delle comunicazioni Telegram tramite MTProto \cite{Kuznetsov2018}. & OK \\ \hline
@@ -338,7 +338,11 @@ La valutazione della robustezza e della fault tolerance costituisce un elemento 
 Le prove hanno simulato guasti locali e distribuiti nei tre livelli dell'architettura IoT (Perception, Network, Application), con l'obiettivo di osservare il comportamento del sistema durante situazioni di degrado delle prestazioni e verificare la presenza di adeguati meccanismi di recupero.
 
 \textbf{Interruzione della connettività Wi-Fi} \\
-Per testare la resilienza del Network Layer, è stata disattivata la rete Wi-Fi durante il normale funzionamento. Il modulo ESP8266 ha gestito autonomamente la riconnessione grazie a un meccanismo di \textit{exponential backoff}, evitando tentativi troppo ravvicinati e stabilizzando la ripresa della sessione MQTT. Nel frattempo, il controller locale Arduino ha continuato a operare normalmente, gestendo PIR, relè e chiusura temporizzata (FR4) secondo i requisiti di autonomia locale (NFR5). Il test conferma la capacità del sistema di funzionare in modalità degradata senza compromettere la sicurezza fisica.
+Per testare la resilienza del Network Layer, è stata disattivata la rete Wi-Fi durante il normale funzionamento. Il modulo ESP8266 ha gestito autonomamente la riconnessione grazie a un
+meccanismo di riconnessione automatica della libreria di rete, evitando
+il blocco del sistema e consentendo il ripristino della sessione MQTT
+e la risottoscrizione dei topic una volta ristabilita la connettività.
+Nel frattempo, il controller locale Arduino ha continuato a operare normalmente, gestendo PIR, relè e chiusura temporizzata (FR4) secondo i requisiti di autonomia locale (NFR5). Il test conferma la capacità del sistema di funzionare in modalità degradata senza compromettere la sicurezza fisica.
 
 \textbf{Ritardi o perdita temporanea del segnale GPS} \\
 Sono state considerate condizioni di ricezione GPS degradata, caratterizzate da
@@ -421,7 +425,7 @@ Nessun aggiornamento dello stato porta viene ricevuto (atteso). Il sistema evita
 Superato \\ \hline
 
 Riconnessione NodeMCU &
-All'attivazione del Wi-Fi, l’ESP8266 ristabilisce automaticamente la connessione MQTT con meccanismo di exponential backoff. &
+All'attivazione del Wi-Fi, l’ESP8266 ristabilisce automaticamente la connessione MQTT con meccanismo di riconnessione automatica. &
 Superato \\ \hline
 
 Coerenza del sistema &
@@ -477,7 +481,9 @@ Il tempo complessivo osservato tra l’invio del comando remoto e il completamen
 Nel loro insieme, questi risultati confermano l’efficienza della pipeline di comunicazione basata sull’integrazione dei protocolli MQTT e HTTP REST, notoriamente adatti a sistemi IoT caratterizzati da requisiti di bassa latenza e throughput moderato \cite{Amaral2018}. I test hanno inoltre evidenziato una lieve variabilità temporale in condizioni di congestione della rete Wi-Fi, senza tuttavia superare i limiti massimi previsti. Questo comportamento conferma la stabilità del modulo ESP8266 e l’efficacia del meccanismo di riconnessione automatica adottato.
 
 \textbf{Precisione e stabilità della geolocalizzazione} \\
-Il modulo GPS ha mostrato un'accuratezza media del 98.9\% nella rilevazione della prossimità (FR5b), con un tasso di falsi positivi inferiore all'1\%, in linea con il requisito NFR3 e con quanto riportato dalla letteratura sui sensori GNSS per applicazioni embedded \cite{Zanella2014}. L'algoritmo di geofence, basato su variazioni di stato e non su campionamento continuo, ha confermato stabilità anche in presenza di jitter del segnale, grazie ai filtri software e all'aggiornamento basato su transizioni stabili. La soglia operativa di 15 m ha mostrato prestazioni ottimali in scenari reali, con una rilevazione affidabile dell'ingresso e dell'uscita dal perimetro.
+Il modulo GPS ha mostrato un'accuratezza compatibile con le specifiche dei ricevitori GNSS
+embedded (errore medio < 3--5 m) nella rilevazione della prossimità (FR5b), con un tasso di falsi positivi inferiore all'1\%, in linea con il requisito NFR3 e con quanto riportato dalla letteratura sui sensori GNSS per applicazioni embedded \cite{Zanella2014}. L'algoritmo di geofence, basato su variazioni di stato e non su campionamento continuo, ha confermato stabilità anche in presenza di jitter del segnale, grazie alla logica stateful basata su transizioni di stato stabili,
+che evita attivazioni basate su singoli campioni rumorosi. La soglia operativa di 15 m ha mostrato prestazioni ottimali in scenari reali, con una rilevazione affidabile dell'ingresso e dell'uscita dal perimetro.
 
 \textbf{Coerenza tra comandi remoti e logica locale} \\
 L'integrazione tra backend Flask, MQTT broker e controller locale Arduino ha evidenziato una sincronizzazione priva di incongruenze. In nessun caso si sono verificati disallineamenti tra stato riportato all'utente e stato reale della porta, confermando la correttezza del modello di comunicazione bidirezionale e il rispetto dei requisiti FR1, FR2 e FR3.
