@@ -1893,7 +1893,7 @@ La Figura~\ref{fig:hardware_architecture} illustra la relazione tra i moduli e l
   node[midway,right,yshift=3mm]{\scriptsize 5 V / GND};
 
 % Serial link tra ESP e Arduino
-\draw[serial,<->] ([xshift=3mm]arduino.east) -- ([xshift=-3mm]esp.west)
+\draw[serial,$<->$] ([xshift=3mm]arduino.east) -- ([xshift=-3mm]esp.west)
   node[midway,above]{\scriptsize UART Serial};
 
 % Wi-Fi esterno
@@ -1967,15 +1967,15 @@ In linea con i requisiti non funzionali (NFR6–NFR8), ogni scambio informativo 
 Le principali interfacce utilizzate nel sistema sono:
 
 \begin{itemize}
-\item \textbf{UART (Arduino <-> ESP8266)}
+\item \textbf{UART (Arduino $$<->$$ ESP8266)}
 Impiegata per il trasferimento locale di comandi e stati.
 La comunicazione è strutturata su frame a byte singolo per ridurre complessità e garantire determinismo temporale.
 
-\item \textbf{MQTT (ESP8266 <-> Broker  Flask)}  
+\item \textbf{MQTT (ESP8266 $<->$ Broker  Flask)}  
 Utilizzato come protocollo principale per lo scambio asincrono di eventi.  
 I topic sono organizzati secondo un modello gerarchico (ad es. \texttt{home/garage/cmd}, \texttt{home/garage/status}) che permette di separare funzioni e privilegi.
 
-\item \textbf{HTTP/HTTPS (Telegram <-> Flask)}  
+\item \textbf{HTTP/HTTPS (Telegram $<->$ Flask)}  
 La Telegram Bot API comunica con il server tramite richieste REST, fornendo un'interfaccia stateless robusta e semplice da estendere.
 
 
@@ -2194,7 +2194,7 @@ Pulsante manuale & GND & GND & Ground & Massa comune. \\ \hline
 La struttura del pinout garantisce un elevato livello di separazione tra i livelli architetturali:
 \begin{itemize}
     \item \textbf{Perception Layer}: sensori PIR e distanza, attuatore servo, pulsante locale;
-    \item \textbf{Network Layer}: modulo NodeMCU ESP8266, GPS NEO-6M, UART di collegamento con Arduino;
+    \item \textbf{Network Layer}: modulo NodeMCU ESP8266, Modulo GPS, UART di collegamento con Arduino;
     \item \textbf{Application Layer}: backend Flask, MQTT broker e bot Telegram.
 \end{itemize}
 

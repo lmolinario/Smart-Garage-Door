@@ -137,7 +137,7 @@ La Figura \ref{fig:schematic} (rif. cap 8) mostra il wiring completo del sistema
 
 Come evidente dalla tabella, i sensori e gli attuatori fisici sono interfacciati esclusivamente con Arduino, in linea con la separazione funzionale prevista dal modello IoT a tre livelli \cite{Gubbi2013}. Il modulo GPS, invece, è collegato direttamente al NodeMCU tramite interfaccia seriale dedicata: questa scelta progettuale permette di delegare interamente al nodo di rete il calcolo della prossimità geografica e la pubblicazione degli eventi MQTT, senza sovraccaricare il microcontrollore locale.
 
-La comunicazione tra Arduino e NodeMCU avviene tramite la UART hardware (pin D0-D1), configurata a 9600 baud. Questa architettura consente uno scambio bidirezionale di segnali a bassa latenza e riflette le buone pratiche di interoperabilità nei sistemi embedded distribuiti \cite{Zanella2014}.
+La comunicazione tra Arduino e NodeMCU avviene tramite la UART hardware (pin D10-D11), configurata a 9600 baud. Questa architettura consente uno scambio bidirezionale di segnali a bassa latenza e riflette le buone pratiche di interoperabilità nei sistemi embedded distribuiti \cite{Zanella2014}.
 
 Infine, lo schema elettrico riportato in Figura \ref{fig:schematic} rappresenta la configurazione effettivamente implementata sul prototipo. Esso evidenzia la chiara distinzione tra:
 \begin{itemize}
@@ -216,16 +216,9 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
 \]
 Questa separazione dei ruoli aumenta sicurezza, modularità e tracciabilità dei comportamenti del sistema.
 
-\subsection*{Simulazione GPS per test indoor}
-Per consentire test in ambienti privi di copertura satellitare, è stato sviluppato un firmware alternativo (\texttt{controller\_nodemcu\_fakegps.ino}) che genera coordinate NMEA simulate. Il modulo produce periodicamente eventi MQTT equivalenti a:
-\begin{itemize}
-    \item $value = 1 \rightarrow$ entrata nel geofence;
-    \item $value = 0 \rightarrow$ uscita dal geofence.
-\end{itemize}
-Questa metodologia rientra nelle pratiche di validazione \textit{Software-in-the-Loop} (SIL), largamente adottate nei sistemi embedded distribuiti per verificare la logica applicativa indipendentemente dal contesto reale \cite{He2019}.
 
 \subsection*{Gestione della connettività e sicurezza}
-L'ESP8266 salva le credenziali Wi-Fi in memoria flash e utilizza un meccanismo di riconnessione automatica per garantire continuità operativa (NFR1). Il traffico MQTT viene trasmesso inizialmente in chiaro all'interno della rete locale, in quanto il prototipo si concentra sulla funzionalità; tuttavia, la libreria PubSubClient consente l'utilizzo di connessioni cifrate TLS/SSL conformi alle specifiche OASIS MQTT \cite{MQTT5}, rendendo possibile una futura estensione verso scenari di sicurezza avanzata.
+L'ESP8266 salva le credenziali Wi-Fi in memoria flash e utilizza un meccanismo di riconnessione automatica per garantire continuità operativa (NFR1). Il traffico MQTT viene trasmesso inizialmente in chiaro all'interno della rete locale, in quanto il prototipo si concentra sulla funzionalità; tuttavia, la libreria PubSubClient consente l'utilizzo di connessioni cifrate TLS/SSL conformi alle specifiche MQTT \cite{MQTT5}, rendendo possibile una futura estensione verso scenari di sicurezza avanzata.
 
 La scelta di pacchetti di dimensione ridotta e connessioni persistenti contribuisce a soddisfare i requisiti NFR7 (efficienza) e NFR9 (basso consumo energetico), favorendo la scalabilità verso implementazioni multi-nodo \cite{Zanella2014}.
 
@@ -315,13 +308,6 @@ Una caratteristica fondamentale della progettazione è l'adozione di un modello 
 \end{itemize}
 Questo approccio riduce drasticamente il numero di pacchetti inviati rispetto a una trasmissione periodica (polling), con una diminuzione del traffico fino al 90\% secondo quanto riportato in letteratura \cite{Sanchez2018}. Tale strategia permette di soddisfare il requisito NFR9 relativo al basso consumo energetico e aumenta l'efficienza del canale, particolarmente importante in dispositivi IoT alimentati a bordo veicolo.
 
-\subsection*{Simulazione software per test indoor}
-Durante la fase di sviluppo e collaudo è stato necessario verificare la correttezza della logica di prossimità in ambienti privi di segnale satellitare, come laboratori indoor o aule universitarie.
-Per sopperire a questa limitazione, è stato implementato un firmware alternativo denominato \texttt{controller\_nodemcu\_fakegps.ino}, in cui la funzione \texttt{simulateGPS()} genera artificialmente sequenze di coordinate plausibili. Questa simulazione permette di riprodurre i tipici scenari di avvicinamento e allontanamento del veicolo, garantendo la verifica dell'intera pipeline:
-\[
-\text{GPS fake} \rightarrow \text{MQTT NodeMCU} \rightarrow \text{Arduino} \rightarrow \text{Automazione}
-\]
-L'approccio rientra nelle metodologie \textit{Software-in-the-Loop} (SIL), raccomandate per la validazione incrementale di sistemi embedded complessi \cite{He2019}, e consente di testare la logica applicativa anche in assenza temporanea del componente fisico.
 
 \subsection*{Prestazioni e accuratezza}
 Le prove sperimentali condotte sul prototipo hanno permesso di valutare con precisione sia l'accuratezza della localizzazione fornita dal modulo GPS sia le prestazioni complessive del flusso di comunicazione GPS-MQTT-server.
