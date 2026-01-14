@@ -269,6 +269,19 @@ Il test conferma pienamente il soddisfacimento del requisito NFR5. La logica loc
 L'ESP8266, pur risultando isolato dal broker MQTT durante la disconnessione, non influisce sul funzionamento operativo e ristabilisce autonomamente la connessione una volta disponibile la rete. Il sistema nel suo complesso si dimostra quindi \textbf{robusto}, \textbf{sicuro} e \textbf{coerente} con il modello architetturale progettato.
 
 
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.8\textwidth]{images/latency_http_open_close.png}
+    \caption{Latenza HTTP media del sistema di controllo per i comandi OPEN e CLOSE (solo request/response).}
+    \label{fig:latency_http}
+\end{figure}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.85\textwidth]{images/latency_table_http_open_close.png}
+    \caption{Statistiche della latenza HTTP (media e deviazione standard) per i comandi OPEN e CLOSE.}
+    \label{fig:latency_http_table}
+\end{figure}
 
 \section{Analisi dei risultati}
 L'analisi complessiva dei risultati ottenuti nelle fasi di unit, integration e system testing conferma che il prototipo Smart Garage Door soddisfa pienamente l'insieme dei requisiti funzionali e non funzionali definiti nel Capitolo 3. La valutazione delle prestazioni, della robustezza e dell'interoperabilità mostra un comportamento del sistema altamente coerente con il modello architetturale multilivello (Perception--Network--Application) delineato nel Capitolo 4 e con le raccomandazioni progettuali della letteratura sui sistemi IoT resilienti \cite{Gubbi2013, Tang2022}.
@@ -277,6 +290,21 @@ L'analisi complessiva dei risultati ottenuti nelle fasi di unit, integration e s
 Il requisito NFR2 è stato valutato considerando esclusivamente la latenza del sistema di controllo, misurata come tempo di request/response HTTP tra il comando dell’utente e la risposta del backend applicativo, separandola deliberatamente dal tempo di attuazione fisica del sistema meccanico. I test sperimentali mostrano una latenza media compresa tra 0.21 s e 0.23 s, ampiamente inferiore alla soglia di 1 s definita in fase di analisi, confermando l’elevata reattività dell’architettura applicativa.
 
 Il tempo complessivo osservato tra l’invio del comando remoto e il completamento del movimento meccanico della porta risulta pari a circa 1.63--1.68 s. Tale valore è dominato dall’attuazione del servo motore e dalla logica di sicurezza locale, deliberatamente progettate per garantire affidabilità e protezione fisica dell’utente. Di conseguenza, questa misura non rientra nel perimetro del requisito NFR2, che è esplicitamente riferito alla latenza del sistema di controllo software, ma rappresenta una caratteristica progettuale del sottosistema di attuazione elettromeccanica.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.8\textwidth]{images/chart_open_close.png}
+    \caption{Tempo medio complessivo di risposta del sistema (latenza HTTP + movimento del servo).}
+    \label{fig:total_time_chart}
+\end{figure}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.85\textwidth]{images/performance_table_full_open_close.png}
+    \caption{Statistiche del tempo totale di risposta comprensive dell’attuazione meccanica.}
+    \label{fig:total_time_table}
+\end{figure}
+
 
 Nel loro insieme, questi risultati confermano l’efficienza della pipeline di comunicazione basata sull’integrazione dei protocolli MQTT e HTTP REST, notoriamente adatti a sistemi IoT caratterizzati da requisiti di bassa latenza e throughput moderato \cite{Amaral2018}. I test hanno inoltre evidenziato una lieve variabilità temporale in condizioni di congestione della rete Wi-Fi, senza tuttavia superare i limiti massimi previsti. Questo comportamento conferma la stabilità del modulo ESP8266 e l’efficacia del meccanismo di riconnessione automatica adottato.
 
