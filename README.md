@@ -3,228 +3,239 @@
 [![Python Version](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Arduino%20%7C%20ESP8266-lightgrey.svg)]()
-[![Made with ❤️ at UniCA](https://img.shields.io/badge/Made%20with%20%E2%9D%A4%EF%B8%8F-UniCA-red.svg)]()
+[![Course](https://img.shields.io/badge/IoT-UniCA-red.svg)]()
 
 <p align="center">
   <img src="images/smart.png" width="45%" alt="Smart Garage Door System">
 </p>
 
-**Smart Garage Door** è un progetto IoT sviluppato nell'ambito del corso *Internet of Things and Digital Twins* (Master's Degree in Computer Engineering, Cybersecurity and Artificial Intelligence – Università di Cagliari).  
-L'obiettivo è realizzare un sistema intelligente per il controllo remoto e automatizzato di una porta da garage, basato su architettura **a tre livelli IoT** (Perception – Network – Application).
+---
+
+## Overview
+
+**Smart Garage Door** è un progetto **Internet of Things (IoT)** sviluppato nell’ambito del corso  
+*Internet of Things and Digital Twins* del Corso di Laurea Magistrale in  
+**Computer Engineering, Cybersecurity and Artificial Intelligence** – **Università di Cagliari**.
+
+Il progetto mira alla realizzazione di un **sistema intelligente per il controllo remoto e automatizzato di una porta da garage**, basato su un’architettura IoT **a tre livelli** (*Perception – Network – Application*), progettata secondo i principi del **System Development Life Cycle (SDLC)**.
+
+L’intero sistema è stato concepito per essere:
+- modulare e scalabile,
+- affidabile,
+- basato su protocolli standard aperti,
+- sostenibile dal punto di vista economico ed energetico.
 
 ---
 
-## Risorse del Progetto
+## Scenario di riferimento e assunzioni
 
-### Simulazione Hardware (Tinkercad)
+Il sistema è progettato per un **ambiente domestico**, in cui:
 
-Modello funzionante del cablaggio Arduino + NodeMCU + sensori.
+- è disponibile copertura **Wi-Fi** fino all’area del garage o del cancello;
+- la porta è motorizzata e comandabile tramite un’interfaccia elettrica digitale;
+- i dispositivi embedded possono operare in modalità **24/7**;
+- l’utente interagisce esclusivamente tramite **Telegram Bot**, senza necessità di applicazioni dedicate.
 
-**[https://www.tinkercad.com/things/f9Zs6mc1zuk-smart-garage-door-iot-molinario-tuzi?sharecode=inUBEnqjk6C_21CV93_0aW_xciNNOMU7G4732abxZ9Q](https://www.tinkercad.com/things/f9Zs6mc1zuk-smart-garage-door-iot-molinario-tuzi?sharecode=inUBEnqjk6C_21CV93_0aW_xciNNOMU7G4732abxZ9Q)**
-
-### Telegram Bot – Interfaccia Utente
-
-Versione web del bot Telegram usato per il controllo del sistema.
-
-**[https://t.me/SmartGarageDoor2026Bot](https://t.me/SmartGarageDoor2026Bot)**
+In questo contesto, la scelta del Wi-Fi come tecnologia di comunicazione primaria consente di ridurre complessità infrastrutturale e costi, risultando adeguata allo scenario applicativo.
 
 ---
 
-## Architettura generale
+## Architettura del sistema
 
-Il sistema è composto da cinque macro-componenti interoperabili:
+Il sistema è strutturato secondo una **architettura IoT multilivello**, con separazione netta delle responsabilità.
 
-| Livello | Componente | Descrizione                                                           |
-|---------|------------|-----------------------------------------------------------------------|
-| **Perception Layer** | Arduino UNO | Gestisce sensori (PIR, HC-SR04) e attuatori (servo).                  |
-| **Network Layer** | NodeMCU ESP8266 | Connette il sistema alla rete Wi-Fi, comunica via MQTT con il server. |
-| **Proximity Module** | GPS DIYmalls 16E | Abilita l'automazione di prossimità (geofencing).                     |
-| **Application Layer** | Server Flask (Python) | Gestisce API, autenticazione e log degli eventi.                      |
-| **User Interface** | Bot Telegram | Permette controllo e monitoraggio remoto dell'impianto.               |
+| Livello | Componente | Ruolo |
+|------|-----------|------|
+| **Perception Layer** | Arduino UNO | Gestione sensori (PIR, HC-SR04) e attuazione locale (relè/servo) |
+| **Network Layer** | NodeMCU ESP8266 | Gateway Wi-Fi, MQTT, comunicazione seriale |
+| **Proximity Module** | GPS (reale o simulato) | Geofencing e automazione di ingresso |
+| **Application Layer** | Server Flask (Python) | API REST, log, gestione utenti |
+| **User Interface** | Telegram Bot | Controllo remoto e monitoraggio |
 
-## Funzionalità principali
-
-| Requisito | Descrizione | Stato |
-|-----------|-------------|-------|
-| **FR1** | Apertura/chiusura remota della porta | Implementato |
-| **FR2** | Consultazione dello stato della porta in tempo reale | MQTT + Flask |
-| **FR3** | Notifiche automatiche ai cambi di stato | Telegram Bot |
-| **FR4** | Chiusura temporizzata automatica | Arduino timer |
-| **FR5a** | Automazione di prossimità in uscita (movimento interno) | PIR sensor |
-| **FR5b** | Automazione di prossimità in ingresso (geofence GPS) | Implementato |
-| **FR6** | Gestione multiutenza | Flask sessions |
-| **FR7** | Comando locale / override | Pulsante |
-| **FR8** | Rilevazione ostacolo con riapertura | HC-SR04 |
-| **FR9** | Consultazione log essenziale | Flask API |
-| **NFR9** | Consumo energetico contenuto | Ottimizzato |
-| **NFR10** | Costo complessivo del sistema | < €150 |
+Questa suddivisione garantisce **determinismo locale**, **reattività** e **robustezza operativa**.
 
 ---
 
-## Struttura del progetto
+## Requisiti funzionali (FR)
+
+Il sistema implementa i seguenti **requisiti funzionali**, derivati da casi d’uso realistici:
+
+| FR | Descrizione |
+|----|------------|
+| FR1 | Apertura e chiusura remota della porta |
+| FR2 | Consultazione stato porta in tempo reale |
+| FR3 | Notifiche automatiche su eventi e cambi di stato |
+| FR4 | Chiusura automatica temporizzata |
+| FR5a | Automazione di prossimità in uscita (PIR) |
+| FR5b | Automazione di prossimità in ingresso (geofence GPS) |
+| FR6 | Gestione multiutenza con ruoli |
+| FR7 | Comando locale / override manuale |
+| FR8 | Rilevazione ostacoli con blocco e riapertura |
+| FR9 | Consultazione log ed eventi di sistema |
+
+---
+
+## Requisiti non funzionali (NFR)
+
+| NFR | Descrizione |
+|----|------------|
+| NFR1 | Accessibilità continua dei dati di stato |
+| NFR2 | Latenza end-to-end < 1 s (95° percentile) |
+| NFR3 | Accuratezza > 99% e falsi positivi < 1% |
+| NFR4 | Geofence configurabile (≈15 m) |
+| NFR5 | Operatività 24/7 con fallback locale |
+| NFR6 | Sicurezza e autenticazione utenti |
+| NFR7 | Minimizzazione dati personali e privacy |
+| NFR8 | Interoperabilità (MQTT, HTTP, JSON) |
+| NFR9 | Efficienza energetica |
+| NFR10 | Costo complessivo < 150 € |
+
+---
+
+## Interfacce e protocolli
+
+### API REST (Application Layer)
+
+Il server Flask espone endpoint REST per:
+
+- controllo porta (`/on`, `/off`);
+- consultazione stato (`/status`);
+- gestione eventi (`/events`);
+- gestione geofence (`/gps`, `/setgarage`);
+- gestione utenti (`/addUser`, `/delUser`, `/listUsers`, `/changePassword`).
+
+### MQTT (Network Layer)
+
+MQTT è utilizzato per comunicazioni asincrone e leggere, con topic principali:
+
+- `home/garage/cmd`
+- `home/garage/door`
+- `home/garage/user_location`
+- `home/garage/update_location`
+- `home/garage/pir`
+- `home/garage/obstacle`
+
+### Telegram Bot (User Interface)
+
+Il bot Telegram fornisce un’interfaccia conversazionale completa, con supporto a:
+- comandi manuali;
+- notifiche;
+- gestione utenti;
+- invio posizione manuale o Live Location.
+
+---
+
+## Struttura del repository
 
 ```
-SmartGarageDoor/
+Smart-Garage-Door/
 │
-├── hardware/              # Firmware Arduino / NodeMCU
-│   ├── controller_arduino.ino
-│   ├── controller_nodemcu.ino
-│   ├── gps_module.ino
-│   ├── wiring_diagram.tex
-│   └── pinout_table.csv
+├── hardware/                          # Firmware e componenti embedded
+│   ├── controller_arduino/            # Perception Layer
+│   │   └── controller_arduino.ino
+│   ├── controller_nodemcu/            # Network Layer
+│   │   └── controller_nodemcu.ino
+│   ├── pinout_table.csv               # Mappatura pin
+│   └── FIRMWARE_GUIDE.md              # Guida tecnica firmware
 │
-├── software/              # Server Flask + Telegram Bot
-│   ├── app.py
-│   ├── telegram_listener.py
-│   ├── timer.py
-│   ├── config.json
-│   └── requirements.txt
+├── software/                          # Application Layer
+│   ├── app.py                         # Server Flask / API REST
+│   ├── telegram_listener.py           # Bot Telegram
+│   ├── timer.py                       # Scheduler
+│   ├── performance_monitor.py         # Monitor prestazioni
+│   ├── fix_garage_coords.py           # Utility coordinate
+│   ├── users.json                     # Database utenti locale
+│   ├── requirements.txt               # Dipendenze Python
+│   ├── pytest.ini                     # Configurazione test
+│   └── tests/                         # Test automatici
 │
-├── docs/                  # Documentazione e immagini per la tesi
-│   └── images/
-│       ├── hardware_connections.png
-│       └── integration_flow.png
+├── docs/                              # Documentazione
+│   ├── Tex/                           # Report LaTeX
+│   ├── Requisiti/                     # Analisi FR / NFR
+│   ├── materiale_in_consegna/         # Materiale finale esame
+│   └── images/                        # Diagrammi e figure
 │
-├── .gitignore
+├── privacy/
+│   └── privacy.md                     # Privacy disclousure per Telegram Bot
+│
+│
+├── images/
 ├── LICENSE
 └── README.md
+
+````
+
+---
+
+## Installazione e setup (sintesi)
+
+### Software
+```bash
+git clone https://github.com/<utente>/Smart-Garage-Door.git
+cd Smart-Garage-Door/software
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+````
+
+### Avvio
+
+```bash
+python app.py
+python telegram_listener.py
 ```
 
----
+### Firmware
 
-## Installazione e configurazione
-
-### Requisiti hardware
-
-- Arduino UNO  
-- NodeMCU ESP8266  
-- Sensore PIR HC-SR501  
-- Modulo Servo 5 V  
-- Sensore a ultrasuoni HC-SR04  
-- Modulo GPS 
-- Breadboard, cavetti Dupont, alimentazione 5 V  
-
-### Requisiti software
-
-- **Arduino IDE** (>=2.0) con librerie:  
-  `SoftwareSerial`, `PubSubClient`, `ArduinoJson`, `ESP8266WiFi`, `TinyGPSPlus`
-- **Python 3.11+**
-- Librerie Python: `flask`, `requests`, `paho-mqtt`, `python-telegram-bot`
+* caricare `controller_arduino.ino` su Arduino UNO
+* caricare `controller_nodemcu.ino` su NodeMCU ESP8266
 
 ---
 
-## Setup rapido
+## Metriche sperimentali
 
-1. **Clona il repository**
-   ```bash
-   git clone https://github.com/<tuo-utente>/SmartGarageDoor.git
-   cd SmartGarageDoor
-   ```
-
-2. **Configura l'ambiente Python**
-   ```bash
-   cd software
-   python -m venv .venv
-   source .venv/bin/activate   # (Windows: .venv\Scripts\activate)
-   pip install -r requirements.txt
-   ```
-
-3. **Imposta le credenziali**
-   
-   Modifica `software/config.json`:
-   ```json
-   {
-       "MQTT_BROKER": "test.mosquitto.org",
-       "MQTT_PORT": 1883,
-       "TELEGRAM_TOKEN": "xxxxxxxxx:xxxxxxxxx",
-       "HOME_LAT": 39.2219,
-       "HOME_LON": 8.105843,
-       "GEOFENCE_RADIUS_M": 15.0
-   }
-   ```
-
-4. **Avvia il server Flask**
-   ```bash
-   python app.py
-   ```
-
-5. **Esegui il bot Telegram** (in un terminale separato)
-   ```bash
-   python telegram_listener.py
-   ```
-
-6. **Collega e carica i firmware**
-   - `controller_arduino.ino` su Arduino UNO
-   - `controller_nodemcu.ino` su NodeMCU ESP8266
-
-   > Dubbi su quale sketch usare? Consulta la [guida di selezione dei firmware](hardware/FIRMWARE_GUIDE.md) per confrontare le quattro varianti disponibili e scegliere quella più adatta al tuo scenario (produzione, laboratorio o setup modulare).
-
----
-
-# Interazione tramite Telegram Bot
-
-Questa sezione descrive tutti i comandi disponibili nel bot Telegram utilizzato dal sistema **Smart Garage Door**, con esempi e funzioni di amministrazione.
-
----
-
-## Elenco completo dei comandi
-
-| Comando                | Descrizione                                    |
-| ---------------------- | ---------------------------------------------- |
-| `/start`               | Avvia il bot e mostra il messaggio iniziale    |
-| `/help`                | Mostra la lista dei comandi disponibili        |
-| `/login <user> <pass>` | Effettua il login                              |
-| `/logout`              | Chiude la sessione utente                      |
-| `/status`              | Mostra lo stato del sistema (porta, GPS, MQTT) |
-| `/on`                  | Apre la porta                                  |
-| `/off`                 | Chiude la porta                                |
-| `/pir`                 | Stato del sensore PIR                          |
-| `/obstacle`            | Stato sensore ostacolo HC-SR04                 |
-| `/listusers`           | Mostra tutti gli utenti registrati (admin)     |
-| `/adduser <user> <pass>` | Aggiunge un nuovo utente (admin)               |
-| `/deluser <user>`      | Rimuove un utente (admin)                      |
-| `/changepass`          | Cambia password (utente o admin)               |
-| `/gps <lat> <lon>`     | Invia coordinate manuali al sistema (admin)    |
-| `/setgarage <lat> <lon>` | Aggiorna le coordinate del garage (admin)      |
-| *(Live Location Telegram)* | L'invio di posizione in diretta aggiorna automaticamente lo stato del geofence |
-| `/adminstatus`         | Cruscotto diagnostico completo (admin)         |
-
-<p align="center">
-  <img src="images/Telegram_bot/SGD_Bot.png" width="45%" alt="Telegram Bot Screenshot">
-</p>
-
----
-
-## Metriche e validazione
-
-* **Tempo medio di risposta:** 0.8 s (porta) / 0.4 s (notifica)
-* **Precisione sensori PIR/HC-SR04:** > 97 %
-* **Tolleranza geofence simulato:** ± 1 %
-* **Costo complessivo prototipo:** ≈ € 80
+* Tempo medio risposta: ~0.8 s
+* Accuratezza sensori: > 97%
+* Errore geofence: ± 1%
+* Costo prototipo: ≈ 80 €
 
 ---
 
 ## Autori
 
-* **Lello Molinario e Matteo Tuzi** – Implementazione e documentazione (Università di Cagliari), Co-sviluppo hardware e testing
-* **Prof. Michele Nitti** – Supervisione accademica
+* **Lello Molinario**, **Matteo Tuzi** – progettazione, implementazione, test
+* **Prof. Michele Nitti** – supervisione accademica
 
 ---
 
 ## Licenza
 
-Questo progetto è distribuito con licenza **MIT**, in linea con le policy open-source del corso.
-Vedi il file [LICENSE](LICENSE) per i dettagli.
+Distribuito sotto licenza **MIT**.
 
 ---
 
 ## Riferimenti
 
-* [1] MQTT Specification v3.1.1 – OASIS Standard (2014)
-* [2] TinyGPSPlus Library – Mikal Hart (GitHub)
-* [3] Flask Framework – Pallets Project (Python 3.11)
-* [4] ESP8266 Arduino Core Documentation
+* MQTT Specification v3.1.1 – OASIS
+* ESP8266 Arduino Core Documentation
+* Flask Framework – Pallets Project
+* Telegram Bot API
 
 ---
 
-*"From design to implementation: connecting hardware, network and application in a unified IoT prototype."*
+*From requirements analysis to system implementation: a complete IoT prototype for smart access control.*
+
+```
+
+---
+
+### Valutazione didattica (per te)
+Con questa revisione il README:
+- è **coerente 1:1 con il Capitolo 3**  
+- dimostra **controllo metodologico SDLC**  
+- non è un README “commerciale”, ma **accademico-tecnico**, perfetto per l’esame  
+
+Se vuoi, prossimo step consigliato:
+- **allineare Capitolo 4 (System Design)** usando le stesse sezioni del README  
+- oppure creare una **versione README “ridotta da consegna”** (2 pagine max).
+```

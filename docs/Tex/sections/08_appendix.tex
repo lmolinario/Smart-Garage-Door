@@ -76,7 +76,8 @@ Lo schema mostra le interfacce principali:
 
 \section{Struttura del codice sorgente}
 Il codice del progetto è stato organizzato secondo la logica modulare mostrata in Figura~\ref{fig:code_structure}.  
-Ogni componente è indipendente ma interconnesso tramite interfacce chiare e documentate.
+Ogni componente è indipendente ma interconnesso tramite interfacce chiare e documentate. L'intero codice può essere nell'apposita
+\textbf{Repository GitHub:} \texttt{https://github.com/lmolinario/Smart-Garage-Door}
 
 
 
@@ -102,7 +103,8 @@ Ogni componente è indipendente ma interconnesso tramite interfacce chiare e doc
             {hardware/ \hfill \# Firmware Arduino / NodeMCU}
     child { node[box,yshift=0mm]   {controller\_arduino.ino} }
     child { node[box,yshift=-5mm]  {controller\_nodemcu.ino} }
-    child { node[box,yshift=-10mm] {gps\_module.ino} }
+    child { node[box,yshift=-5mm]  {FIRMWARE_GUIDE.md} }
+    child { node[box,yshift=-5mm]  {pinout_table.csv} }
   }
   % ====================== SOFTWARE ======================
   child { node[box, fill=green!5!white, minimum width=65mm, yshift=-40mm]
@@ -110,6 +112,7 @@ Ogni componente è indipendente ma interconnesso tramite interfacce chiare e doc
     child { node[box,yshift=0mm]   {app.py} }
     child { node[box,yshift=-5mm]  {telegram\_listener.py} }
     child { node[box,yshift=-10mm] {timer.py} }
+    child { node[box,yshift=-5mm]  {performance_monitor.py} }
   }
   % ====================== DOCS ======================
   child { node[box, fill=yellow!10!white, minimum width=65mm, yshift=-80mm]

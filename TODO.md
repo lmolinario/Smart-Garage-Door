@@ -1,9 +1,3 @@
-Cap 5
-- Revisioni schermate Bot
-- Screenshot bot (comandi, moch up )
-
-
-
 
 Cap 6
 - da Inserire:
@@ -116,3 +110,8 @@ Questi moduli permettono di verificare separatamente il corretto funzionamento d
 Nel complesso, la metodologia adottata consente di ottenere una valutazione quantitativa affidabile delle prestazioni temporali del sistema Smart Garage Door, fornendo una base sperimentale solida per l’analisi dei risultati presentati nella sezione seguente.
 
 
+
+
+fix_garage_coords.py
+
+NFR2 solo http
