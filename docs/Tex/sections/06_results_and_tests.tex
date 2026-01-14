@@ -269,7 +269,7 @@ La verifica dei requisiti FR5a e FR5b è particolarmente rilevante poiché rappr
     \hline
     \textbf{Requisito} & \textbf{Descrizione del test dedicato} & \textbf{Esito} \\ \hline
     FR5a - Automazione in uscita & Simulazione di movimento rilevato dal PIR con porta chiusa; verifica dell'attivazione immediata del relè; misurazione del tasso di falsi positivi in condizioni di luce variabile; test in presenza di interferenze termiche controllate. & Superato \\ \hline
-    FR5a - Robustezza & Introduzione di rumore artificiale sul pin PIR per simulare malfunzionamenti; test del filtro software (debounce); verifica dell'assenza di aperture spurie. & Superato \\ \hline
+    FR5a - Robustezza & Introduzione di rumore artificiale sul pin PIR per simulare malfunzionamenti; verifica della robustezza della logica contestuale basata su stato porta e prossimità GPS, e assenza di aperture spurie. & Superato \\ \hline
     FR5b - Automazione in ingresso (GPS) & Test del geofence a 15 m con transizioni multiple "fuori $\rightarrow$ dentro $\rightarrow$ fuori"; verifica della pubblicazione stabile sul topic MQTT \texttt{home/garage/gps}. & Superato \\ \hline
     FR5b - Stabilità GPS &  Valutazione della stabilità del geofence in presenza di aggiornamenti di posizione irregolari; verifica del comportamento stateful del sistema e assenza di attivazioni spurie durante le transizioni di ingresso/uscita. &  Superato \\ \hline
     FR5b - Interferenze Wi-Fi & Simulazione di congestione Wi-Fi durante l'evento di ingresso; verifica della propagazione geofence MQTT $\rightarrow$ Flask $\rightarrow$ Telegram senza perdita di stato. & Superato \\ \hline
@@ -353,8 +353,7 @@ Per verificare la resilienza del meccanismo publish/subscribe, il broker MQTT è
 Guasto simulato del sensore PIR \\
 Il comportamento del sistema è stato osservato in condizioni di segnale PIR instabile
 o intermittente, al fine di verificare la robustezza della logica di automazione in uscita.
-I meccanismi software adottati, basati su controllo temporale e verifica dello stato del
-sistema, hanno impedito l’attivazione di eventi indesiderati, evitando aperture
+I meccanismi software adottati,basati su verifica dello stato del sistema e vincoli contestuali, hanno impedito l’attivazione di eventi indesiderati, evitando aperture
 involontarie della porta. Il sistema ha continuato a operare in sicurezza, confermando
 il soddisfacimento del requisito FR5a.
 

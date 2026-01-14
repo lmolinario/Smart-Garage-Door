@@ -72,35 +72,6 @@ L'architettura sviluppata per il progetto \textit{Smart Garage Door} è stata co
 Tali sviluppi futuri testimoniano la versatilità dell'architettura realizzata e la sua predisposizione a operare come piattaforma evolutiva, adattabile alle esigenze di automazione domestica e agli scenari emergenti dell'IoT distribuito.
 
 
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[
-node distance=1.8cm,
-block/.style={rectangle, draw, rounded corners, text width=3.2cm, align=center, minimum height=1cm}
-]
-
-\node (s) [block] {Scenario \\ e Assunzioni};
-\node (r) [block, below of=s] {Analisi Requisiti \\ (FR / NFR)};
-\node (d) [block, below of=r] {System Design \\ Architettura IoT};
-\node (i) [block, below of=d] {Implementazione \\ Hardware \& Software};
-\node (t) [block, below of=i] {Testing \\ e Validazione};
-\node (o) [block, below of=t] {Risultati \\ Sperimentali};
-\node (c) [block, below of=o] {Discussione \\ e Conclusioni};
-
-\draw[->] (s) -- (r);
-\draw[->] (r) -- (d);
-\draw[->] (d) -- (i);
-\draw[->] (i) -- (t);
-\draw[->] (t) -- (o);
-\draw[->] (o) -- (c);
-
-\end{tikzpicture}
-\caption{Workflow end-to-end del progetto Smart Garage Door secondo il modello SDLC adottato}
-\label{fig:sdlc_overview}
-\end{figure}
-
-La Figura~\ref{fig:sdlc_overview} riassume il workflow end-to-end seguito nello sviluppo del sistema Smart Garage Door, evidenziando la continuità metodologica tra analisi, progettazione, implementazione e validazione sperimentale. Tale impostazione garantisce coerenza, tracciabilità e verificabilità delle scelte progettuali.
-
 
 \section{Conclusioni finali}
 Il progetto \textit{Smart Garage Door} rappresenta un caso di studio significativo nell'ambito delle architetture IoT distribuite, mostrando come un insieme eterogeneo di tecnologie — microcontrollori, protocolli di comunicazione, servizi cloud e interfacce conversazionali — possa essere integrato in modo coerente, sicuro e affidabile per soddisfare requisiti reali di automazione domestica.

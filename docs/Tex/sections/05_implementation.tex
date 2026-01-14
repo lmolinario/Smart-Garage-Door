@@ -60,7 +60,13 @@ Questa logica, definita nel Capitolo 4, permette di evitare attivazioni involont
 
 \subsection*{Implementazione del firmware}
 Il firmware principale, contenuto nel file \texttt{controller\_arduino.ino}, è stato progettato seguendo i principi di semplicità, determinismo temporale e prevedibilità tipici dei sistemi embedded real-time \cite{Marwedel2021}. La logica di controllo è organizzata come una macchina a stati finiti (FSM) minimale, nella quale la porta del garage può trovarsi in uno dei seguenti stati: \texttt{CLOSED}, \texttt{OPENING}, \texttt{OPEN}, \texttt{CLOSING}.
-Questa modellazione consente di mantenere chiaro il flusso di controllo, ridurre la complessità computazionale e prevenire condizioni di gara o comportamenti non deterministici, come raccomandato nella letteratura sui sistemi cyber-fisici \cite{Lee2015}.
+In particolare, la macchina a stati è implementata in forma implicita
+mediante variabili di stato e condizioni logiche distribuite nel ciclo
+principale del firmware, senza l’utilizzo di una struttura esplicita
+\texttt{enum} o di una tabella di transizione dedicata. Tale approccio,
+comune nei sistemi embedded a bassa complessità, consente di mantenere
+un comportamento deterministico riducendo l’overhead computazionale e
+la complessità del codice \cite{Marwedel2021}.
 
 Un elemento centrale della logica implementata riguarda la gestione combinata dei requisiti FR5a (automazione basata sul sensore PIR) e FR5b (automazione basata sulla prossimità GPS). Come discusso nel Capitolo 4, l'apertura automatica della porta è autorizzata soltanto quando coesistono due condizioni:
 \begin{enumerate}
@@ -103,15 +109,30 @@ Complessivamente, questa implementazione concilia efficienza, semplicità e robu
 \subsection*{Ottimizzazione e affidabilità}
 Per garantire la robustezza operativa prevista dal requisito non funzionale NFR8, il firmware del controller locale integra una serie di meccanismi software e hardware progettati secondo le buone pratiche dei sistemi embedded \cite{Marwedel2021}. L'obiettivo è assicurare che il microcontrollore mantenga un comportamento stabile, prevedibile e sicuro anche in presenza di disturbi ambientali, malfunzionamenti temporanei o condizioni di rete non ottimali, in linea con i criteri di \textit{dependability} descritti da Avizienis et al. \cite{Avizienis2004}.
 
-In primo luogo, è stato implementato un filtro temporale sul segnale proveniente dal sensore PIR, al fine di ridurre i falsi positivi generati da oscillazioni improvvise del livello infrarosso, variazioni termiche o interferenze luminose. Tale tecnica, ampiamente adottata nei sistemi di rilevazione passiva \cite{Gubbi2013}, prevede che un evento sia considerato valido solo se permane per una durata minima prestabilita, evitando così che l'attuatore risponda a stimoli rumorosi o transitori.
+In primo luogo, il segnale proveniente dal sensore PIR viene utilizzato come evento
+di trigger per l’automazione locale del sistema. Al fine di mitigare attivazioni
+indesiderate, la logica di controllo combina il rilevamento del movimento con
+vincoli contestuali di alto livello, quali lo stato corrente della porta e la
+prossimità dell’utente, riducendo la probabilità di falsi positivi senza introdurre
+complessità temporali aggiuntive nel firmware.
 
-In parallelo, il firmware applica una procedura di \textit{debouncing} software sui segnali digitali. Sebbene l'antirimbalzo sia tipicamente associato a sensori meccanici, oscillazioni di brevissima durata possono presentarsi anche nei moduli digitali a causa di instabilità elettriche o rumore di linea. L'inserimento di questa fase di filtraggio garantisce che la logica di controllo operi esclusivamente su segnali stabili, contribuendo alla robustezza temporale complessiva del sistema \cite{Marwedel2021}.
+Sebbene in letteratura siano frequentemente adottate tecniche di filtraggio
+temporale e debouncing software sui segnali PIR \cite{Gubbi2013,Marwedel2021},
+nel prototipo sviluppato si è optato per una soluzione deterministica e immediata,
+demandando la robustezza del comportamento a vincoli logici piuttosto che a
+meccanismi di filtraggio temporale espliciti.
 
-Per incrementare ulteriormente l'affidabilità operativa, Arduino utilizza un \textit{watchdog timer} hardware. In accordo con le linee guida per la progettazione di sistemi resilienti, il watchdog rappresenta un meccanismo essenziale di tolleranza ai guasti: esso provoca un reset automatico del microcontrollore qualora il ciclo principale non risponda entro una finestra temporale definita, prevenendo blocchi permanenti del sistema \cite{Chung2020}. Ciò garantisce continuità operativa e riduce la necessità di intervento umano, in linea con i requisiti di affidabilità NFR8.
+Il funzionamento offline del controller locale (NFR5) rappresenta un elemento
+chiave dell’affidabilità complessiva del sistema. Arduino mantiene infatti piena
+operatività anche in assenza di comunicazione con il NodeMCU, garantendo la
+gestione autonoma delle funzioni critiche quali il rilevamento del movimento,
+l’attivazione dell’attuatore e la chiusura automatica temporizzata (FR4), in linea
+con i principi dei sistemi IoT resilienti \cite{Tang2022}.
 
-Un aspetto particolarmente rilevante è il funzionamento offline del controller locale (NFR5). Come discusso nel modello architetturale del Capitolo 4, Arduino è progettato per mantenere piena operatività anche in assenza di comunicazione con il NodeMCU, garantendo la gestione autonoma delle funzioni critiche: rilevamento del movimento tramite PIR, attivazione del relè e chiusura automatica temporizzata (FR4). Questo approccio è coerente con la filosofia dei sistemi IoT robusti, in cui ogni nodo del Perception Layer deve essere in grado di funzionare in modalità degradata senza compromettere la sicurezza complessiva \cite{Tang2022}.
-
-Infine, la comunicazione tra Arduino e NodeMCU avviene tramite interfaccia UART impostata a 9600 baud. Tale configurazione rappresenta un compromesso ottimale tra affidabilità, latenza e consumo di risorse, risultando coerente con il principio di minimizzazione dell'overhead indicato nei sistemi embedded real-time \cite{Marwedel2021}. La scelta di una velocità moderata riduce il rischio di errori di trasmissione e garantisce una sincronizzazione stabile tra i dispositivi, soddisfacendo le esigenze di efficienza e integrità del canale di comunicazione previste dai requisiti non funzionali NFR2 e NFR3.
+Infine, la comunicazione tra Arduino e NodeMCU avviene tramite interfaccia UART
+configurata a 9600 baud, scelta che rappresenta un compromesso efficace tra
+affidabilità, latenza e consumo di risorse, coerente con le buone pratiche dei
+sistemi embedded real-time \cite{Marwedel2021}.
 
 \subsection*{Connessioni circuitali e pinout}
 La corretta progettazione delle connessioni elettriche rappresenta un elemento essenziale nei sistemi embedded, poiché garantisce l'affidabilità del flusso dati tra i sensori, gli attuatori e il microcontrollore, nonché la stabilità dell'alimentazione e dei segnali digitali \cite{Marwedel2021}. Nel prototipo sviluppato, i collegamenti sono stati realizzati nel rispetto delle specifiche elettriche dei moduli utilizzati e seguono la logica dell'architettura a livelli descritta nel Capitolo 4: Arduino gestisce esclusivamente i componenti del Perception Layer, mentre il NodeMCU ESP8266 integra le funzioni di rete e la gestione della geolocalizzazione.
@@ -137,7 +158,7 @@ La Figura \ref{fig:schematic} (rif. cap 8) mostra il wiring completo del sistema
 
 Come evidente dalla tabella, i sensori e gli attuatori fisici sono interfacciati esclusivamente con Arduino, in linea con la separazione funzionale prevista dal modello IoT a tre livelli \cite{Gubbi2013}. Il modulo GPS, invece, è collegato direttamente al NodeMCU tramite interfaccia seriale dedicata: questa scelta progettuale permette di delegare interamente al nodo di rete il calcolo della prossimità geografica e la pubblicazione degli eventi MQTT, senza sovraccaricare il microcontrollore locale.
 
-La comunicazione tra Arduino e NodeMCU avviene tramite la UART hardware (pin D10-D11), configurata a 9600 baud. Questa architettura consente uno scambio bidirezionale di segnali a bassa latenza e riflette le buone pratiche di interoperabilità nei sistemi embedded distribuiti \cite{Zanella2014}.
+La comunicazione tra Arduino e NodeMCU avviene tramite la UART software (SoftwareSerial) (pin D10-D11), configurata a 9600 baud. Questa architettura consente uno scambio bidirezionale di segnali a bassa latenza e riflette le buone pratiche di interoperabilità nei sistemi embedded distribuiti \cite{Zanella2014}.
 
 Infine, lo schema elettrico riportato in Figura \ref{fig:schematic} rappresenta la configurazione effettivamente implementata sul prototipo. Esso evidenzia la chiara distinzione tra:
 \begin{itemize}
@@ -311,7 +332,8 @@ Questo approccio riduce drasticamente il numero di pacchetti inviati rispetto a 
 
 \subsection*{Prestazioni e accuratezza}
 Le prove sperimentali condotte sul prototipo hanno permesso di valutare con precisione sia l'accuratezza della localizzazione fornita dal modulo GPS sia le prestazioni complessive del flusso di comunicazione GPS-MQTT-server.
-In condizioni operative standard, il modulo ha evidenziato un errore medio di localizzazione inferiore all'1\%, valore pienamente in linea con le specifiche dichiarate dal produttore e coerente con quanto riportato in letteratura riguardo alla stabilità dei ricevitori GNSS di fascia embedded \cite{Zanella2014}.
+In condizioni operative standard, il modulo ha evidenziato un errore medio di localizzazione dell’ordine di pochi metri,
+coerente con le specifiche dei ricevitori GNSS di classe embedded e coerente con quanto riportato in letteratura riguardo alla stabilità dei ricevitori GNSS di fascia embedded \cite{Zanella2014}.
 
 L'intero percorso di propagazione del dato — dal rilevamento della posizione al processamento da parte del server Flask — presenta una latenza media inferiore a 0.8 s. Tale valore comprende:
 \begin{enumerate}
