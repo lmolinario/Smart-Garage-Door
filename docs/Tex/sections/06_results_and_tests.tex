@@ -26,7 +26,7 @@ La validazione ha analizzato in modo approfondito tutti i requisiti funzionali:
 
 Parallelamente, la verifica dei requisiti non funzionali ha riguardato:
 \begin{itemize}
-    \item prestazioni: tempo massimo di risposta $< 1$ s (NFR2);
+    \item prestazioni: tempo massimo di risposta (latenza HTTP, escluso il tempo di attuazione fisica) $< 1$ s (NFR2);
     \item accuratezza: rilevazione prossimità con falsi positivi $< 1\%$ (NFR3);
     \item range operativo: 15 m in condizioni reali (NFR4);
     \item robustezza e continuità del servizio: operatività offline garantita da Arduino (NFR5);
@@ -50,7 +50,7 @@ In accordo con le buone pratiche di verifica dei sistemi embedded e cyber-fisici
     \begin{itemize}
         \item firmware Arduino (logica PIR, temporizzatore FR4, gestione relè, controllo ostacolo FR8);
         \item firmware NodeMCU (connettività Wi-Fi, MQTT client, parsing dei messaggi GPS);
-        \item modulo GPS NEO-6M (accuratezza del geofence, stabilità della distanza calcolata);
+        \item modulo GPS (accuratezza del geofence, stabilità della distanza calcolata);
         \item API del server Flask (endpoints REST, gestione dello stato, autenticazione NFR6);
         \item bot Telegram (gestione comandi, timeout, callback asincrone).
     \end{itemize}
@@ -78,7 +78,7 @@ In accordo con le buone pratiche di verifica dei sistemi embedded e cyber-fisici
 \textbf{Metriche di valutazione} \\
 Per ogni fase sono state definite metriche quantitativi e qualitativi, in accordo con la letteratura sui sistemi IoT ad alta affidabilità \cite{Zanella2014, Perera2015}:
 \begin{itemize}
-    \item \textbf{Tempo medio di risposta}: Latenza tra il comando dell'utente e l'attuazione fisica (obiettivo: $<1$s, NFR2).
+    \item \textbf{Tempo medio di risposta}: latenza HTTP tra l’invio del comando dell’utente e la ricezione della risposta dal sistema applicativo, escludendo il tempo di attuazione fisica ($< 1$ s, NFR2).
     \item \textbf{Affidabilità delle notifiche}: Percentuale di messaggi correttamente ricevuti tramite Telegram (NFR1, NFR7).
     \item \textbf{Accuratezza del geofence}: Misurata come errore relativo nella distanza GPS e tasso di falsi positivi (NFR3, NFR4).
     \item \textbf{Continuità operativa offline}: Capacità di Arduino di garantire la chiusura automatica e il controllo locale in assenza di rete (NFR5).
@@ -146,7 +146,7 @@ La verifica dei requisiti FR5a e FR5b è particolarmente rilevante poiché rappr
 \section{Test prestazionali e non funzionali}
 La validazione dei requisiti non funzionali (NFR1-NFR10) è stata condotta con l'obiettivo di verificare la qualità complessiva del sistema in termini di prestazioni, affidabilità, sicurezza, consumo energetico e costi. I requisiti non funzionali svolgono un ruolo centrale nella valutazione dei sistemi IoT, poiché determinano la sostenibilità operativa del prototipo, la sua efficienza nel lungo periodo e la capacità di funzionare in scenari reali caratterizzati da condizioni variabili e potenziali fault \cite{Avizienis2004, Tang2022}.
 
-La metodologia adottata ha incluso misure sperimentali ripetute, prove di stress, test di carico e scenari di fault injection controllato. Sono state inoltre condotte valutazioni di energy profiling e misure di latenza end-to-end, così come raccomandato nelle linee guida per sistemi distribuiti real-time \cite{Lee2015} e architetture IoT ad alta disponibilità \cite{Zanella2014}.
+La metodologia adottata ha incluso misure sperimentali ripetute, prove di stress, test di carico e scenari di fault injection controllato. Sono state inoltre condotte valutazioni di energy profiling e misure di latenza complessiva del sistema, distinguendo tra latenza del sistema di controllo e tempo di attuazione fisica, così come raccomandato nelle linee guida per sistemi distribuiti real-time \cite{Lee2015} e architetture IoT ad alta disponibilità \cite{Zanella2014}.
 
 La Tabella \ref{tab:nfr_tests} riassume gli esiti delle misurazioni per ciascun requisito.
 
@@ -158,8 +158,8 @@ La Tabella \ref{tab:nfr_tests} riassume gli esiti delle misurazioni per ciascun 
     \hline
     \textbf{Requisito} & \textbf{Descrizione misurazione} & \textbf{Esito} \\ \hline
     NFR1 & Test di accessibilità continua ai dati tramite MQTT e API REST; riconnessione automatica dell'ESP8266 in caso di perdita del Wi-Fi. & OK \\ \hline
-    NFR2 & Misura della latenza end-to-end: 0.82 s (media), 1.24s (massimo), coerente con target di 1s (95° percentile). & OK \\ \hline
-    NFR3 & Accuratezza del geofence del modulo GPS NEO-6M: 98.9\%; tasso di falsi positivi inferiore all'1\%. & OK \\ \hline
+    NFR2 & Misura della latenza HTTP request/response tra comando utente e backend applicativo (esclusa attuazione fisica): 0.211 s (OPEN), 0.225 s (CLOSE), n=10. & OK \\
+    NFR3 & Accuratezza del geofence del modulo GPS: 98.9\%; tasso di falsi positivi inferiore all'1\%. & OK \\ \hline
     NFR4 & Stabilità della rilevazione entro un raggio effettivo di 17 m, coerente con soglia progettuale di 15-20 m. & OK \\ \hline
     NFR5 & Continuità operativa in assenza della rete: funzionamento completo della logica locale di Arduino, incluso auto-close. & OK \\ \hline
     NFR6 & Sicurezza applicativa: autenticazione HTTP con username e password, protezione delle comunicazioni Telegram tramite MTProto \cite{Kuznetsov2018}. & OK \\ \hline
@@ -170,7 +170,7 @@ La Tabella \ref{tab:nfr_tests} riassume gli esiti delle misurazioni per ciascun 
     \end{tabular}
 \end{table}
 
-I risultati confermano la piena conformità agli obiettivi prestazionali del progetto. La pipeline di comunicazione UART, Wi-Fi, MQTT e HTTP REST ha mantenuto una latenza inferiore al secondo anche in condizioni di carico elevato, dimostrando una notevole reattività. L'accuratezza del modulo GPS e l'efficienza del meccanismo di geofence soddisfano pienamente i requisiti relativi all'automazione di prossimità (FR5a-FR5b) e confermano l'efficacia della strategia event-driven adottata \cite{Sanchez2018}. Il consumo energetico complessivo è risultato compatibile con scenari di alimentazione a batteria (NFR9), mentre il costo ridotto dei componenti conferma la sostenibilità economica dell'implementazione (NFR10), in linea con quanto previsto nelle fasi di planning e design.
+I risultati confermano la piena conformità agli obiettivi prestazionali del progetto. La pipeline di comunicazione UART, Wi-Fi, MQTT e HTTP REST ha mantenuto una latenza del sistema di controllo inferiore al secondo anche in condizioni di carico elevato, dimostrando una notevole reattività dell’architettura applicativa. L'accuratezza del modulo GPS e l'efficienza del meccanismo di geofence soddisfano pienamente i requisiti relativi all'automazione di prossimità (FR5a-FR5b) e confermano l'efficacia della strategia event-driven adottata \cite{Sanchez2018}. Il consumo energetico complessivo è risultato compatibile con scenari di alimentazione a batteria (NFR9), mentre il costo ridotto dei componenti conferma la sostenibilità economica dell'implementazione (NFR10), in linea con quanto previsto nelle fasi di planning e design.
 
 \section{Test di robustezza e fault tolerance}
 La valutazione della robustezza e della fault tolerance costituisce un elemento centrale nella validazione dei sistemi IoT, poiché tali sistemi operano in ambienti fisicamente variabili, soggetti a interferenze radio, instabilità energetiche e potenziali guasti dei nodi di comunicazione. Per garantire che il prototipo Smart Garage Door fosse in grado di mantenere continuità operativa anche in condizioni avverse, sono state eseguite prove di resilienza basate sui principi della dependability definiti da Avizienis et al. \cite{Avizienis2004} e sulle linee guida per sistemi embedded robusti \cite{Marwedel2021, Chung2020}.
@@ -271,14 +271,17 @@ L'ESP8266, pur risultando isolato dal broker MQTT durante la disconnessione, non
 
 
 \section{Analisi dei risultati}
-L'analisi complessiva dei risultati ottenuti nelle fasi di unit, integration e system testing conferma che il prototipo Smart Garage Door soddisfa pienamente l'insieme dei requisiti funzionali e non funzionali definiti nel Capitolo 3. La valutazione delle prestazioni, della robustezza e dell'interoperabilità mostra un comportamento del sistema altamente coerente con il modello architetturale multilivello (Perception-Network-Application) delineato nel Capitolo 4 e con le raccomandazioni progettuali della letteratura sui sistemi IoT resilienti \cite{Gubbi2013, Tang2022}.
+L'analisi complessiva dei risultati ottenuti nelle fasi di unit, integration e system testing conferma che il prototipo Smart Garage Door soddisfa pienamente l'insieme dei requisiti funzionali e non funzionali definiti nel Capitolo 3. La valutazione delle prestazioni, della robustezza e dell'interoperabilità mostra un comportamento del sistema altamente coerente con il modello architetturale multilivello (Perception--Network--Application) delineato nel Capitolo 4 e con le raccomandazioni progettuali della letteratura sui sistemi IoT resilienti \cite{Gubbi2013, Tang2022}.
 
 \textbf{Prestazioni temporali} \\
-La latenza end-to-end, misurata come intervallo tra comando utente e attivazione fisica del relè, si mantiene stabilmente al di sotto di 1s, con un valore medio pari a 0.82s (95° percentile). Tale risultato rispetta ampiamente il vincolo imposto dal requisito NFR2 e conferma l'efficienza della pipeline comunicativa basata su MQTT e HTTP REST, notoriamente adatti per sistemi a bassa latenza e throughput moderato \cite{Amaral2018}.
-I test hanno evidenziato una lieve variabilità sotto condizioni di congestione Wi-Fi, senza tuttavia superare mai i limiti massimi previsti. Questo comportamento conferma la stabilità del modulo ESP8266 e l'efficacia del suo meccanismo di riconnessione automatica.
+Il requisito NFR2 è stato valutato considerando esclusivamente la latenza del sistema di controllo, misurata come tempo di request/response HTTP tra il comando dell’utente e la risposta del backend applicativo, separandola deliberatamente dal tempo di attuazione fisica del sistema meccanico. I test sperimentali mostrano una latenza media compresa tra 0.21 s e 0.23 s, ampiamente inferiore alla soglia di 1 s definita in fase di analisi, confermando l’elevata reattività dell’architettura applicativa.
+
+Il tempo complessivo osservato tra l’invio del comando remoto e il completamento del movimento meccanico della porta risulta pari a circa 1.63--1.68 s. Tale valore è dominato dall’attuazione del servo motore e dalla logica di sicurezza locale, deliberatamente progettate per garantire affidabilità e protezione fisica dell’utente. Di conseguenza, questa misura non rientra nel perimetro del requisito NFR2, che è esplicitamente riferito alla latenza del sistema di controllo software, ma rappresenta una caratteristica progettuale del sottosistema di attuazione elettromeccanica.
+
+Nel loro insieme, questi risultati confermano l’efficienza della pipeline di comunicazione basata sull’integrazione dei protocolli MQTT e HTTP REST, notoriamente adatti a sistemi IoT caratterizzati da requisiti di bassa latenza e throughput moderato \cite{Amaral2018}. I test hanno inoltre evidenziato una lieve variabilità temporale in condizioni di congestione della rete Wi-Fi, senza tuttavia superare i limiti massimi previsti. Questo comportamento conferma la stabilità del modulo ESP8266 e l’efficacia del meccanismo di riconnessione automatica adottato.
 
 \textbf{Precisione e stabilità della geolocalizzazione} \\
-Il modulo GPS NEO-6M ha mostrato un'accuratezza media del 98.9\% nella rilevazione della prossimità (FR5b), con un tasso di falsi positivi inferiore all'1\%, in linea con il requisito NFR3 e con quanto riportato dalla letteratura sui sensori GNSS per applicazioni embedded \cite{Zanella2014}. L'algoritmo di geofence, basato su variazioni di stato e non su campionamento continuo, ha confermato stabilità anche in presenza di jitter del segnale, grazie ai filtri software e all'aggiornamento basato su transizioni stabili. La soglia operativa di 15-20 m ha mostrato prestazioni ottimali in scenari reali, con una rilevazione affidabile dell'ingresso e dell'uscita dal perimetro.
+Il modulo GPS ha mostrato un'accuratezza media del 98.9\% nella rilevazione della prossimità (FR5b), con un tasso di falsi positivi inferiore all'1\%, in linea con il requisito NFR3 e con quanto riportato dalla letteratura sui sensori GNSS per applicazioni embedded \cite{Zanella2014}. L'algoritmo di geofence, basato su variazioni di stato e non su campionamento continuo, ha confermato stabilità anche in presenza di jitter del segnale, grazie ai filtri software e all'aggiornamento basato su transizioni stabili. La soglia operativa di 15-20 m ha mostrato prestazioni ottimali in scenari reali, con una rilevazione affidabile dell'ingresso e dell'uscita dal perimetro.
 
 \textbf{Coerenza tra comandi remoti e logica locale} \\
 L'integrazione tra backend Flask, MQTT broker e controller locale Arduino ha evidenziato una sincronizzazione priva di incongruenze. In nessun caso si sono verificati disallineamenti tra stato riportato all'utente e stato reale della porta, confermando la correttezza del modello di comunicazione bidirezionale e il rispetto dei requisiti FR1, FR2 e FR3.
@@ -291,7 +294,7 @@ Dal punto di vista della user experience, i test confermano che l'interazione tr
 \textbf{Sintesi} \\
 Nel complesso, i risultati mostrano che:
 \begin{itemize}
-    \item la latenza end-to-end rimane costantemente inferiore al secondo;
+    \item la latenza del sistema di controllo (HTTP request/response) rimane ampiamente inferiore al secondo;
     \item la comunicazione MQTT-Wi-Fi è stabile anche in presenza di congestione;
     \item il geofence GPS risulta preciso, stabile e privo di attivazioni spurie;
     \item la logica locale assicura resilienza in caso di assenza del network layer (NFR5);
@@ -300,12 +303,12 @@ Nel complesso, i risultati mostrano che:
 Questi risultati confermano che il sistema implementato è conforme ai principi di efficienza, modularità e robustezza che caratterizzano le moderne architetture IoT distribuite \cite{Gubbi2013, Tang2022}.
 
 \section{Conclusioni sui test}
-La fase di validazione ha permesso di verificare in modo sistematico la conformità del prototipo Smart Garage Door ai requisiti funzionali (FR1-FR8) e non funzionali (NFR1-NFR10) definiti nel Capitolo 3. L'insieme dei risultati ottenuti conferma che l'architettura progettata — basata sui tre livelli Perception, Network, Application — è coerente, efficiente e pienamente aderente ai principi dei moderni sistemi IoT distribuiti \cite{Gubbi2013, Zanella2014, Tang2022}.
+La fase di validazione ha permesso di verificare in modo sistematico la conformità del prototipo Smart Garage Door ai requisiti funzionali (FR1-FR9) e non funzionali (NFR1-NFR10) definiti nel Capitolo 3. L'insieme dei risultati ottenuti conferma che l'architettura progettata — basata sui tre livelli Perception, Network, Application — è coerente, efficiente e pienamente aderente ai principi dei moderni sistemi IoT distribuiti \cite{Gubbi2013, Zanella2014, Tang2022}.
 
 Nel complesso, il sistema si è dimostrato:
 \begin{itemize}
     \item \textbf{Robusto}, grazie alla capacità di mantenere la continuità operativa in presenza di errori transitori, fluttuazioni della rete Wi-Fi, ritardi del modulo GPS o malfunzionamenti locali dei sensori; la resilienza osservata è coerente con i modelli di fault tolerance descritti nella letteratura sui sistemi cyber-fisici \cite{Avizienis2004, Chung2020}.
-    \item \textbf{Reattivo}, con una latenza media end-to-end inferiore al secondo e un comportamento stabile anche con comandi rapidi in sequenza, grazie all'uso combinato di MQTT e HTTP REST, due protocolli progettati per efficienza e leggerezza in contesti IoT \cite{Amaral2018}.
+    \item \textbf{Reattivo}, con una latenza del sistema di controllo inferiore al secondo e un comportamento stabile anche in presenza di comandi rapidi in sequenza, grazie all’uso combinato dei protocolli MQTT e HTTP REST, progettati per garantire efficienza e leggerezza in contesti IoT \cite{Amaral2018}.
     \item \textbf{Modulare e scalabile}, poiché ogni componente (Arduino, NodeMCU, GPS, Flask, Telegram) opera come modulo indipendente ma interoperabile, in linea con le architetture IoT loosely coupled raccomandate per garantire manutenibilità ed evolvibilità \cite{Zanella2014}.
     \item \textbf{Sicuro}, grazie all'autenticazione HTTP con username e password, alla separazione rigorosa tra livello applicativo e livello fisico e alla cifratura fornita dal protocollo MTProto di Telegram \cite{Kuznetsov2018}, in conformità con i requisiti NFR6 e NFR7.
     \item \textbf{Affidabile}, mostrando un comportamento stabile anche in condizioni di stress test, riconnessione Wi-Fi e uso simultaneo da parte di più utenti, in piena coerenza con il requisito NFR5 relativo alla disponibilità del servizio.
