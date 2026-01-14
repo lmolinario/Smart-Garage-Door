@@ -86,7 +86,12 @@ def test_gps_event_updates_state_and_publishes(client, monkeypatch):
 
     monkeypatch.setattr(app, "mqttc", SimpleNamespace(publish=fake_publish))
 
-    response = client.post("/gps", json={"value": 1, "lat": 45.0, "lon": 9.0})
+    # /gps richiede autenticazione
+    response = client.post(
+        "/gps",
+        json={"value": 1, "lat": 45.0, "lon": 9.0},
+        auth=("admin", "admin123")
+    )
     assert response.status_code == 200
     data = response.get_json()
     assert data["status"] == "ok"
@@ -150,10 +155,10 @@ def test_on_message_updates_motion_and_obstacle():
 
 def test_add_and_delete_user_flow_with_basic_auth(client):
     """Verifica il ciclo completo di aggiunta e rimozione utente in modalità admin."""
-    from requests.auth import HTTPBasicAuth
+    # Flask test client usa tupla (username, password) per basic auth
+    auth = ("admin", "admin123")
 
     new_user = {"username": "tester", "password": "pwd123"}
-    auth = HTTPBasicAuth("admin", "admin123")
 
     created = client.post("/addUser", json=new_user, auth=auth)
     assert created.status_code == 200
@@ -168,9 +173,8 @@ def test_add_and_delete_user_flow_with_basic_auth(client):
 
 def test_change_password_admin_mode_updates_hash(client):
     """La modalità admin deve permettere cambio password e salvataggio su file."""
-    from requests.auth import HTTPBasicAuth
-
-    auth = HTTPBasicAuth("admin", "admin123")
+    # Flask test client usa tupla (username, password) per basic auth
+    auth = ("admin", "admin123")
     payload = {
         "username": "admin",
         "new_password": "nuova_password",
