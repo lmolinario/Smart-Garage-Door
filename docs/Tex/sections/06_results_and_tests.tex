@@ -282,7 +282,7 @@ La verifica dei requisiti FR5a e FR5b è particolarmente rilevante poiché rappr
 \section{Test prestazionali e non funzionali}
 La validazione dei requisiti non funzionali (NFR1-NFR10) è stata condotta con l'obiettivo di verificare la qualità complessiva del sistema in termini di prestazioni, affidabilità, sicurezza, consumo energetico e costi. I requisiti non funzionali svolgono un ruolo centrale nella valutazione dei sistemi IoT, poiché determinano la sostenibilità operativa del prototipo, la sua efficienza nel lungo periodo e la capacità di funzionare in scenari reali caratterizzati da condizioni variabili e potenziali fault \cite{Avizienis2004, Tang2022}.
 
-La metodologia adottata ha incluso misure sperimentali ripetute, prove di stress, test di carico e scenari di fault injection controllato. Sono state inoltre condotte valutazioni di energy profiling e misure di latenza complessiva del sistema, distinguendo tra latenza del sistema di controllo e tempo di attuazione fisica, così come raccomandato nelle linee guida per sistemi distribuiti real-time \cite{Lee2015} e architetture IoT ad alta disponibilità \cite{Zanella2014}.
+La metodologia adottata ha incluso misure sperimentali ripetute, prove di stress e test di carico e scenari di fault injection controllato. Sono state inoltre condotte valutazioni di energy profiling e misure di latenza complessiva del sistema, distinguendo tra latenza del sistema di controllo e tempo di attuazione fisica, così come raccomandato nelle linee guida per sistemi distribuiti real-time \cite{Lee2015} e architetture IoT ad alta disponibilità \cite{Zanella2014}.
 
 La Tabella \ref{tab:nfr_tests} riassume gli esiti delle misurazioni per ciascun requisito.
 
@@ -309,8 +309,7 @@ La Tabella \ref{tab:nfr_tests} riassume gli esiti delle misurazioni per ciascun 
 I risultati confermano la piena conformità agli obiettivi prestazionali del progetto. La pipeline di comunicazione UART, Wi-Fi, MQTT e HTTP REST ha mantenuto una latenza del sistema di controllo inferiore al secondo anche in condizioni di carico elevato, dimostrando una notevole reattività dell’architettura applicativa. L'accuratezza del modulo GPS e l'efficienza del meccanismo di geofence soddisfano pienamente i requisiti relativi all'automazione di prossimità (FR5a-FR5b) e confermano l'efficacia della strategia event-driven adottata \cite{Sanchez2018}. Il consumo energetico complessivo è risultato compatibile con scenari di alimentazione a batteria (NFR9), mentre il costo ridotto dei componenti conferma la sostenibilità economica dell'implementazione (NFR10), in linea con quanto previsto nelle fasi di planning e design.
 
 
-\newpage
-\subsection*{Prestazioni e valutazione temporale}
+\subsection{Prestazioni e valutazione temporale}
 
 Per valutare la reattività e l’efficienza del sistema \textit{Smart Garage Door}, sono stati misurati i principali indicatori prestazionali lungo l’intera catena di controllo, distinguendo tra latenza di comunicazione e tempo complessivo di risposta end-to-end. In particolare, le misure considerano sia la latenza introdotta dallo stack di rete e dal livello applicativo (HTTP/REST, MQTT, Flask), sia il contributo dovuto all’attuazione meccanica del sistema (movimento del servo).
 
